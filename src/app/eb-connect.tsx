@@ -8,7 +8,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Empty, Field, SectionTitle } from '@/components/ui';
+import { Button, Card, Empty, Field, SectionTitle, SelectField } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { notify } from '@/lib/confirm';
 import { loadCredentials, syncConnection } from '@/lib/connectors';
@@ -18,6 +18,7 @@ import {
   listBanks,
   startAuth,
   EB_APP_CALLBACK,
+  EB_COUNTRIES,
   type Aspsp,
   type EnableBankingCredentials,
 } from '@/lib/connectors/enablebanking';
@@ -41,6 +42,7 @@ export default function EbConnect() {
   const [redirectUrl, setRedirectUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [banks, setBanks] = useState<Aspsp[] | null>(null);
+  const [country, setCountry] = useState('FR');
   const [filter, setFilter] = useState('');
   const [pendingBank, setPendingBank] = useState<Aspsp | null>(null);
   const [manualRedirect, setManualRedirect] = useState('');
@@ -79,11 +81,11 @@ export default function EbConnect() {
     }
   };
 
-  const loadBankList = async () => {
+  const loadBankList = async (forCountry: string) => {
     if (!creds) return;
     setBusy(true);
     try {
-      setBanks(await listBanks(creds));
+      setBanks(await listBanks(creds, forCountry));
     } catch (e: any) {
       notify('Erreur', String(e?.message ?? e));
     } finally {
@@ -149,7 +151,7 @@ export default function EbConnect() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Banques françaises' }} />
+      <Stack.Screen options={{ title: 'Banques (Enable Banking)' }} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         {!creds ? (
           <>
@@ -215,11 +217,27 @@ export default function EbConnect() {
             )}
 
             <SectionTitle>Ajouter une banque</SectionTitle>
-            {!banks ? (
-              <Button title="Charger la liste des banques (FR)" onPress={loadBankList} loading={busy} />
-            ) : (
+            <Card>
+              <SelectField
+                label="Pays de la banque"
+                value={country}
+                onChange={(c) => {
+                  setCountry(c);
+                  setBanks(null);
+                }}
+                options={EB_COUNTRIES.map((c) => ({ value: c.code, label: c.label }))}
+                hint="Revolut se connecte via la Lituanie ; Fortuneo et BoursoBank via la France."
+              />
+              <Button
+                title={banks ? 'Recharger la liste' : 'Charger les banques'}
+                variant="secondary"
+                onPress={() => loadBankList(country)}
+                loading={busy}
+              />
+            </Card>
+            {banks && (
               <Card>
-                <Field label="Rechercher" value={filter} onChangeText={setFilter} placeholder="ex : Boursorama, Crédit Agricole…" />
+                <Field label="Rechercher" value={filter} onChangeText={setFilter} placeholder="ex : Revolut, Boursorama…" />
                 {filtered.length === 0 && <Empty text="Aucune banque trouvée." />}
                 {filtered.map((b) => (
                   <Pressable key={b.name} onPress={() => authorize(b)} style={styles.bankRow} disabled={busy}>

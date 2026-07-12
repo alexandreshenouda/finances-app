@@ -51,7 +51,7 @@ export const ACCOUNT_TYPE_COLORS: Record<AccountType, string> = {
   autre: '#64748B',
 };
 
-export type ConnectorProvider = 'binance' | 'kraken' | 'enablebanking';
+export type ConnectorProvider = 'binance' | 'kraken' | 'enablebanking' | 'traderepublic';
 
 /** Devises gérées. L'EUR est la devise de référence : tout est converti en EUR à l'affichage. */
 export type Currency = 'EUR' | 'USD' | 'CHF';
@@ -147,7 +147,8 @@ export interface Connection {
 export const PROVIDER_LABELS: Record<ConnectorProvider, string> = {
   binance: 'Binance',
   kraken: 'Kraken',
-  enablebanking: 'Enable Banking (banques FR)',
+  enablebanking: 'Enable Banking (banques UE)',
+  traderepublic: 'Trade Republic',
 };
 
 export type Period = '1M' | '3M' | '6M' | '1A' | 'YTD' | 'MAX';

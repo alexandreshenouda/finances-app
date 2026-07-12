@@ -82,9 +82,23 @@ export interface Aspsp {
   country: string;
 }
 
-/** Liste des banques françaises disponibles. */
-export async function listBanks(creds: EnableBankingCredentials): Promise<Aspsp[]> {
-  const json = await api(creds, '/aspsps?country=FR');
+/** Pays UE/EEE couramment utiles (Revolut = LT, N26 = DE, etc.). */
+export const EB_COUNTRIES: { code: string; label: string }[] = [
+  { code: 'FR', label: 'France' },
+  { code: 'LT', label: 'Lituanie (Revolut, Wise…)' },
+  { code: 'DE', label: 'Allemagne (N26, Trade Republic…)' },
+  { code: 'BE', label: 'Belgique' },
+  { code: 'ES', label: 'Espagne' },
+  { code: 'IT', label: 'Italie' },
+  { code: 'NL', label: 'Pays-Bas' },
+  { code: 'IE', label: 'Irlande' },
+  { code: 'PT', label: 'Portugal' },
+  { code: 'LU', label: 'Luxembourg' },
+];
+
+/** Liste des banques disponibles pour un pays donné (défaut : FR). */
+export async function listBanks(creds: EnableBankingCredentials, country = 'FR'): Promise<Aspsp[]> {
+  const json = await api(creds, `/aspsps?country=${encodeURIComponent(country)}`);
   return (json?.aspsps ?? []).map((a: any) => ({ name: a.name, country: a.country }));
 }
 

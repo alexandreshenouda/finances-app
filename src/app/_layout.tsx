@@ -40,6 +40,7 @@ export default function RootLayout() {
         <Stack.Screen name="holding-form" options={{ title: 'Ligne', presentation: 'modal' }} />
         <Stack.Screen name="connection-form" options={{ title: 'Connexion', presentation: 'modal' }} />
         <Stack.Screen name="eb-connect" options={{ title: 'Enable Banking' }} />
+        <Stack.Screen name="tr-connect" options={{ title: 'Trade Republic' }} />
       </Stack>
     </ThemeProvider>
   );

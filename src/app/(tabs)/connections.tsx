@@ -93,8 +93,9 @@ export default function Connections() {
       {Platform.OS === 'web' && (
         <Card style={{ borderColor: C.warning }}>
           <Text style={styles.webWarn}>
-            Dans un navigateur, les API de Binance, Kraken, Yahoo et Enable Banking sont bloquées (CORS).
-            La synchronisation fonctionne dans l'app Android ; ici, utilisez le suivi manuel et CoinGecko.
+            Dans un navigateur, les API de Binance, Kraken, Yahoo, Enable Banking et Trade Republic
+            sont bloquées (CORS). La synchronisation fonctionne dans l'app Android ; ici, utilisez le
+            suivi manuel et CoinGecko.
           </Text>
         </Card>
       )}
@@ -110,7 +111,12 @@ export default function Connections() {
           </Text>
           {c.lastError && <Text style={styles.connError}>{c.lastError}</Text>}
           <View style={styles.connButtons}>
-            <Button title="Synchroniser" onPress={() => onSync(c.id)} loading={syncing === c.id} style={{ flex: 1 }} />
+            {c.provider === 'traderepublic' ? (
+              // 2FA requise : la « synchro » repasse par l'écran interactif.
+              <Button title="Reconnecter" onPress={() => router.push({ pathname: '/tr-connect', params: { connectionId: c.id } })} style={{ flex: 1 }} />
+            ) : (
+              <Button title="Synchroniser" onPress={() => onSync(c.id)} loading={syncing === c.id} style={{ flex: 1 }} />
+            )}
             {c.provider === 'enablebanking' && (
               <Button title="Banques" variant="secondary" onPress={() => router.push({ pathname: '/eb-connect', params: { connectionId: c.id } })} style={{ flex: 1 }} />
             )}
@@ -127,11 +133,13 @@ export default function Connections() {
         </Text>
         <Button title="Binance (clé API lecture seule)" variant="secondary" onPress={() => router.push({ pathname: '/connection-form', params: { provider: 'binance' } })} />
         <Button title="Kraken (clé API lecture seule)" variant="secondary" onPress={() => router.push({ pathname: '/connection-form', params: { provider: 'kraken' } })} />
-        <Button title="Banques françaises via Enable Banking" variant="secondary" onPress={() => router.push('/eb-connect')} />
+        <Button title="Trade Republic (non officiel, 2FA)" variant="secondary" onPress={() => router.push('/tr-connect')} />
+        <Button title="Banques via Enable Banking (Revolut, FR…)" variant="secondary" onPress={() => router.push('/eb-connect')} />
         <Text style={styles.addNote}>
-          Enable Banking (gratuit, usage personnel) couvre les comptes courants des banques françaises
-          via DSP2. Les PEA, CTO et assurances vie ne sont pas couverts par les API bancaires : suivez-les
-          en manuel avec cours automatiques.
+          Enable Banking (gratuit, usage personnel) couvre les comptes courants via DSP2 : banques
+          françaises, et Revolut via la Lituanie. Les PEA, CTO et assurances vie ne sont pas couverts
+          par les API bancaires : suivez-les en manuel avec cours automatiques.{'\n\n'}
+          Trade Republic utilise une API non officielle (Android uniquement, 2FA à chaque synchro).
         </Text>
       </Card>
 

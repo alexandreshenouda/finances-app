@@ -19,7 +19,10 @@ sur l'appareil.
   - crypto : CoinGecko (id, ex. `bitcoin`).
 - **Synchronisation automatique** :
   - **Binance** et **Kraken** : clé API *lecture seule*, valorisation EUR via les cours de l'exchange ;
-  - **Banques françaises via Enable Banking** (DSP2) : soldes des comptes de paiement.
+  - **Banques via Enable Banking** (DSP2) : soldes des comptes de paiement — banques françaises,
+    et **Revolut** via la Lituanie (sélecteur de pays) ;
+  - **Trade Republic** : API *non officielle* (login téléphone/PIN + 2FA), liquidités + positions
+    valorisées en EUR. Android uniquement, à utiliser en connaissance de cause (voir plus bas).
 - **Snapshots quotidiens** : chaque mise à jour (cours, synchro ou saisie) enregistre au plus un
   point par jour et par compte ; les courbes se construisent à partir de ces points (report de la
   dernière valeur connue pour les comptes non mis à jour).
@@ -39,9 +42,18 @@ sur l'appareil.
   par les cours publics. C'est le choix de cette app.
 - **Enable Banking** est le seul agrégateur agréé avec un mode gratuit self-service
   (« restricted production ») limité à **vos propres comptes** — exactement le cas d'usage ici.
-- **CORS** : dans un navigateur, les API Binance, Kraken, Yahoo et Enable Banking refusent les
-  appels cross-origin. Ces fonctions marchent dans l'app **Android** (pas de CORS en natif).
-  Sur le web, le suivi manuel et CoinGecko fonctionnent.
+  Revolut, Fortuneo et BoursoBank n'exposent **pas** d'API directe pour les particuliers (DSP2
+  réservé aux prestataires agréés) : on passe donc par Enable Banking (Revolut = entité
+  lituanienne, Fortuneo et BoursoBank = France).
+- **Trade Republic** n'a aucune API officielle : le connecteur reprend le protocole non officiel
+  du web-login (téléphone/PIN → code 2FA) et du flux WebSocket. Conséquences : validation 2FA à
+  **chaque** synchronisation (pas de synchro silencieuse), fonctionne uniquement en natif Android,
+  et **peut casser** si Trade Republic change son protocole ou active son pare-feu applicatif.
+- **Yuh** (néobanque suisse) est hors périmètre DSP2 et n'expose pas d'API personnelle : suivi
+  manuel uniquement.
+- **CORS** : dans un navigateur, les API Binance, Kraken, Yahoo, Enable Banking et Trade Republic
+  refusent les appels cross-origin. Ces fonctions marchent dans l'app **Android** (pas de CORS en
+  natif). Sur le web, le suivi manuel et CoinGecko fonctionnent.
 
 ## Lancer l'app
 
