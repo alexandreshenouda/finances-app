@@ -1,17 +1,26 @@
-/** Calculs de valorisation et de séries temporelles pour les courbes. */
+/** Calculs de valorisation et de séries temporelles pour les courbes.
+ *  Convention : cash et cours sont dans la devise du compte/de la ligne,
+ *  les snapshots et toutes les valeurs agrégées sont en EUR. */
+import { toEur } from './fx';
 import { addDays, todayKey } from './format';
-import type { Account, Holding, Period, Snapshot } from './types';
+import type { Account, Currency, FxRates, Holding, Period, Snapshot } from './types';
 
-/** Valeur actuelle d'un compte : liquidités + Σ lignes valorisées, sinon dernier snapshot. */
+/** Devise effective d'une ligne : la sienne, sinon celle du compte, sinon EUR. */
+export function holdingCurrency(h: Holding, account?: Account): Currency {
+  return h.currency ?? account?.currency ?? 'EUR';
+}
+
+/** Valeur actuelle d'un compte en EUR : liquidités + Σ lignes, sinon dernier snapshot. */
 export function accountCurrentValue(
   account: Account,
   holdings: Holding[],
-  snapshots: Snapshot[]
+  snapshots: Snapshot[],
+  rates: FxRates
 ): number {
   const lines = holdings.filter((h) => h.accountId === account.id);
-  const cash = account.cashBalance ?? 0;
+  const cash = toEur(account.cashBalance ?? 0, account.currency, rates);
   if (lines.length > 0) {
-    const sum = lines.reduce((acc, h) => acc + holdingValue(h), 0);
+    const sum = lines.reduce((acc, h) => acc + holdingValueEur(h, account, rates), 0);
     return cash + sum;
   }
   if (account.cashBalance !== undefined) return cash;
@@ -19,8 +28,14 @@ export function accountCurrentValue(
   return last?.value ?? 0;
 }
 
+/** Valeur d'une ligne dans sa propre devise. */
 export function holdingValue(h: Holding): number {
   return h.quantity * (h.unitPrice ?? 0);
+}
+
+/** Valeur d'une ligne convertie en EUR. */
+export function holdingValueEur(h: Holding, account: Account | undefined, rates: FxRates): number {
+  return toEur(holdingValue(h), holdingCurrency(h, account), rates);
 }
 
 /** Plus/moins-value latente en % par rapport au PRU, si connu. */

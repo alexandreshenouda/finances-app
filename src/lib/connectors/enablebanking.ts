@@ -4,7 +4,9 @@
  *
  * Prérequis (gratuit pour un usage personnel, mode « restricted production ») :
  *  1. Créer un compte sur https://enablebanking.com et une application.
- *  2. Enregistrer l'URL de redirection `patrimoine://eb-callback` dans l'application.
+ *  2. Enregistrer l'URL de redirection https de la page de rebond (docs/eb-callback.html,
+ *     déployée par ex. via GitHub Pages) dans l'application — Enable Banking n'accepte pas
+ *     les schémas personnalisés type patrimoine:// en redirect_url.
  *  3. Récupérer l'Application ID et la clé privée PEM, à coller dans l'écran Connexions.
  *
  * Authentification API : JWT RS256 signé avec la clé privée de l'application.

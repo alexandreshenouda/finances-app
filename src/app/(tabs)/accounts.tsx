@@ -19,6 +19,7 @@ export default function Accounts() {
   const accounts = useStore((s) => s.accounts);
   const holdings = useStore((s) => s.holdings);
   const snapshots = useStore((s) => s.snapshots);
+  const rates = useStore((s) => s.fxRates);
 
   const groups = useMemo(() => {
     const active = accounts.filter((a) => !a.archived);
@@ -28,7 +29,7 @@ export default function Accounts() {
     })).filter((g) => g.items.length > 0);
   }, [accounts]);
 
-  const value = (a: Account) => accountCurrentValue(a, holdings, snapshots);
+  const value = (a: Account) => accountCurrentValue(a, holdings, snapshots, rates);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -56,6 +57,7 @@ export default function Accounts() {
                   <Text style={styles.rowName}>{a.name}</Text>
                   <Text style={styles.rowSub}>
                     {a.institution ?? '—'}
+                    {a.currency && a.currency !== 'EUR' ? `  ·  ${a.currency}` : ''}
                     {a.connectionId ? '  ·  synchronisé' : ''}
                   </Text>
                 </View>

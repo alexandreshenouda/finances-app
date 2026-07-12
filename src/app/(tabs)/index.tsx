@@ -16,6 +16,7 @@ export default function Dashboard() {
   const accounts = useStore((s) => s.accounts);
   const holdings = useStore((s) => s.holdings);
   const snapshots = useStore((s) => s.snapshots);
+  const rates = useStore((s) => s.fxRates);
   const [period, setPeriod] = useState<Period>('6M');
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -23,8 +24,8 @@ export default function Dashboard() {
   const active = useMemo(() => accounts.filter((a) => !a.archived), [accounts]);
 
   const totalValue = useMemo(
-    () => active.reduce((acc, a) => acc + accountCurrentValue(a, holdings, snapshots), 0),
-    [active, holdings, snapshots]
+    () => active.reduce((acc, a) => acc + accountCurrentValue(a, holdings, snapshots, rates), 0),
+    [active, holdings, snapshots, rates]
   );
 
   const series = useMemo(
@@ -37,11 +38,11 @@ export default function Dashboard() {
   const byType = useMemo(() => {
     const m = new Map<AccountType, number>();
     for (const a of active) {
-      const v = accountCurrentValue(a, holdings, snapshots);
+      const v = accountCurrentValue(a, holdings, snapshots, rates);
       if (v > 0) m.set(a.type, (m.get(a.type) ?? 0) + v);
     }
     return m;
-  }, [active, holdings, snapshots]);
+  }, [active, holdings, snapshots, rates]);
 
   const onRefresh = async () => {
     setRefreshing(true);

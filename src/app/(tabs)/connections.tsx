@@ -1,13 +1,15 @@
 /** Connexions externes (Binance, Kraken, Enable Banking) + sauvegarde des données. */
 import * as Clipboard from 'expo-clipboard';
+import { File, Paths } from 'expo-file-system';
 import { useRouter } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Empty, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
 import { syncConnection } from '@/lib/connectors';
-import { formatDate } from '@/lib/format';
+import { formatDate, todayKey } from '@/lib/format';
 import { connectionSecretKey, deleteSecret } from '@/lib/secure';
 import { exportData, useStore, type AppData } from '@/lib/store';
 import { PROVIDER_LABELS } from '@/lib/types';
@@ -42,16 +44,47 @@ export default function Connections() {
     notify('Export', 'Données copiées dans le presse-papiers (sans les identifiants). Collez-les dans un fichier pour les sauvegarder.');
   };
 
-  const onImport = async () => {
-    const text = await Clipboard.getStringAsync();
+  /** Import commun : accepte les exports V1 (sans devise) comme V2 — champs currency optionnels. */
+  const applyImport = (text: string, sourceLabel: string) => {
     try {
       const data = JSON.parse(text) as AppData;
       if (!Array.isArray(data.accounts)) throw new Error('format invalide');
-      confirmAction('Importer', `Remplacer les données actuelles par ${data.accounts.length} compte(s) du presse-papiers ?`, () =>
+      confirmAction('Importer', `Remplacer les données actuelles par ${data.accounts.length} compte(s) ${sourceLabel} ?`, () =>
         importData(data)
       );
     } catch {
-      notify('Import impossible', 'Le presse-papiers ne contient pas un export valide.');
+      notify('Import impossible', `${sourceLabel} ne contient pas un export valide.`);
+    }
+  };
+
+  const onImport = async () => {
+    applyImport(await Clipboard.getStringAsync(), 'du presse-papiers');
+  };
+
+  const onExportFile = async () => {
+    try {
+      const file = new File(Paths.cache, `patrimoine-${todayKey()}.json`);
+      file.write(JSON.stringify(exportData(), null, 2));
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, {
+          mimeType: 'application/json',
+          dialogTitle: 'Exporter les données Patrimoine',
+        });
+      } else {
+        notify('Export', `Fichier écrit : ${file.uri}`);
+      }
+    } catch (e: any) {
+      notify('Export impossible', String(e?.message ?? e));
+    }
+  };
+
+  const onImportFile = async () => {
+    try {
+      const picked = await File.pickFileAsync({ mimeTypes: 'application/json' });
+      if (picked.canceled || !picked.result) return;
+      applyImport(picked.result.textSync(), `du fichier ${picked.result.name}`);
+    } catch (e: any) {
+      notify('Import impossible', String(e?.message ?? e));
     }
   };
 
@@ -104,8 +137,18 @@ export default function Connections() {
 
       <SectionTitle>Sauvegarde</SectionTitle>
       <Card>
+        {Platform.OS !== 'web' && (
+          <>
+            <Button title="Exporter vers un fichier…" variant="secondary" onPress={onExportFile} />
+            <Button title="Importer depuis un fichier…" variant="secondary" onPress={onImportFile} />
+          </>
+        )}
         <Button title="Exporter les données (presse-papiers)" variant="secondary" onPress={onExport} />
         <Button title="Importer depuis le presse-papiers" variant="secondary" onPress={onImport} />
+        <Text style={styles.addNote}>
+          Les exports contiennent comptes, lignes et historique (jamais les identifiants). Les
+          anciens exports restent importables.
+        </Text>
       </Card>
     </ScrollView>
   );

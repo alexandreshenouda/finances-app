@@ -23,7 +23,13 @@ sur l'appareil.
 - **Snapshots quotidiens** : chaque mise à jour (cours, synchro ou saisie) enregistre au plus un
   point par jour et par compte ; les courbes se construisent à partir de ces points (report de la
   dernière valeur connue pour les comptes non mis à jour).
-- **Export / import** JSON des données via le presse-papiers (sans les identifiants).
+- **Multi-devises** : comptes et lignes en EUR (défaut), USD ou CHF — saisie dans la devise
+  d'origine, affichage et courbes convertis en € avec les taux BCE
+  ([frankfurter.dev](https://frankfurter.dev), rafraîchis à chaque mise à jour, derniers taux
+  conservés hors ligne).
+- **Export / import** JSON (sans les identifiants) : presse-papiers partout, et fichier
+  (partage / sélecteur de documents) sur Android. Les exports V1 sans devise restent importables
+  (traités en EUR).
 
 ## Pourquoi certaines choses sont comme elles sont
 

@@ -2,13 +2,13 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { Button, Card, Chips, Field } from '@/components/ui';
+import { Button, Card, Chips, Field, SelectField } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { todayKey } from '@/lib/format';
 import { accountCurrentValue } from '@/lib/portfolio';
 import { useStore } from '@/lib/store';
-import type { PriceSource } from '@/lib/types';
+import { CURRENCIES, CURRENCY_LABELS, type Currency, type PriceSource } from '@/lib/types';
 
 const SOURCES: PriceSource[] = ['manual', 'yahoo', 'coingecko'];
 const SOURCE_LABELS: Record<string, string> = {
@@ -27,8 +27,14 @@ export default function HoldingForm() {
   const { accountId, holdingId } = useLocalSearchParams<{ accountId: string; holdingId?: string }>();
   const router = useRouter();
   const existing = useStore((s) => s.holdings.find((h) => h.id === holdingId));
+  const account = useStore((s) => s.accounts.find((a) => a.id === accountId));
   const upsertHolding = useStore((s) => s.upsertHolding);
   const deleteHolding = useStore((s) => s.deleteHolding);
+
+  const accountCurrency: Currency = account?.currency ?? 'EUR';
+  // '' = même devise que le compte (champ currency absent sur la ligne).
+  const [currency, setCurrency] = useState<Currency | ''>(existing?.currency ?? '');
+  const effectiveCurrency: Currency = currency === '' ? accountCurrency : currency;
 
   const [name, setName] = useState(existing?.name ?? '');
   const [source, setSource] = useState<PriceSource>(existing?.priceSource ?? 'yahoo');
@@ -41,10 +47,10 @@ export default function HoldingForm() {
 
   const refreshAccountSnapshot = () => {
     const state = useStore.getState();
-    const account = state.accounts.find((a) => a.id === accountId);
-    if (!account) return;
-    const value = accountCurrentValue(account, state.holdings, state.snapshots);
-    state.recordSnapshot(account.id, value, 'manual', todayKey());
+    const acc = state.accounts.find((a) => a.id === accountId);
+    if (!acc) return;
+    const value = accountCurrentValue(acc, state.holdings, state.snapshots, state.fxRates);
+    state.recordSnapshot(acc.id, value, 'manual', todayKey());
   };
 
   const save = () => {
@@ -54,6 +60,7 @@ export default function HoldingForm() {
       id: existing?.id,
       accountId: accountId!,
       name: name.trim(),
+      currency: currency === '' ? undefined : currency,
       priceSource: source,
       symbol: symbol.trim() || undefined,
       isin: isin.trim() || undefined,
@@ -76,7 +83,7 @@ export default function HoldingForm() {
 
   const symbolHint =
     source === 'yahoo'
-      ? 'Ticker Yahoo Finance : WPEA.PA, CW8.PA, AAPL… Le cours sera converti en € si besoin.'
+      ? 'Ticker Yahoo Finance : WPEA.PA, CW8.PA, AAPL… Le cours sera converti dans la devise de la ligne si besoin.'
       : source === 'coingecko'
         ? 'Identifiant CoinGecko : bitcoin, ethereum, solana… (voir coingecko.com)'
         : 'Sans symbole : saisissez le cours unitaire à la main et mettez-le à jour de temps en temps.';
@@ -99,16 +106,26 @@ export default function HoldingForm() {
               hint={symbolHint}
             />
           )}
+          <SelectField
+            label="Devise de la ligne"
+            value={currency}
+            onChange={setCurrency}
+            options={[
+              { value: '' as const, label: `Devise du compte (${accountCurrency})` },
+              ...CURRENCIES.map((c) => ({ value: c as Currency | '', label: CURRENCY_LABELS[c] })),
+            ]}
+            hint={effectiveCurrency !== 'EUR' ? 'Cours et PRU saisis dans cette devise ; la valeur est convertie en € à l\'affichage.' : undefined}
+          />
           <Field label="Quantité / nombre de parts" value={quantity} onChangeText={setQuantity} keyboardType="decimal-pad" placeholder="ex : 12,5" />
           <Field
-            label={`Cours unitaire en € ${source === 'manual' ? '' : '(optionnel, mis à jour automatiquement)'}`}
+            label={`Cours unitaire en ${effectiveCurrency} ${source === 'manual' ? '' : '(optionnel, mis à jour automatiquement)'}`}
             value={unitPrice}
             onChangeText={setUnitPrice}
             keyboardType="decimal-pad"
             placeholder="ex : 105,3"
             hint={source === 'manual' ? symbolHint : undefined}
           />
-          <Field label="Prix de revient unitaire — PRU (optionnel)" value={buyPrice} onChangeText={setBuyPrice} keyboardType="decimal-pad" placeholder="ex : 92" hint="Sert à afficher la plus/moins-value latente." />
+          <Field label={`Prix de revient unitaire en ${effectiveCurrency} — PRU (optionnel)`} value={buyPrice} onChangeText={setBuyPrice} keyboardType="decimal-pad" placeholder="ex : 92" hint="Sert à afficher la plus/moins-value latente." />
           <Field label="Frais courants du fonds en % (optionnel)" value={feesPct} onChangeText={setFeesPct} keyboardType="decimal-pad" placeholder="ex : 0,38" />
           <Field label="ISIN (optionnel)" value={isin} onChangeText={setIsin} autoCapitalize="characters" placeholder="ex : IE0002XZSHO1" />
         </Card>

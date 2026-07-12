@@ -53,6 +53,23 @@ export const ACCOUNT_TYPE_COLORS: Record<AccountType, string> = {
 
 export type ConnectorProvider = 'binance' | 'kraken' | 'enablebanking';
 
+/** Devises gérées. L'EUR est la devise de référence : tout est converti en EUR à l'affichage. */
+export type Currency = 'EUR' | 'USD' | 'CHF';
+
+export const CURRENCIES: Currency[] = ['EUR', 'USD', 'CHF'];
+
+export const CURRENCY_LABELS: Record<Currency, string> = {
+  EUR: 'EUR — Euro',
+  USD: 'USD — Dollar américain',
+  CHF: 'CHF — Franc suisse',
+};
+
+/** Taux de conversion : 1 unité de devise → EUR. Mis à jour via l'API BCE (frankfurter). */
+export type FxRates = Record<Currency, number>;
+
+/** Valeurs de repli tant qu'aucun taux n'a été récupéré (ordre de grandeur mi-2026). */
+export const DEFAULT_FX_RATES: FxRates = { EUR: 1, USD: 0.86, CHF: 1.07 };
+
 export interface AccountFees {
   /** Frais d'entrée / de versement, en % */
   entryPct?: number;
@@ -69,7 +86,9 @@ export interface Account {
   type: AccountType;
   /** Établissement (ex : Boursorama, Binance…) */
   institution?: string;
-  /** Solde en espèces / liquidités (hors lignes de placement), en € */
+  /** Devise du compte ; absent = EUR (rétro-compatibilité des anciens exports) */
+  currency?: Currency;
+  /** Solde en espèces / liquidités (hors lignes de placement), dans la devise du compte */
   cashBalance?: number;
   fees?: AccountFees;
   /** Id de la connexion si le compte est synchronisé automatiquement */
@@ -91,11 +110,13 @@ export interface Holding {
   symbol?: string;
   priceSource: PriceSource;
   isin?: string;
+  /** Devise de la ligne si différente de celle du compte ; absent = devise du compte */
+  currency?: Currency;
   quantity: number;
-  /** Dernier cours unitaire connu, en € */
+  /** Dernier cours unitaire connu, dans la devise de la ligne */
   unitPrice?: number;
   unitPriceDate?: string; // ISO
-  /** Prix de revient unitaire (PRU), en € */
+  /** Prix de revient unitaire (PRU), dans la devise de la ligne */
   buyPrice?: number;
   /** Frais courants du fonds, en % */
   feesPct?: number;

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { todayKey, uid } from './format';
-import type { Account, Connection, Holding, Snapshot } from './types';
+import { DEFAULT_FX_RATES, type Account, type Connection, type FxRates, type Holding, type Snapshot } from './types';
 
 export interface AppData {
   accounts: Account[];
@@ -14,6 +14,11 @@ export interface AppData {
 
 interface AppState extends AppData {
   hydrated: boolean;
+
+  /** Derniers taux de change connus (1 unité → EUR), persistés pour le hors-ligne. */
+  fxRates: FxRates;
+  fxUpdatedAt?: string;
+  setFxRates: (rates: FxRates) => void;
 
   upsertAccount: (a: Partial<Account> & { name: string; type: Account['type'] }) => Account;
   deleteAccount: (id: string) => void;
@@ -39,6 +44,10 @@ export const useStore = create<AppState>()(
       snapshots: [],
       connections: [],
       hydrated: false,
+
+      fxRates: DEFAULT_FX_RATES,
+      fxUpdatedAt: undefined,
+      setFxRates: (rates) => set({ fxRates: rates, fxUpdatedAt: new Date().toISOString() }),
 
       upsertAccount: (a) => {
         const existing = a.id ? get().accounts.find((x) => x.id === a.id) : undefined;
@@ -118,6 +127,7 @@ export const useStore = create<AppState>()(
           ),
         })),
 
+      // Rétro-compatible : les exports V1 n'ont pas de champ currency (absent = EUR).
       importData: (data) =>
         set({
           accounts: data.accounts ?? [],
@@ -134,6 +144,8 @@ export const useStore = create<AppState>()(
         holdings: s.holdings,
         snapshots: s.snapshots,
         connections: s.connections,
+        fxRates: s.fxRates,
+        fxUpdatedAt: s.fxUpdatedAt,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) state.hydrated = true;

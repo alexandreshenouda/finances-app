@@ -1,4 +1,5 @@
 /** Primitives UI partagées : cartes, boutons, champs, badges. */
+import { Picker } from '@react-native-picker/picker';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -108,6 +109,47 @@ export function Chips<T extends string>({
   );
 }
 
+/** Liste déroulante générique (devise, etc.) sur base du Picker natif. */
+export function SelectField<T extends string>({
+  label,
+  value,
+  onChange,
+  options,
+  hint,
+}: {
+  label: string;
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+  hint?: string;
+}) {
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.pickerWrap}>
+        <Picker
+          selectedValue={value}
+          onValueChange={(v) => onChange(v as T)}
+          dropdownIconColor={C.textDim}
+          mode="dropdown"
+          style={styles.picker}
+        >
+          {options.map((o) => (
+            <Picker.Item
+              key={o.value}
+              label={o.label}
+              value={o.value}
+              color={C.text}
+              style={{ backgroundColor: C.cardAlt, fontSize: 15 }}
+            />
+          ))}
+        </Picker>
+      </View>
+      {hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}
+    </View>
+  );
+}
+
 export function Empty({ text }: { text: string }) {
   return <Text style={styles.empty}>{text}</Text>;
 }
@@ -159,6 +201,14 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: C.border,
   },
+  pickerWrap: {
+    backgroundColor: C.cardAlt,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.border,
+    overflow: 'hidden',
+  },
+  picker: { color: C.text, backgroundColor: 'transparent', borderWidth: 0, height: 44, paddingHorizontal: 8 },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   chip: {
     backgroundColor: C.cardAlt,

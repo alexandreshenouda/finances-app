@@ -1,21 +1,30 @@
 /** Formatage fr-FR des montants, pourcentages et dates. */
+import type { Currency } from './types';
 
-const eur = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-  maximumFractionDigits: 0,
-});
+const moneyFormatters = new Map<string, Intl.NumberFormat>();
 
-const eurPrecise = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
+function moneyFormatter(currency: Currency, precise: boolean): Intl.NumberFormat {
+  const key = `${currency}:${precise}`;
+  let f = moneyFormatters.get(key);
+  if (!f) {
+    f = new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: precise ? 2 : 0,
+      maximumFractionDigits: precise ? 2 : 0,
+    });
+    moneyFormatters.set(key, f);
+  }
+  return f;
+}
 
 export function formatEur(value: number, precise = false): string {
+  return formatMoney(value, 'EUR', precise);
+}
+
+export function formatMoney(value: number, currency: Currency = 'EUR', precise = false): string {
   if (!Number.isFinite(value)) return '—';
-  return precise ? eurPrecise.format(value) : eur.format(value);
+  return moneyFormatter(currency, precise).format(value);
 }
 
 export function formatQuantity(value: number): string {

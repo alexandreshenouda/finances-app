@@ -2,11 +2,19 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { Button, Card, Chips, Field, SectionTitle } from '@/components/ui';
+import { Button, Card, Chips, Field, SectionTitle, SelectField } from '@/components/ui';
 import { C } from '@/constants/theme';
+import { toEur } from '@/lib/fx';
 import { todayKey } from '@/lib/format';
 import { useStore } from '@/lib/store';
-import { ACCOUNT_TYPE_LABELS, ACCOUNT_TYPE_ORDER, type AccountType } from '@/lib/types';
+import {
+  ACCOUNT_TYPE_LABELS,
+  ACCOUNT_TYPE_ORDER,
+  CURRENCIES,
+  CURRENCY_LABELS,
+  type AccountType,
+  type Currency,
+} from '@/lib/types';
 
 function parseNum(s: string): number | undefined {
   if (!s.trim()) return undefined;
@@ -23,6 +31,7 @@ export default function AccountForm() {
 
   const [name, setName] = useState(existing?.name ?? '');
   const [type, setType] = useState<AccountType>(existing?.type ?? 'pea');
+  const [currency, setCurrency] = useState<Currency>(existing?.currency ?? 'EUR');
   const [institution, setInstitution] = useState(existing?.institution ?? '');
   const [cash, setCash] = useState(existing?.cashBalance?.toString() ?? '');
   const [entryPct, setEntryPct] = useState(existing?.fees?.entryPct?.toString() ?? '');
@@ -43,13 +52,15 @@ export default function AccountForm() {
       id: existing?.id,
       name: name.trim(),
       type,
+      currency: currency === 'EUR' ? undefined : currency,
       institution: institution.trim() || undefined,
       cashBalance: parseNum(cash),
       fees: hasFees ? fees : undefined,
     });
-    // Premier point de courbe pour un nouveau compte avec solde initial.
+    // Premier point de courbe (en EUR) pour un nouveau compte avec solde initial.
     if (!existing && parseNum(cash) !== undefined) {
-      recordSnapshot(account.id, parseNum(cash)!, 'manual', todayKey());
+      const rates = useStore.getState().fxRates;
+      recordSnapshot(account.id, toEur(parseNum(cash)!, currency, rates), 'manual', todayKey());
     }
     router.back();
   };
@@ -63,8 +74,15 @@ export default function AccountForm() {
           <Text style={styles.label}>Type de compte</Text>
           <Chips options={ACCOUNT_TYPE_ORDER} value={type} onChange={setType} labels={ACCOUNT_TYPE_LABELS} />
           <Field label="Établissement (optionnel)" value={institution} onChangeText={setInstitution} placeholder="ex : Boursorama" />
+          <SelectField
+            label="Devise du compte"
+            value={currency}
+            onChange={setCurrency}
+            options={CURRENCIES.map((c) => ({ value: c, label: CURRENCY_LABELS[c] }))}
+            hint={currency !== 'EUR' ? 'Les montants saisis sont dans cette devise ; l\'affichage est converti en € automatiquement.' : undefined}
+          />
           <Field
-            label="Liquidités / solde espèces en € (optionnel)"
+            label={`Liquidités / solde espèces en ${currency} (optionnel)`}
             value={cash}
             onChangeText={setCash}
             keyboardType="decimal-pad"

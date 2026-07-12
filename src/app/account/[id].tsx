@@ -6,8 +6,17 @@ import { LineChart } from '@/components/LineChart';
 import { Button, Card, Chips, Dot, Empty, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
-import { formatDate, formatEur, formatPct, formatQuantity } from '@/lib/format';
-import { accountCurrentValue, buildSeries, holdingPerfPct, holdingValue, lastSnapshot } from '@/lib/portfolio';
+import { toEur } from '@/lib/fx';
+import { formatDate, formatEur, formatMoney, formatPct, formatQuantity } from '@/lib/format';
+import {
+  accountCurrentValue,
+  buildSeries,
+  holdingCurrency,
+  holdingPerfPct,
+  holdingValue,
+  holdingValueEur,
+  lastSnapshot,
+} from '@/lib/portfolio';
 import { useStore } from '@/lib/store';
 import { ACCOUNT_TYPE_COLORS, ACCOUNT_TYPE_LABELS, PERIODS, type Period } from '@/lib/types';
 
@@ -17,6 +26,7 @@ export default function AccountDetail() {
   const account = useStore((s) => s.accounts.find((a) => a.id === id));
   const allHoldings = useStore((s) => s.holdings);
   const snapshots = useStore((s) => s.snapshots);
+  const rates = useStore((s) => s.fxRates);
   const recordSnapshot = useStore((s) => s.recordSnapshot);
   const deleteAccount = useStore((s) => s.deleteAccount);
 
@@ -33,9 +43,10 @@ export default function AccountDetail() {
     return <Empty text="Compte introuvable." />;
   }
 
-  const value = accountCurrentValue(account, allHoldings, snapshots);
+  const value = accountCurrentValue(account, allHoldings, snapshots, rates);
   const last = lastSnapshot(account.id, snapshots);
   const isSynced = !!account.connectionId;
+  const accountCurrency = account.currency ?? 'EUR';
   const fees = account.fees;
   const hasFees =
     fees && (fees.entryPct !== undefined || fees.managementPct !== undefined || fees.custodyAnnual !== undefined || fees.notes);
@@ -43,11 +54,11 @@ export default function AccountDetail() {
   const saveManualValue = () => {
     const v = parseFloat(manualValue.replace(',', '.'));
     if (!Number.isFinite(v)) return;
-    // Sans lignes, la valeur courante vient de cashBalance : on l'aligne aussi.
+    // Saisie dans la devise du compte ; le snapshot (courbes) est toujours en EUR.
     if (holdings.length === 0 && account.cashBalance !== undefined) {
       useStore.getState().upsertAccount({ ...account, cashBalance: v });
     }
-    recordSnapshot(account.id, v, 'manual');
+    recordSnapshot(account.id, toEur(v, accountCurrency, rates), 'manual');
     setManualValue('');
   };
 
@@ -70,6 +81,7 @@ export default function AccountDetail() {
             <Dot color={ACCOUNT_TYPE_COLORS[account.type]} />
             <Text style={styles.typeLabel}>{ACCOUNT_TYPE_LABELS[account.type]}</Text>
             {account.institution ? <Text style={styles.institution}> · {account.institution}</Text> : null}
+            {accountCurrency !== 'EUR' ? <Text style={styles.institution}> · {accountCurrency}</Text> : null}
           </View>
           <Text style={styles.value}>{formatEur(value)}</Text>
           {last && (
@@ -88,8 +100,13 @@ export default function AccountDetail() {
             <View style={[styles.holdingRow, holdings.length > 0 && styles.rowBorder]}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.holdingName}>Liquidités</Text>
+                {accountCurrency !== 'EUR' && (
+                  <Text style={styles.holdingSub}>{formatMoney(account.cashBalance!, accountCurrency, true)}</Text>
+                )}
               </View>
-              <Text style={styles.holdingValue}>{formatEur(account.cashBalance!)}</Text>
+              <Text style={styles.holdingValue}>
+                {formatEur(toEur(account.cashBalance!, accountCurrency, rates))}
+              </Text>
             </View>
           )}
           {holdings.length === 0 && (account.cashBalance ?? 0) === 0 && (
@@ -97,6 +114,7 @@ export default function AccountDetail() {
           )}
           {holdings.map((h, i) => {
             const perf = holdingPerfPct(h);
+            const hCur = holdingCurrency(h, account);
             return (
               <Pressable
                 key={h.id}
@@ -110,12 +128,12 @@ export default function AccountDetail() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.holdingName}>{h.name}</Text>
                   <Text style={styles.holdingSub}>
-                    {formatQuantity(h.quantity)} × {h.unitPrice !== undefined ? formatEur(h.unitPrice, true) : '—'}
+                    {formatQuantity(h.quantity)} × {h.unitPrice !== undefined ? formatMoney(h.unitPrice, hCur, true) : '—'}
                     {h.feesPct !== undefined ? `  ·  frais ${formatPct(h.feesPct, false, 2)}` : ''}
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.holdingValue}>{formatEur(holdingValue(h))}</Text>
+                  <Text style={styles.holdingValue}>{formatEur(holdingValueEur(h, account, rates))}</Text>
                   {perf !== undefined && (
                     <Text style={{ color: perf >= 0 ? C.positive : C.negative, fontSize: 12, fontWeight: '600' }}>
                       {formatPct(perf, true)}
@@ -144,7 +162,8 @@ export default function AccountDetail() {
             <SectionTitle>Mettre à jour la valeur</SectionTitle>
             <Card>
               <Text style={styles.manualHint}>
-                Saisissez la valeur totale actuelle du compte (un point par jour alimente la courbe).
+                Saisissez la valeur totale actuelle du compte en {accountCurrency} (un point par jour
+                alimente la courbe{accountCurrency !== 'EUR' ? ', converti en €' : ''}).
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TextInput
