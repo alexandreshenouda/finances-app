@@ -73,6 +73,26 @@ eas build -p android --profile preview   # nécessite un compte Expo (gratuit)
 
 (ou `npx expo run:android` avec Android Studio installé pour un build local).
 
+### Windows (application de bureau)
+
+La version Windows empaquette l'export web dans une coquille **Electron**. Un petit serveur HTTP
+local (port fixe `8099`) sert le build, et `webSecurity` est désactivé pour lever le CORS : les
+connecteurs (Binance, Kraken, Enable Banking, Yahoo, Trade Republic) **fonctionnent** sur Windows,
+contrairement à la version navigateur.
+
+```bash
+npm run windows:dev     # export web + lancement Electron (test rapide)
+npm run windows:build   # génère un installeur .exe dans release/
+```
+
+`windows:build` produit un installeur NSIS dans `release/`. Notes :
+
+- Les données (comptes, historique) sont dans le `localStorage` de l'origine `localhost:8099` —
+  d'où le **port fixe**, pour les conserver d'un lancement à l'autre.
+- Les secrets (clés API, identifiants) utilisent le repli `localStorage` d'`expo-secure-store`
+  (pas de coffre-fort OS comme l'Android Keystore) : **moins protégés que sur Android**. À garder
+  à l'esprit sur un poste partagé.
+
 ## Configurer les synchronisations
 
 ### Binance / Kraken
