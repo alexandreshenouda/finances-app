@@ -59,6 +59,32 @@ export function holdingPerfPct(h: Holding): number | undefined {
   return ((h.unitPrice - h.buyPrice) / h.buyPrice) * 100;
 }
 
+/**
+ * Plus/moins-value latente globale d'un compte, en EUR, agrégée sur les lignes
+ * dont le PRU est connu. `undefined` si aucune ligne n'a de PRU (compte cash,
+ * synchro sans prix d'achat…) — dans ce cas la +/- value n'est pas calculable.
+ * Non pondérée par la quote-part : elle se rapporte à la valeur affichée (pleine).
+ */
+export function accountGain(
+  account: Account,
+  holdings: Holding[],
+  rates: FxRates
+): { abs: number; pct?: number } | undefined {
+  const lines = holdings.filter((h) => h.accountId === account.id);
+  let cost = 0;
+  let gain = 0;
+  let any = false;
+  for (const h of lines) {
+    if (!h.buyPrice || !h.unitPrice || h.buyPrice <= 0) continue;
+    const cur = holdingCurrency(h, account);
+    cost += toEur(h.buyPrice * h.quantity, cur, rates);
+    gain += toEur((h.unitPrice - h.buyPrice) * h.quantity, cur, rates);
+    any = true;
+  }
+  if (!any || cost <= 0) return undefined;
+  return { abs: gain, pct: (gain / cost) * 100 };
+}
+
 export function lastSnapshot(accountId: string, snapshots: Snapshot[]): Snapshot | undefined {
   let best: Snapshot | undefined;
   for (const s of snapshots) {

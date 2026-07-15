@@ -5,7 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Dot, Empty } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { formatEur, formatPct } from '@/lib/format';
-import { accountCurrentValue } from '@/lib/portfolio';
+import { accountCurrentValue, accountGain } from '@/lib/portfolio';
 import { useStore } from '@/lib/store';
 import {
   ACCOUNT_TYPE_COLORS,
@@ -62,7 +62,19 @@ export default function Accounts() {
                     {a.connectionId ? '  ·  synchronisé' : ''}
                   </Text>
                 </View>
-                <Text style={styles.rowValue}>{formatEur(value(a))}</Text>
+                <View style={styles.rowRight}>
+                  <Text style={styles.rowValue}>{formatEur(value(a))}</Text>
+                  {(() => {
+                    const g = accountGain(a, holdings, rates);
+                    return g ? (
+                      <Text style={[styles.rowPerf, { color: g.abs >= 0 ? C.positive : C.negative }]}>
+                        {g.abs >= 0 ? '+' : ''}
+                        {formatEur(g.abs)}
+                        {g.pct !== undefined ? `  ·  ${formatPct(g.pct, true)}` : ''}
+                      </Text>
+                    ) : null;
+                  })()}
+                </View>
                 <Text style={styles.chevron}>›</Text>
               </Pressable>
             ))}
@@ -83,6 +95,8 @@ const styles = StyleSheet.create({
   rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
   rowName: { color: C.text, fontSize: 15, fontWeight: '500' },
   rowSub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
-  rowValue: { color: C.text, fontSize: 15, fontWeight: '600', marginLeft: 8 },
+  rowRight: { alignItems: 'flex-end', marginLeft: 8 },
+  rowValue: { color: C.text, fontSize: 15, fontWeight: '600' },
+  rowPerf: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
 });

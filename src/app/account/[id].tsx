@@ -10,6 +10,7 @@ import { toEur } from '@/lib/fx';
 import { formatDate, formatEur, formatMoney, formatPct, formatQuantity } from '@/lib/format';
 import {
   accountCurrentValue,
+  accountGain,
   accountShare,
   buildSeries,
   holdingCurrency,
@@ -45,6 +46,7 @@ export default function AccountDetail() {
   }
 
   const value = accountCurrentValue(account, allHoldings, snapshots, rates);
+  const gain = accountGain(account, allHoldings, rates);
   const share = accountShare(account);
   const last = lastSnapshot(account.id, snapshots);
   const isSynced = !!account.connectionId;
@@ -86,6 +88,14 @@ export default function AccountDetail() {
             {accountCurrency !== 'EUR' ? <Text style={styles.institution}> · {accountCurrency}</Text> : null}
           </View>
           <Text style={styles.value}>{formatEur(value)}</Text>
+          {gain && (
+            <Text style={[styles.gain, { color: gain.abs >= 0 ? C.positive : C.negative }]}>
+              {gain.abs >= 0 ? '+' : ''}
+              {formatEur(gain.abs)}
+              {gain.pct !== undefined ? `  (${formatPct(gain.pct, true)})` : ''}
+              <Text style={styles.gainLabel}>  de +/- value latente</Text>
+            </Text>
+          )}
           {share < 1 && (
             <Text style={styles.ownership}>
               Votre part ({formatPct(account.ownershipPct!)}) : {formatEur(value * share)}
@@ -227,6 +237,8 @@ const styles = StyleSheet.create({
   typeLabel: { color: C.textDim, fontSize: 13, fontWeight: '600' },
   institution: { color: C.textFaint, fontSize: 13 },
   value: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 6 },
+  gain: { fontSize: 14, fontWeight: '600', marginTop: 4 },
+  gainLabel: { color: C.textFaint, fontSize: 12, fontWeight: '400' },
   ownership: { color: C.textDim, fontSize: 13, fontWeight: '600', marginTop: 2 },
   lastUpdate: { color: C.textFaint, fontSize: 12, marginTop: 2 },
   holdingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
