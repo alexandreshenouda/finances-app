@@ -8,6 +8,7 @@
     "scheme": "patrimoine",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "fr.perso.patrimoine",
       "icon": "./assets/expo.icon"
     },
     "android": {
