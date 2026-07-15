@@ -41,6 +41,10 @@ interface AppState extends AppData {
   patrimoineNet: boolean;
   setPatrimoineNet: (v: boolean) => void;
 
+  /** Inclure les biens immobiliers dans le patrimoine total (pas les comptes bancaires immo). Défaut : oui. */
+  showRealEstate: boolean;
+  setShowRealEstate: (v: boolean) => void;
+
   upsertAccount: (a: Partial<Account> & { name: string; type: Account['type'] }) => Account;
   deleteAccount: (id: string) => void;
 
@@ -84,6 +88,9 @@ export const useStore = create<AppState>()(
 
       patrimoineNet: true,
       setPatrimoineNet: (v) => set({ patrimoineNet: v }),
+
+      showRealEstate: true,
+      setShowRealEstate: (v) => set({ showRealEstate: v }),
 
       upsertAccount: (a) => {
         const existing = a.id ? get().accounts.find((x) => x.id === a.id) : undefined;
@@ -230,6 +237,7 @@ export const useStore = create<AppState>()(
         houseIndex: s.houseIndex,
         houseIndexUpdatedAt: s.houseIndexUpdatedAt,
         patrimoineNet: s.patrimoineNet,
+        showRealEstate: s.showRealEstate,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) state.hydrated = true;

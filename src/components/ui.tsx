@@ -112,6 +112,26 @@ export function Chips<T extends string>({
   );
 }
 
+/** Case à cocher avec libellé, alignée à gauche. */
+export function Checkbox({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <Pressable style={styles.checkboxRow} onPress={() => onChange(!value)} hitSlop={8}>
+      <View style={[styles.checkboxBox, value && styles.checkboxBoxOn]}>
+        {value && <Text style={styles.checkboxTick}>✓</Text>}
+      </View>
+      <Text style={styles.checkboxLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
 /**
  * Sélecteur de période : 5 échelles courantes en puces, les autres dans un
  * menu déroulant. La puce « ··· » reprend l'échelle secondaire active si besoin.
@@ -307,6 +327,20 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   chipText: { color: C.textDim, fontSize: 13 },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center' },
+  checkboxBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: C.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  checkboxBoxOn: { backgroundColor: C.accent, borderColor: C.accent },
+  checkboxTick: { color: '#fff', fontSize: 12, fontWeight: '700', lineHeight: 16 },
+  checkboxLabel: { color: C.text, fontSize: 14 },
   menuBackdrop: { flex: 1 },
   menu: {
     position: 'absolute',

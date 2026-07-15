@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AllocationBar } from '@/components/AllocationBar';
 import { LineChart } from '@/components/LineChart';
-import { Button, Card, Chips, Empty, PeriodChips, SectionTitle } from '@/components/ui';
+import { PieChart } from '@/components/PieChart';
+import { Button, Card, Checkbox, Chips, Empty, PeriodChips, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { syncAllConnections } from '@/lib/connectors';
 import { formatEur, formatPct } from '@/lib/format';
@@ -17,6 +18,9 @@ import { type AccountType, type Period } from '@/lib/types';
 const WORTH_MODES = ['net', 'brut'] as const;
 const WORTH_LABELS: Record<(typeof WORTH_MODES)[number], string> = { net: 'Net', brut: 'Brut' };
 
+const ALLOC_VIEWS = ['barre', 'camembert'] as const;
+const ALLOC_LABELS: Record<(typeof ALLOC_VIEWS)[number], string> = { barre: 'Barre', camembert: 'Camembert' };
+
 export default function Dashboard() {
   const accounts = useStore((s) => s.accounts);
   const holdings = useStore((s) => s.holdings);
@@ -27,7 +31,10 @@ export default function Dashboard() {
   const houseIndex = useStore((s) => s.houseIndex);
   const patrimoineNet = useStore((s) => s.patrimoineNet);
   const setPatrimoineNet = useStore((s) => s.setPatrimoineNet);
+  const showRealEstate = useStore((s) => s.showRealEstate);
+  const setShowRealEstate = useStore((s) => s.setShowRealEstate);
   const [period, setPeriod] = useState<Period>('1A');
+  const [allocView, setAllocView] = useState<(typeof ALLOC_VIEWS)[number]>('barre');
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -45,12 +52,27 @@ export default function Dashboard() {
   );
 
   const hasRealEstate = properties.some((p) => !p.archived);
-  const grossTotal = accountsValue + re.gross;
-  const totalValue = patrimoineNet ? grossTotal - re.debt : grossTotal;
+  // Contribution des biens immobiliers, neutralisée si l'utilisateur les masque
+  // (les comptes bancaires de type « immobilier » restent toujours comptés).
+  const reGross = showRealEstate ? re.gross : 0;
+  const reDebt = showRealEstate ? re.debt : 0;
+  const reEquity = showRealEstate ? re.equity : 0;
+  const grossTotal = accountsValue + reGross;
+  const totalValue = patrimoineNet ? grossTotal - reDebt : grossTotal;
 
   const series = useMemo(
-    () => buildPatrimoineSeries(active, snapshots, properties, loans, series0, rates, period, patrimoineNet),
-    [active, snapshots, properties, loans, series0, rates, period, patrimoineNet]
+    () =>
+      buildPatrimoineSeries(
+        active,
+        snapshots,
+        showRealEstate ? properties : [],
+        showRealEstate ? loans : [],
+        series0,
+        rates,
+        period,
+        patrimoineNet
+      ),
+    [active, snapshots, showRealEstate, properties, loans, series0, rates, period, patrimoineNet]
   );
 
   const delta = useMemo(() => seriesDelta(series), [series]);
@@ -61,10 +83,10 @@ export default function Dashboard() {
       const v = accountCurrentValue(a, holdings, snapshots, rates) * accountShare(a);
       if (v > 0) m.set(a.type, (m.get(a.type) ?? 0) + v);
     }
-    const immo = patrimoineNet ? re.equity : re.gross;
+    const immo = patrimoineNet ? reEquity : reGross;
     if (immo > 0) m.set('immobilier', (m.get('immobilier') ?? 0) + immo);
     return m;
-  }, [active, holdings, snapshots, rates, re, patrimoineNet]);
+  }, [active, holdings, snapshots, rates, reEquity, reGross, patrimoineNet]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -97,7 +119,7 @@ export default function Dashboard() {
       <Card>
         <View style={styles.totalHeader}>
           <Text style={styles.totalLabel}>Patrimoine total</Text>
-          {hasRealEstate && (
+          {hasRealEstate && showRealEstate && (
             <Chips
               options={WORTH_MODES}
               value={patrimoineNet ? 'net' : 'brut'}
@@ -107,11 +129,11 @@ export default function Dashboard() {
           )}
         </View>
         <Text style={styles.totalValue}>{formatEur(totalValue)}</Text>
-        {hasRealEstate && re.debt > 0 && (
+        {hasRealEstate && showRealEstate && reDebt > 0 && (
           <Text style={styles.worthNote}>
             {patrimoineNet
-              ? `Net de ${formatEur(re.debt)} de crédits immobiliers`
-              : `Brut · ${formatEur(re.debt)} de crédits non déduits`}
+              ? `Net de ${formatEur(reDebt)} de crédits immobiliers`
+              : `Brut · ${formatEur(reDebt)} de crédits non déduits`}
           </Text>
         )}
         {series.length >= 2 && (
@@ -125,15 +147,33 @@ export default function Dashboard() {
         <View style={{ height: 12 }} />
         <PeriodChips value={period} onChange={setPeriod} />
         <LineChart points={series} />
+        {hasRealEstate && (
+          <View style={styles.reToggle}>
+            <Checkbox
+              label="Inclure les biens immobiliers"
+              value={showRealEstate}
+              onChange={setShowRealEstate}
+            />
+          </View>
+        )}
       </Card>
 
       <Button title="Rafraîchir cours et synchronisations" variant="secondary" onPress={onRefresh} loading={refreshing} />
       {message && <Text style={styles.message}>{message}</Text>}
 
-      <SectionTitle>Répartition</SectionTitle>
+      <View style={styles.allocHeader}>
+        <SectionTitle>Répartition</SectionTitle>
+        {byType.size > 0 && (
+          <Chips options={ALLOC_VIEWS} value={allocView} onChange={setAllocView} labels={ALLOC_LABELS} />
+        )}
+      </View>
       <Card>
         {byType.size > 0 ? (
-          <AllocationBar byType={byType} />
+          allocView === 'camembert' ? (
+            <PieChart byType={byType} />
+          ) : (
+            <AllocationBar byType={byType} />
+          )
         ) : (
           <Empty text="Ajoutez des comptes dans l'onglet Comptes pour voir la répartition." />
         )}
@@ -146,6 +186,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
   content: { padding: 16, paddingBottom: 40 },
   totalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  allocHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  reToggle: { marginTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border, paddingTop: 12 },
   totalLabel: { color: C.textDim, fontSize: 14 },
   worthNote: { color: C.textFaint, fontSize: 12, marginTop: 2 },
   totalValue: { color: C.text, fontSize: 34, fontWeight: '700', marginTop: 2 },
