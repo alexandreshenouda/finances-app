@@ -3,7 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LineChart } from '@/components/LineChart';
-import { Button, Card, Chips, Empty, ProgressBar, SectionTitle } from '@/components/ui';
+import { Button, Card, Empty, PeriodChips, ProgressBar, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { formatDate, formatDuration, formatEur, formatMoney, formatPct } from '@/lib/format';
@@ -18,7 +18,7 @@ import {
   propertyGainEur,
 } from '@/lib/realestate';
 import { useStore } from '@/lib/store';
-import { ACCOUNT_TYPE_COLORS, PERIODS, PROPERTY_KIND_LABELS, type Currency, type Loan, type Period } from '@/lib/types';
+import { ACCOUNT_TYPE_COLORS, PROPERTY_KIND_LABELS, type Currency, type Loan, type Period } from '@/lib/types';
 
 const IMMO = ACCOUNT_TYPE_COLORS.immobilier;
 
@@ -73,7 +73,7 @@ export default function PropertyDetail() {
             <Text style={styles.gainRef}>  vs prix d'achat</Text>
           </Text>
           <View style={{ height: 12 }} />
-          <Chips options={PERIODS} value={period} onChange={setPeriod} />
+          <PeriodChips value={period} onChange={setPeriod} />
           <LineChart points={valueSeries} color={IMMO} />
           <Text style={styles.estimateNote}>
             {property.valuationMode === 'manual'

@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AllocationBar } from '@/components/AllocationBar';
 import { LineChart } from '@/components/LineChart';
-import { Button, Card, Chips, Empty, SectionTitle } from '@/components/ui';
+import { Button, Card, Chips, Empty, PeriodChips, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { syncAllConnections } from '@/lib/connectors';
 import { formatEur, formatPct } from '@/lib/format';
@@ -12,7 +12,7 @@ import { refreshAllPrices } from '@/lib/prices';
 import { houseIndexSeries, refreshHouseIndex } from '@/lib/prices/houseIndex';
 import { buildPatrimoineSeries, realEstateTotals } from '@/lib/realestate';
 import { useStore } from '@/lib/store';
-import { PERIODS, type AccountType, type Period } from '@/lib/types';
+import { type AccountType, type Period } from '@/lib/types';
 
 const WORTH_MODES = ['net', 'brut'] as const;
 const WORTH_LABELS: Record<(typeof WORTH_MODES)[number], string> = { net: 'Net', brut: 'Brut' };
@@ -27,7 +27,7 @@ export default function Dashboard() {
   const houseIndex = useStore((s) => s.houseIndex);
   const patrimoineNet = useStore((s) => s.patrimoineNet);
   const setPatrimoineNet = useStore((s) => s.setPatrimoineNet);
-  const [period, setPeriod] = useState<Period>('6M');
+  const [period, setPeriod] = useState<Period>('1A');
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -123,7 +123,7 @@ export default function Dashboard() {
           </Text>
         )}
         <View style={{ height: 12 }} />
-        <Chips options={PERIODS} value={period} onChange={setPeriod} />
+        <PeriodChips value={period} onChange={setPeriod} />
         <LineChart points={series} />
       </Card>
 

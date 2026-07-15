@@ -3,7 +3,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LineChart } from '@/components/LineChart';
-import { Button, Card, Chips, Dot, Empty, SectionTitle } from '@/components/ui';
+import { Button, Card, Dot, Empty, PeriodChips, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { toEur } from '@/lib/fx';
@@ -19,7 +19,7 @@ import {
   lastSnapshot,
 } from '@/lib/portfolio';
 import { useStore } from '@/lib/store';
-import { ACCOUNT_TYPE_COLORS, ACCOUNT_TYPE_LABELS, PERIODS, type Period } from '@/lib/types';
+import { ACCOUNT_TYPE_COLORS, ACCOUNT_TYPE_LABELS, type Period } from '@/lib/types';
 
 export default function AccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -97,7 +97,7 @@ export default function AccountDetail() {
             </Text>
           )}
           <View style={{ height: 12 }} />
-          <Chips options={PERIODS} value={period} onChange={setPeriod} />
+          <PeriodChips value={period} onChange={setPeriod} />
           <LineChart points={series} color={ACCOUNT_TYPE_COLORS[account.type]} />
         </Card>
 

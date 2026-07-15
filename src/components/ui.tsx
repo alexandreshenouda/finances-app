@@ -1,8 +1,10 @@
 /** Primitives UI partagées : cartes, boutons, champs, badges. */
 import { Picker } from '@react-native-picker/picker';
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -13,6 +15,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { C } from '@/constants/theme';
+import { PERIODS_PRIMARY, PERIODS_SECONDARY, type Period } from '@/lib/types';
 
 export function Card({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   return <View style={[styles.card, style]}>{children}</View>;
@@ -105,6 +108,83 @@ export function Chips<T extends string>({
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+/**
+ * Sélecteur de période : 5 échelles courantes en puces, les autres dans un
+ * menu déroulant. La puce « ··· » reprend l'échelle secondaire active si besoin.
+ */
+export function PeriodChips({ value, onChange }: { value: Period; onChange: (p: Period) => void }) {
+  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState({ x: 0, y: 0, w: 0, h: 0 });
+  const triggerRef = useRef<View>(null);
+
+  const secondaryActive = PERIODS_SECONDARY.includes(value);
+  const moreLabel = secondaryActive ? value : '···';
+
+  const openMenu = () => {
+    triggerRef.current?.measureInWindow((x, y, w, h) => {
+      setAnchor({ x, y, w, h });
+      setOpen(true);
+    });
+  };
+
+  const screenW = Dimensions.get('window').width;
+
+  return (
+    <View style={styles.chipsRow}>
+      {PERIODS_PRIMARY.map((opt) => {
+        const active = opt === value;
+        return (
+          <Pressable
+            key={opt}
+            onPress={() => onChange(opt)}
+            style={[styles.chip, active && { backgroundColor: C.accent }]}
+          >
+            <Text style={[styles.chipText, active && { color: '#fff', fontWeight: '600' }]}>{opt}</Text>
+          </Pressable>
+        );
+      })}
+      <Pressable
+        ref={triggerRef}
+        onPress={openMenu}
+        style={[styles.chip, secondaryActive && { backgroundColor: C.accent }]}
+      >
+        <Text style={[styles.chipText, secondaryActive && { color: '#fff', fontWeight: '600' }]}>
+          {moreLabel}
+        </Text>
+      </Pressable>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.menuBackdrop} onPress={() => setOpen(false)}>
+          <View
+            style={[
+              styles.menu,
+              { top: anchor.y + anchor.h + 6, right: Math.max(8, screenW - (anchor.x + anchor.w)) },
+            ]}
+          >
+            {PERIODS_SECONDARY.map((opt) => {
+              const active = opt === value;
+              return (
+                <Pressable
+                  key={opt}
+                  onPress={() => {
+                    onChange(opt);
+                    setOpen(false);
+                  }}
+                  style={styles.menuItem}
+                >
+                  <Text style={[styles.menuItemText, active && { color: C.accent, fontWeight: '700' }]}>
+                    {opt}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -227,5 +307,22 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   chipText: { color: C.textDim, fontSize: 13 },
+  menuBackdrop: { flex: 1 },
+  menu: {
+    position: 'absolute',
+    backgroundColor: C.card,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: C.border,
+    paddingVertical: 4,
+    minWidth: 88,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  menuItem: { paddingVertical: 10, paddingHorizontal: 16 },
+  menuItemText: { color: C.text, fontSize: 14 },
   empty: { color: C.textFaint, fontSize: 14, textAlign: 'center', paddingVertical: 24 },
 });

@@ -76,6 +76,12 @@ export interface SeriesPoint {
 export function periodStart(period: Period, today = todayKey()): string | undefined {
   const d = new Date(`${today}T12:00:00`);
   switch (period) {
+    case '1J':
+      d.setDate(d.getDate() - 1);
+      break;
+    case '1S':
+      d.setDate(d.getDate() - 7);
+      break;
     case '1M':
       d.setMonth(d.getMonth() - 1);
       break;

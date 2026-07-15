@@ -154,9 +154,13 @@ export const PROVIDER_LABELS: Record<ConnectorProvider, string> = {
   traderepublic: 'Trade Republic',
 };
 
-export type Period = '1M' | '3M' | '6M' | '1A' | 'YTD' | 'MAX';
+export type Period = '1J' | '1S' | '1M' | '3M' | '6M' | '1A' | 'YTD' | 'MAX';
 
-export const PERIODS: Period[] = ['1M', '3M', '6M', '1A', 'YTD', 'MAX'];
+export const PERIODS: Period[] = ['1J', '1S', '1M', '3M', '6M', '1A', 'YTD', 'MAX'];
+
+/** Échelles affichées directement (5 puces) ; les autres passent dans le menu déroulant. */
+export const PERIODS_PRIMARY: Period[] = ['1J', '1S', '1M', '1A', 'MAX'];
+export const PERIODS_SECONDARY: Period[] = ['3M', '6M', 'YTD'];
 
 // ─── Immobilier ──────────────────────────────────────────────────────────────
 
