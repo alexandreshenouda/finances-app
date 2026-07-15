@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Text } from 'react-native';
+import { Logo } from '@/components/Logo';
 import { C } from '@/constants/theme';
 
 function TabIcon({ glyph, focused }: { glyph: string; focused: boolean }) {
@@ -22,7 +23,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Patrimoine',
+          headerTitle: () => <Logo />,
+          title: 'Synthèse',
           tabBarLabel: 'Synthèse',
           tabBarIcon: ({ focused }) => <TabIcon glyph="📈" focused={focused} />,
         }}

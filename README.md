@@ -1,16 +1,31 @@
-# Patrimoine
+# Finances
 
-Application de suivi des investissements financiers — **React Native (Expo)**, un seul codebase
-pour **Android** et **Web**. Sans backend : toutes les données et tous les identifiants restent
-sur l'appareil.
+Application de suivi du patrimoine (nom affiché : **Finances**) — **React Native (Expo)**, un seul
+codebase pour **Android**, **iOS** et **Web**, plus une version de bureau **Windows** (Electron).
+Sans backend : toutes les données et tous les identifiants restent sur l'appareil.
 
 ## Fonctionnalités
 
-- **Courbes de suivi** du patrimoine total et de chaque compte sur 1M / 3M / 6M / 1A / YTD / Max
-  (inspection au doigt, variation absolue et en %).
+- **Patrimoine net ou brut** : la synthèse totalise comptes + immobilier, avec un basculement
+  **Net** (actifs − crédits) / **Brut**, et une case pour **inclure ou non les biens immobiliers**
+  dans le total (les comptes bancaires de type immobilier, eux, sont toujours comptés).
+- **Courbes de suivi** du patrimoine total et de chaque compte sur 1J / 1S / 1M / 3M / 6M / 1A /
+  YTD / Max — les 5 échelles courantes en puces, les autres dans un menu déroulant (inspection au
+  doigt, variation absolue et en %).
 - **Comptes classés par type** : compte courant, livret, PEA, CTO, assurance vie, PER, crypto,
-  immobilier, autre — avec répartition du patrimoine par type.
+  immobilier, autre — avec répartition du patrimoine par type, en **barre empilée ou camembert**.
 - **Lignes / fonds par compte** : quantité, cours, valeur, plus/moins-value vs PRU, frais.
+- **Plus/moins-value latente par compte** : agrégée sur les lignes à PRU connu, affichée dans la
+  liste des comptes et sur le détail (en € et en %, convertie en EUR pour les comptes multi-devises).
+- **Immobilier** : onglet dédié pour les biens physiques (appartement, maison, terrain…) —
+  - **valeur estimée** réévaluée automatiquement via un indice national des prix des logements
+    (INSEE, embarqué pour un fonctionnement hors-ligne), avec surcharge manuelle possible ;
+  - **plus-value latente** (valeur − prix de revient), en € et en % ;
+  - **crédits immobiliers** : échéancier d'amortissement calculé (mensualité, capital restant dû,
+    coût total, temps restant), en mensualités **constantes** ou **échelonnées par paliers**
+    (différé total/partiel géré), avec courbe du capital restant dû ;
+  - **quote-part détenue** (SCI / indivision) sur un bien ou un compte immobilier : le montant
+    complet reste affiché, mais seule votre part est comptée dans le patrimoine.
 - **Frais** : frais d'entrée, de gestion, droits de garde par compte ; frais courants par fonds.
 - **Ajout manuel** de comptes et de lignes quand la synchro est impossible (cas notamment des
   PEA / CTO / assurances vie, non couverts par les API bancaires — voir plus bas).
@@ -52,8 +67,9 @@ sur l'appareil.
 - **Yuh** (néobanque suisse) est hors périmètre DSP2 et n'expose pas d'API personnelle : suivi
   manuel uniquement.
 - **CORS** : dans un navigateur, les API Binance, Kraken, Yahoo, Enable Banking et Trade Republic
-  refusent les appels cross-origin. Ces fonctions marchent dans l'app **Android** (pas de CORS en
-  natif). Sur le web, le suivi manuel et CoinGecko fonctionnent.
+  refusent les appels cross-origin. Ces fonctions marchent dans les apps natives (**Android**,
+  **iOS** — pas de CORS en natif ; Trade Republic reste toutefois Android uniquement). Sur le web,
+  le suivi manuel et CoinGecko fonctionnent.
 
 ## Lancer l'app
 
@@ -61,17 +77,22 @@ sur l'appareil.
 npm install
 npm run web        # version web (http://localhost:8081)
 npm run android    # sur émulateur/appareil avec Android Studio, ou scannez le QR avec Expo Go
+npm run ios        # sur simulateur/appareil iOS (macOS + Xcode requis)
 ```
 
-Le plus simple sur téléphone : installer **Expo Go** (Play Store), lancer `npx expo start`,
-scanner le QR code. Pour un APK autonome :
+Le plus simple sur téléphone : installer **Expo Go** (Play Store / App Store), lancer
+`npx expo start`, scanner le QR code. Pour un binaire autonome :
 
 ```bash
-npm install -g eas-cli
-eas build -p android --profile preview   # nécessite un compte Expo (gratuit)
+npm install -g eas-cli                    # ou préfixer les commandes par `npx`
+eas build -p android --profile preview    # APK — nécessite un compte Expo (gratuit)
+eas build -p ios --profile preview        # .ipa — nécessite un compte Apple Developer (payant)
 ```
 
-(ou `npx expo run:android` avec Android Studio installé pour un build local).
+Le build iOS se fait sur le cloud EAS (pas besoin de macOS pour builder) ; EAS gère le
+provisioning (certificat + profil) au premier build via votre login Apple. L'app déclare
+`ios.bundleIdentifier` et `android.package` = `fr.perso.patrimoine`. Pour un build local,
+`npx expo run:android` (Android Studio) ou `npx expo run:ios` (macOS + Xcode).
 
 ### Windows (application de bureau)
 
@@ -128,21 +149,24 @@ npm run windows:build   # génère un installeur .exe dans release/
 
 ```
 src/
-  app/                 écrans (expo-router) : onglets Synthèse / Comptes / Connexions,
-                       détail de compte, formulaires, flux Enable Banking
-  components/          LineChart (SVG), AllocationBar, primitives UI
+  app/                 écrans (expo-router) : onglets Synthèse / Comptes / Immobilier /
+                       Connexions, détail de compte et de bien, formulaires (compte, ligne,
+                       bien, crédit), flux Enable Banking
+  components/          LineChart (SVG), AllocationBar, PieChart, ProgressBar, primitives UI
   lib/
-    types.ts           modèle : Account, Holding, Snapshot, Connection
+    types.ts           modèle : Account, Holding, Snapshot, Connection, Property, Loan
     store.ts           store zustand persisté (AsyncStorage)
     secure.ts          secrets (expo-secure-store, repli localStorage sur web)
-    portfolio.ts       valorisation + construction des séries temporelles
-    prices/            Yahoo Finance & CoinGecko
+    portfolio.ts       valorisation comptes + construction des séries temporelles
+    realestate.ts      estimation des biens, amortissement des crédits (constant/paliers)
+    prices/            Yahoo Finance, CoinGecko & indice immobilier INSEE (embarqué)
     connectors/        Binance, Kraken, Enable Banking (JWT RS256)
 ```
 
-Données locales : documents (comptes, lignes, snapshots, connexions) en JSON dans AsyncStorage ;
-secrets à part dans le stockage sécurisé. Aucun serveur tiers autre que les API officielles
-citées ci-dessus.
+Données locales : documents (comptes, lignes, snapshots, connexions, biens et crédits immobiliers)
+en JSON dans AsyncStorage ; secrets à part dans le stockage sécurisé. La valeur d'un bien et le
+capital restant dû d'un crédit étant calculables analytiquement à toute date, la courbe immobilière
+est dérivée sans stocker de snapshots. Aucun serveur tiers autre que les API officielles citées.
 
 ## Avertissement
 
