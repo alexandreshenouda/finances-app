@@ -1,5 +1,5 @@
 {
-  "name": "patrimoine",
+  "name": "finances",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "description": "Suivi des investissements financiers — multi-plateforme (Android, Web, Windows)",
@@ -61,7 +61,7 @@
   "private": true,
   "build": {
     "appId": "fr.perso.patrimoine",
-    "productName": "Patrimoine",
+    "productName": "Finances",
     "directories": {
       "output": "release"
     },

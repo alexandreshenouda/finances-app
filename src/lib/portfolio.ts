@@ -28,6 +28,21 @@ export function accountCurrentValue(
   return last?.value ?? 0;
 }
 
+/** Quote-part détenue du compte (0..1). Absent = 100 % (SCI/indivision : voir Account.ownershipPct). */
+export function accountShare(account: Account): number {
+  return account.ownershipPct === undefined ? 1 : Math.max(0, Math.min(100, account.ownershipPct)) / 100;
+}
+
+/** Valeur du compte revenant réellement au détenteur (valeur × quote-part), en EUR. */
+export function accountOwnedValue(
+  account: Account,
+  holdings: Holding[],
+  snapshots: Snapshot[],
+  rates: FxRates
+): number {
+  return accountCurrentValue(account, holdings, snapshots, rates) * accountShare(account);
+}
+
 /** Valeur d'une ligne dans sa propre devise. */
 export function holdingValue(h: Holding): number {
   return h.quantity * (h.unitPrice ?? 0);
@@ -93,7 +108,9 @@ export function buildSeries(
   accountIds: string[],
   snapshots: Snapshot[],
   period: Period,
-  today = todayKey()
+  today = todayKey(),
+  /** Pondération par compte (ex : quote-part SCI) ; défaut 1. */
+  weights?: Map<string, number>
 ): SeriesPoint[] {
   const relevant = snapshots
     .filter((s) => accountIds.includes(s.accountId))
@@ -135,7 +152,7 @@ export function buildSeries(
       cursors.set(accountId, i);
     }
     let total = 0;
-    for (const v of lastValues.values()) total += v;
+    for (const [accountId, v] of lastValues) total += v * (weights?.get(accountId) ?? 1);
     points.push({ date: day, value: total });
     if (day === today) break;
     const next = addDays(day, step);

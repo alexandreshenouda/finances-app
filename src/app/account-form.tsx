@@ -34,13 +34,17 @@ export default function AccountForm() {
   const [currency, setCurrency] = useState<Currency>(existing?.currency ?? 'EUR');
   const [institution, setInstitution] = useState(existing?.institution ?? '');
   const [cash, setCash] = useState(existing?.cashBalance?.toString() ?? '');
+  const [ownershipPct, setOwnershipPct] = useState(existing?.ownershipPct?.toString() ?? '');
   const [entryPct, setEntryPct] = useState(existing?.fees?.entryPct?.toString() ?? '');
   const [managementPct, setManagementPct] = useState(existing?.fees?.managementPct?.toString() ?? '');
   const [custody, setCustody] = useState(existing?.fees?.custodyAnnual?.toString() ?? '');
   const [feeNotes, setFeeNotes] = useState(existing?.fees?.notes ?? '');
 
+  const pct = parseNum(ownershipPct);
+  const pctValid = type !== 'immobilier' || pct === undefined || (pct > 0 && pct <= 100);
+
   const save = () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !pctValid) return;
     const fees = {
       entryPct: parseNum(entryPct),
       managementPct: parseNum(managementPct),
@@ -55,6 +59,8 @@ export default function AccountForm() {
       currency: currency === 'EUR' ? undefined : currency,
       institution: institution.trim() || undefined,
       cashBalance: parseNum(cash),
+      // Quote-part réservée aux comptes immobiliers ; 100 % ou vide = détention pleine.
+      ownershipPct: type === 'immobilier' && pct !== undefined && pct !== 100 ? pct : undefined,
       fees: hasFees ? fees : undefined,
     });
     // Premier point de courbe (en EUR) pour un nouveau compte avec solde initial.
@@ -89,6 +95,20 @@ export default function AccountForm() {
             placeholder="ex : 1500"
             hint="Pour un compte sans lignes (livret, fonds euros…), ce montant sert de valeur du compte."
           />
+          {type === 'immobilier' && (
+            <Field
+              label="Quote-part détenue en % (optionnel)"
+              value={ownershipPct}
+              onChangeText={setOwnershipPct}
+              keyboardType="decimal-pad"
+              placeholder="ex : 50 (SCI / indivision)"
+              hint={
+                !pctValid
+                  ? 'Saisissez un pourcentage entre 0 et 100.'
+                  : 'Laissez vide pour une détention pleine (100 %). Seule votre part est comptée dans le patrimoine ; le solde du compte reste affiché en entier.'
+              }
+            />
+          )}
         </Card>
 
         <SectionTitle>Frais (optionnel)</SectionTitle>
@@ -99,7 +119,7 @@ export default function AccountForm() {
           <Field label="Notes sur les frais" value={feeNotes} onChangeText={setFeeNotes} placeholder="ex : 0 % sur les ETF partenaires" />
         </Card>
 
-        <Button title="Enregistrer" onPress={save} disabled={!name.trim()} />
+        <Button title="Enregistrer" onPress={save} disabled={!name.trim() || !pctValid} />
         <Button title="Annuler" variant="secondary" onPress={() => router.back()} />
       </ScrollView>
     </>

@@ -10,6 +10,7 @@ import { toEur } from '@/lib/fx';
 import { formatDate, formatEur, formatMoney, formatPct, formatQuantity } from '@/lib/format';
 import {
   accountCurrentValue,
+  accountShare,
   buildSeries,
   holdingCurrency,
   holdingPerfPct,
@@ -44,6 +45,7 @@ export default function AccountDetail() {
   }
 
   const value = accountCurrentValue(account, allHoldings, snapshots, rates);
+  const share = accountShare(account);
   const last = lastSnapshot(account.id, snapshots);
   const isSynced = !!account.connectionId;
   const accountCurrency = account.currency ?? 'EUR';
@@ -84,6 +86,11 @@ export default function AccountDetail() {
             {accountCurrency !== 'EUR' ? <Text style={styles.institution}> · {accountCurrency}</Text> : null}
           </View>
           <Text style={styles.value}>{formatEur(value)}</Text>
+          {share < 1 && (
+            <Text style={styles.ownership}>
+              Votre part ({formatPct(account.ownershipPct!)}) : {formatEur(value * share)}
+            </Text>
+          )}
           {last && (
             <Text style={styles.lastUpdate}>
               Dernière valeur : {formatDate(last.date)} ({last.source === 'manual' ? 'saisie' : last.source === 'sync' ? 'synchro' : 'cours'})
@@ -220,6 +227,7 @@ const styles = StyleSheet.create({
   typeLabel: { color: C.textDim, fontSize: 13, fontWeight: '600' },
   institution: { color: C.textFaint, fontSize: 13 },
   value: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 6 },
+  ownership: { color: C.textDim, fontSize: 13, fontWeight: '600', marginTop: 2 },
   lastUpdate: { color: C.textFaint, fontSize: 12, marginTop: 2 },
   holdingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
   rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },

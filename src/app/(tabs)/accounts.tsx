@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Dot, Empty } from '@/components/ui';
 import { C } from '@/constants/theme';
-import { formatEur } from '@/lib/format';
+import { formatEur, formatPct } from '@/lib/format';
 import { accountCurrentValue } from '@/lib/portfolio';
 import { useStore } from '@/lib/store';
 import {
@@ -58,6 +58,7 @@ export default function Accounts() {
                   <Text style={styles.rowSub}>
                     {a.institution ?? '—'}
                     {a.currency && a.currency !== 'EUR' ? `  ·  ${a.currency}` : ''}
+                    {a.ownershipPct !== undefined && a.ownershipPct < 100 ? `  ·  détenu à ${formatPct(a.ownershipPct)}` : ''}
                     {a.connectionId ? '  ·  synchronisé' : ''}
                   </Text>
                 </View>

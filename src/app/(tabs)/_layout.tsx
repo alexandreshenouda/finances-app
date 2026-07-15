@@ -35,6 +35,13 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="real-estate"
+        options={{
+          title: 'Immobilier',
+          tabBarIcon: ({ focused }) => <TabIcon glyph="🏠" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
         name="connections"
         options={{
           title: 'Connexions',

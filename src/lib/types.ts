@@ -90,6 +90,9 @@ export interface Account {
   currency?: Currency;
   /** Solde en espèces / liquidités (hors lignes de placement), dans la devise du compte */
   cashBalance?: number;
+  /** Quote-part détenue du compte, en % (SCI/indivision sur un compte immobilier).
+   *  Absent = 100 %. Pondère la contribution du compte au patrimoine (pas son solde affiché). */
+  ownershipPct?: number;
   fees?: AccountFees;
   /** Id de la connexion si le compte est synchronisé automatiquement */
   connectionId?: string;
@@ -154,3 +157,96 @@ export const PROVIDER_LABELS: Record<ConnectorProvider, string> = {
 export type Period = '1M' | '3M' | '6M' | '1A' | 'YTD' | 'MAX';
 
 export const PERIODS: Period[] = ['1M', '3M', '6M', '1A', 'YTD', 'MAX'];
+
+// ─── Immobilier ──────────────────────────────────────────────────────────────
+
+export type PropertyKind = 'appartement' | 'maison' | 'terrain' | 'immeuble' | 'parking' | 'autre';
+
+export const PROPERTY_KIND_LABELS: Record<PropertyKind, string> = {
+  appartement: 'Appartement',
+  maison: 'Maison',
+  terrain: 'Terrain',
+  immeuble: 'Immeuble',
+  parking: 'Parking / box',
+  autre: 'Autre',
+};
+
+export const PROPERTY_KIND_ORDER: PropertyKind[] = [
+  'appartement',
+  'maison',
+  'terrain',
+  'immeuble',
+  'parking',
+  'autre',
+];
+
+/** Comment on estime la valeur actuelle du bien. */
+export type ValuationMode = 'index' | 'manual';
+
+/** Un bien immobilier physique (distinct des comptes bancaires). */
+export interface Property {
+  id: string;
+  name: string;
+  kind: PropertyKind;
+  address?: string;
+  /** Prix d'acquisition (net vendeur), dans la devise du bien. */
+  purchasePrice: number;
+  /** Frais d'acquisition (notaire, agence…) — optionnel, pour le prix de revient. */
+  purchaseCosts?: number;
+  purchaseDate: string; // YYYY-MM-DD
+  /** Surface en m² (affichage prix/m²) ; non nécessaire à l'estimation. */
+  surface?: number;
+  /** 'index' = réévaluation auto via l'indice ; 'manual' = valeur saisie. */
+  valuationMode: ValuationMode;
+  /** Valeur saisie manuellement (surcharge de l'indice) si mode manuel. */
+  manualValue?: number;
+  /** Devise du bien ; absent = EUR. */
+  currency?: Currency;
+  /** Quote-part détenue, en % (SCI, indivision…). Absent = 100 % (détention pleine).
+   *  Appliquée à la valeur ET à la dette dans le calcul du patrimoine. */
+  ownershipPct?: number;
+  notes?: string;
+  createdAt: string; // ISO
+  archived?: boolean;
+}
+
+/** Palier d'un prêt échelonné : une mensualité constante pendant `months` mois. */
+export interface LoanStep {
+  /** Durée du palier, en mois. */
+  months: number;
+  /** Mensualité hors assurance sur ce palier, dans la devise du prêt ;
+   *  auto-calculée (amortissante sur la durée restante) si absente. */
+  monthlyPayment?: number;
+}
+
+/** Un crédit immobilier rattaché à un bien (amortissable, à mensualités constantes ou par paliers). */
+export interface Loan {
+  id: string;
+  propertyId: string;
+  name: string;
+  lender?: string;
+  /** Capital emprunté, dans la devise du prêt. */
+  principal: number;
+  /** Taux nominal annuel, en % (ex : 3.2). */
+  annualRate: number;
+  /** Durée totale du prêt, en mois (= somme des paliers si `steps` est défini). */
+  termMonths: number;
+  startDate: string; // YYYY-MM-DD (première échéance)
+  /** Mensualité hors assurance, dans la devise du prêt ; calculée si absente. Ignorée si `steps`. */
+  monthlyPayment?: number;
+  /** Paliers de remboursement (prêt échelonné). Si présent et non vide, remplace
+   *  `monthlyPayment` : la durée effective = somme des paliers. */
+  steps?: LoanStep[];
+  /** Assurance emprunteur mensuelle, dans la devise du prêt (optionnel). */
+  insuranceMonthly?: number;
+  /** Devise du prêt ; absent = EUR. */
+  currency?: Currency;
+  notes?: string;
+  createdAt: string; // ISO
+}
+
+/** Point de l'indice des prix des logements (base 100 en 2015). date = YYYY-MM-DD. */
+export interface HousePricePoint {
+  date: string;
+  value: number;
+}

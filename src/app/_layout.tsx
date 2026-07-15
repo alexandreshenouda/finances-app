@@ -38,6 +38,9 @@ export default function RootLayout() {
         <Stack.Screen name="account/[id]" options={{ title: 'Compte' }} />
         <Stack.Screen name="account-form" options={{ title: 'Compte', presentation: 'modal' }} />
         <Stack.Screen name="holding-form" options={{ title: 'Ligne', presentation: 'modal' }} />
+        <Stack.Screen name="property/[id]" options={{ title: 'Bien' }} />
+        <Stack.Screen name="property-form" options={{ title: 'Bien', presentation: 'modal' }} />
+        <Stack.Screen name="loan-form" options={{ title: 'Crédit', presentation: 'modal' }} />
         <Stack.Screen name="connection-form" options={{ title: 'Connexion', presentation: 'modal' }} />
         <Stack.Screen name="eb-connect" options={{ title: 'Enable Banking' }} />
         <Stack.Screen name="tr-connect" options={{ title: 'Trade Republic' }} />

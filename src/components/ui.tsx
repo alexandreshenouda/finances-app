@@ -162,6 +162,16 @@ export function Dot({ color, size = 10 }: { color: string; size?: number }) {
   );
 }
 
+/** Barre de progression remplie (ratio 0..1), ex : capital remboursé d'un crédit. */
+export function ProgressBar({ ratio, color = C.accent, height = 10 }: { ratio: number; color?: string; height?: number }) {
+  const pct = Math.max(0, Math.min(1, Number.isFinite(ratio) ? ratio : 0));
+  return (
+    <View style={{ height, borderRadius: height / 2, backgroundColor: C.cardAlt, overflow: 'hidden' }}>
+      <View style={{ width: `${pct * 100}%`, height: '100%', backgroundColor: color, borderRadius: height / 2 }} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: C.card,

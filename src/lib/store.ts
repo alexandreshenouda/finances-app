@@ -3,13 +3,25 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { todayKey, uid } from './format';
-import { DEFAULT_FX_RATES, type Account, type Connection, type FxRates, type Holding, type Snapshot } from './types';
+import {
+  DEFAULT_FX_RATES,
+  type Account,
+  type Connection,
+  type FxRates,
+  type Holding,
+  type HousePricePoint,
+  type Loan,
+  type Property,
+  type Snapshot,
+} from './types';
 
 export interface AppData {
   accounts: Account[];
   holdings: Holding[];
   snapshots: Snapshot[];
   connections: Connection[];
+  properties: Property[];
+  loans: Loan[];
 }
 
 interface AppState extends AppData {
@@ -20,8 +32,23 @@ interface AppState extends AppData {
   fxUpdatedAt?: string;
   setFxRates: (rates: FxRates) => void;
 
+  /** Indice des prix des logements (base 100 en 2015), rafraîchi en ligne, persisté. */
+  houseIndex?: HousePricePoint[];
+  houseIndexUpdatedAt?: string;
+  setHouseIndex: (points: HousePricePoint[]) => void;
+
+  /** Affichage du patrimoine : net (actifs − dettes) par défaut, ou brut. */
+  patrimoineNet: boolean;
+  setPatrimoineNet: (v: boolean) => void;
+
   upsertAccount: (a: Partial<Account> & { name: string; type: Account['type'] }) => Account;
   deleteAccount: (id: string) => void;
+
+  upsertProperty: (p: Partial<Property> & { name: string; kind: Property['kind']; purchasePrice: number; purchaseDate: string }) => Property;
+  deleteProperty: (id: string) => void;
+
+  upsertLoan: (l: Partial<Loan> & { propertyId: string; name: string; principal: number; annualRate: number; termMonths: number; startDate: string }) => Loan;
+  deleteLoan: (id: string) => void;
 
   upsertHolding: (h: Partial<Holding> & { accountId: string; name: string; quantity: number }) => Holding;
   deleteHolding: (id: string) => void;
@@ -43,11 +70,20 @@ export const useStore = create<AppState>()(
       holdings: [],
       snapshots: [],
       connections: [],
+      properties: [],
+      loans: [],
       hydrated: false,
 
       fxRates: DEFAULT_FX_RATES,
       fxUpdatedAt: undefined,
       setFxRates: (rates) => set({ fxRates: rates, fxUpdatedAt: new Date().toISOString() }),
+
+      houseIndex: undefined,
+      houseIndexUpdatedAt: undefined,
+      setHouseIndex: (points) => set({ houseIndex: points, houseIndexUpdatedAt: new Date().toISOString() }),
+
+      patrimoineNet: true,
+      setPatrimoineNet: (v) => set({ patrimoineNet: v }),
 
       upsertAccount: (a) => {
         const existing = a.id ? get().accounts.find((x) => x.id === a.id) : undefined;
@@ -71,6 +107,47 @@ export const useStore = create<AppState>()(
           holdings: s.holdings.filter((h) => h.accountId !== id),
           snapshots: s.snapshots.filter((sn) => sn.accountId !== id),
         })),
+
+      upsertProperty: (p) => {
+        const existing = p.id ? get().properties.find((x) => x.id === p.id) : undefined;
+        const property: Property = {
+          valuationMode: 'index',
+          createdAt: new Date().toISOString(),
+          ...existing,
+          ...p,
+          id: existing?.id ?? p.id ?? uid(),
+        } as Property;
+        set((s) => ({
+          properties: existing
+            ? s.properties.map((x) => (x.id === property.id ? property : x))
+            : [...s.properties, property],
+        }));
+        return property;
+      },
+
+      deleteProperty: (id) =>
+        set((s) => ({
+          properties: s.properties.filter((p) => p.id !== id),
+          loans: s.loans.filter((l) => l.propertyId !== id),
+        })),
+
+      upsertLoan: (l) => {
+        const existing = l.id ? get().loans.find((x) => x.id === l.id) : undefined;
+        const loan: Loan = {
+          createdAt: new Date().toISOString(),
+          ...existing,
+          ...l,
+          id: existing?.id ?? l.id ?? uid(),
+        } as Loan;
+        set((s) => ({
+          loans: existing
+            ? s.loans.map((x) => (x.id === loan.id ? loan : x))
+            : [...s.loans, loan],
+        }));
+        return loan;
+      },
+
+      deleteLoan: (id) => set((s) => ({ loans: s.loans.filter((l) => l.id !== id) })),
 
       upsertHolding: (h) => {
         const existing = h.id ? get().holdings.find((x) => x.id === h.id) : undefined;
@@ -127,13 +204,15 @@ export const useStore = create<AppState>()(
           ),
         })),
 
-      // Rétro-compatible : les exports V1 n'ont pas de champ currency (absent = EUR).
+      // Rétro-compatible : les exports antérieurs n'ont ni currency ni immobilier (absent = défaut).
       importData: (data) =>
         set({
           accounts: data.accounts ?? [],
           holdings: data.holdings ?? [],
           snapshots: data.snapshots ?? [],
           connections: data.connections ?? [],
+          properties: data.properties ?? [],
+          loans: data.loans ?? [],
         }),
     }),
     {
@@ -144,8 +223,13 @@ export const useStore = create<AppState>()(
         holdings: s.holdings,
         snapshots: s.snapshots,
         connections: s.connections,
+        properties: s.properties,
+        loans: s.loans,
         fxRates: s.fxRates,
         fxUpdatedAt: s.fxUpdatedAt,
+        houseIndex: s.houseIndex,
+        houseIndexUpdatedAt: s.houseIndexUpdatedAt,
+        patrimoineNet: s.patrimoineNet,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) state.hydrated = true;
@@ -156,6 +240,6 @@ export const useStore = create<AppState>()(
 );
 
 export function exportData(): AppData {
-  const { accounts, holdings, snapshots, connections } = useStore.getState();
-  return { accounts, holdings, snapshots, connections };
+  const { accounts, holdings, snapshots, connections, properties, loans } = useStore.getState();
+  return { accounts, holdings, snapshots, connections, properties, loans };
 }

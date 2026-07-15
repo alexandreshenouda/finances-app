@@ -54,6 +54,16 @@ export function todayKey(d = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
+/** Durée en mois → « 12 ans 4 mois », « 8 mois », « 3 ans ». */
+export function formatDuration(months: number): string {
+  const m = Math.max(0, Math.round(months));
+  const years = Math.floor(m / 12);
+  const rem = m % 12;
+  if (years === 0) return `${rem} mois`;
+  if (rem === 0) return `${years} an${years > 1 ? 's' : ''}`;
+  return `${years} an${years > 1 ? 's' : ''} ${rem} mois`;
+}
+
 export function addDays(dateKey: string, days: number): string {
   const d = new Date(`${dateKey}T12:00:00`);
   d.setDate(d.getDate() + days);
