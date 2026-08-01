@@ -1,21 +1,26 @@
 {
-  "name": "patrimoine",
+  "name": "finances",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "description": "Suivi des investissements financiers — multi-plateforme (Android, Web, Windows)",
+  "author": "Patrimoine",
   "dependencies": {
     "@expo/ui": "~57.0.4",
     "@noble/hashes": "^2.2.0",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-picker/picker": "2.11.4",
     "expo": "~57.0.4",
     "expo-clipboard": "~57.0.0",
     "expo-constants": "~57.0.3",
     "expo-device": "~57.0.0",
+    "expo-file-system": "~57.0.0",
     "expo-font": "~57.0.0",
     "expo-glass-effect": "~57.0.0",
     "expo-image": "~57.0.0",
     "expo-linking": "~57.0.2",
     "expo-router": "~57.0.4",
     "expo-secure-store": "~57.0.0",
+    "expo-sharing": "~57.0.3",
     "expo-splash-screen": "~57.0.2",
     "expo-status-bar": "~57.0.0",
     "expo-symbols": "~57.0.0",
@@ -38,6 +43,8 @@
   "devDependencies": {
     "@types/jsrsasign": "^10.5.15",
     "@types/react": "~19.2.2",
+    "electron": "^43.1.0",
+    "electron-builder": "^26.15.3",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -45,7 +52,29 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "build:web": "expo export --platform web",
+    "electron": "electron electron/main.js",
+    "windows:dev": "expo export --platform web && electron electron/main.js",
+    "windows:build": "expo export --platform web && electron-builder --win"
   },
-  "private": true
+  "private": true,
+  "build": {
+    "appId": "fr.perso.patrimoine",
+    "productName": "Finances",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.js"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
 }

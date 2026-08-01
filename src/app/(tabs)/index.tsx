@@ -3,33 +3,84 @@ import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AllocationBar } from '@/components/AllocationBar';
 import { LineChart } from '@/components/LineChart';
-import { Button, Card, Chips, Empty, SectionTitle } from '@/components/ui';
+import { PieChart } from '@/components/PieChart';
+import { Button, Card, Checkbox, Chips, Empty, PeriodChips, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { syncAllConnections } from '@/lib/connectors';
 import { formatEur, formatPct } from '@/lib/format';
-import { accountCurrentValue, buildSeries, seriesDelta } from '@/lib/portfolio';
+import { accountCurrentValue, accountShare, seriesDelta } from '@/lib/portfolio';
 import { refreshAllPrices } from '@/lib/prices';
+import { houseIndexSeries, refreshHouseIndex } from '@/lib/prices/houseIndex';
+import { buildPatrimoineSeries, consoDebtEur, realEstateTotals } from '@/lib/realestate';
 import { useStore } from '@/lib/store';
-import { PERIODS, type AccountType, type Period } from '@/lib/types';
+import { type AccountType, type Period } from '@/lib/types';
+
+const WORTH_MODES = ['net', 'brut'] as const;
+const WORTH_LABELS: Record<(typeof WORTH_MODES)[number], string> = { net: 'Net', brut: 'Brut' };
+
+const ALLOC_VIEWS = ['barre', 'camembert'] as const;
+const ALLOC_LABELS: Record<(typeof ALLOC_VIEWS)[number], string> = { barre: 'Barre', camembert: 'Camembert' };
 
 export default function Dashboard() {
   const accounts = useStore((s) => s.accounts);
   const holdings = useStore((s) => s.holdings);
   const snapshots = useStore((s) => s.snapshots);
-  const [period, setPeriod] = useState<Period>('6M');
+  const rates = useStore((s) => s.fxRates);
+  useStore((s) => s.privacyMode); // re-render au changement de mode confidentialité (masquage dans format.ts)
+  const properties = useStore((s) => s.properties);
+  const loans = useStore((s) => s.loans);
+  const houseIndex = useStore((s) => s.houseIndex);
+  const patrimoineNet = useStore((s) => s.patrimoineNet);
+  const setPatrimoineNet = useStore((s) => s.setPatrimoineNet);
+  const showRealEstate = useStore((s) => s.showRealEstate);
+  const setShowRealEstate = useStore((s) => s.setShowRealEstate);
+  const defaultPeriod = useStore((s) => s.defaultPeriod);
+  // null = suivre le réglage « période par défaut » ; sinon choix manuel de session.
+  const [periodOverride, setPeriodOverride] = useState<Period | null>(null);
+  const period = periodOverride ?? defaultPeriod;
+  const [allocView, setAllocView] = useState<(typeof ALLOC_VIEWS)[number]>('barre');
   const [refreshing, setRefreshing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const active = useMemo(() => accounts.filter((a) => !a.archived), [accounts]);
+  const series0 = useMemo(() => houseIndexSeries(), [houseIndex]);
 
-  const totalValue = useMemo(
-    () => active.reduce((acc, a) => acc + accountCurrentValue(a, holdings, snapshots), 0),
-    [active, holdings, snapshots]
+  const accountsValue = useMemo(
+    () => active.reduce((acc, a) => acc + accountCurrentValue(a, holdings, snapshots, rates) * accountShare(a), 0),
+    [active, holdings, snapshots, rates]
   );
 
+  const re = useMemo(
+    () => realEstateTotals(properties, loans, series0, rates),
+    [properties, loans, series0, rates]
+  );
+
+  const hasRealEstate = properties.some((p) => !p.archived);
+  // Contribution des biens immobiliers, neutralisée si l'utilisateur les masque
+  // (les comptes bancaires de type « immobilier » restent toujours comptés).
+  const reGross = showRealEstate ? re.gross : 0;
+  const reDebt = showRealEstate ? re.debt : 0;
+  const reEquity = showRealEstate ? re.equity : 0;
+  // Les prêts conso sont toujours déduits du net (indépendants du masquage immo).
+  const consoDebt = useMemo(() => consoDebtEur(loans, rates), [loans, rates]);
+  const debtTotal = reDebt + consoDebt;
+  const grossTotal = accountsValue + reGross;
+  const totalValue = patrimoineNet ? grossTotal - debtTotal : grossTotal;
+
   const series = useMemo(
-    () => buildSeries(active.map((a) => a.id), snapshots, period),
-    [active, snapshots, period]
+    () =>
+      buildPatrimoineSeries(
+        active,
+        snapshots,
+        showRealEstate ? properties : [],
+        // Les prêts immo des biens masqués sont ignorés en interne ; les conso restent comptés.
+        showRealEstate ? loans : loans.filter((l) => !l.propertyId),
+        series0,
+        rates,
+        period,
+        patrimoineNet
+      ),
+    [active, snapshots, showRealEstate, properties, loans, series0, rates, period, patrimoineNet]
   );
 
   const delta = useMemo(() => seriesDelta(series), [series]);
@@ -37,11 +88,13 @@ export default function Dashboard() {
   const byType = useMemo(() => {
     const m = new Map<AccountType, number>();
     for (const a of active) {
-      const v = accountCurrentValue(a, holdings, snapshots);
+      const v = accountCurrentValue(a, holdings, snapshots, rates) * accountShare(a);
       if (v > 0) m.set(a.type, (m.get(a.type) ?? 0) + v);
     }
+    const immo = patrimoineNet ? reEquity : reGross;
+    if (immo > 0) m.set('immobilier', (m.get('immobilier') ?? 0) + immo);
     return m;
-  }, [active, holdings, snapshots]);
+  }, [active, holdings, snapshots, rates, reEquity, reGross, patrimoineNet]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -49,7 +102,8 @@ export default function Dashboard() {
     try {
       const prices = await refreshAllPrices();
       const sync = await syncAllConnections();
-      const issues = [...prices.errors, ...sync.errors, ...sync.warnings];
+      const idx = hasRealEstate ? await refreshHouseIndex() : { ok: true as const };
+      const issues = [...prices.errors, ...sync.errors, ...sync.warnings, ...(idx.ok ? [] : [idx.error!])];
       setMessage(
         issues.length > 0
           ? `Mise à jour partielle : ${issues.slice(0, 3).join(' · ')}${issues.length > 3 ? '…' : ''}`
@@ -71,8 +125,25 @@ export default function Dashboard() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.text} />}
     >
       <Card>
-        <Text style={styles.totalLabel}>Patrimoine total</Text>
+        <View style={styles.totalHeader}>
+          <Text style={styles.totalLabel}>Patrimoine total</Text>
+          {((hasRealEstate && showRealEstate) || consoDebt > 0) && (
+            <Chips
+              options={WORTH_MODES}
+              value={patrimoineNet ? 'net' : 'brut'}
+              onChange={(v) => setPatrimoineNet(v === 'net')}
+              labels={WORTH_LABELS}
+            />
+          )}
+        </View>
         <Text style={styles.totalValue}>{formatEur(totalValue)}</Text>
+        {debtTotal > 0 && (
+          <Text style={styles.worthNote}>
+            {patrimoineNet
+              ? `Net de ${formatEur(debtTotal)} de crédits${consoDebt > 0 && reDebt === 0 ? ' conso' : reDebt > 0 && consoDebt === 0 ? ' immobiliers' : ''}`
+              : `Brut · ${formatEur(debtTotal)} de crédits non déduits`}
+          </Text>
+        )}
         {series.length >= 2 && (
           <Text style={[styles.delta, { color: deltaColor }]}>
             {delta.abs >= 0 ? '+' : ''}
@@ -82,17 +153,35 @@ export default function Dashboard() {
           </Text>
         )}
         <View style={{ height: 12 }} />
-        <Chips options={PERIODS} value={period} onChange={setPeriod} />
+        <PeriodChips value={period} onChange={setPeriodOverride} />
         <LineChart points={series} />
+        {hasRealEstate && (
+          <View style={styles.reToggle}>
+            <Checkbox
+              label="Inclure les biens immobiliers"
+              value={showRealEstate}
+              onChange={setShowRealEstate}
+            />
+          </View>
+        )}
       </Card>
 
       <Button title="Rafraîchir cours et synchronisations" variant="secondary" onPress={onRefresh} loading={refreshing} />
       {message && <Text style={styles.message}>{message}</Text>}
 
-      <SectionTitle>Répartition</SectionTitle>
+      <View style={styles.allocHeader}>
+        <SectionTitle>Répartition</SectionTitle>
+        {byType.size > 0 && (
+          <Chips options={ALLOC_VIEWS} value={allocView} onChange={setAllocView} labels={ALLOC_LABELS} />
+        )}
+      </View>
       <Card>
         {byType.size > 0 ? (
-          <AllocationBar byType={byType} />
+          allocView === 'camembert' ? (
+            <PieChart byType={byType} />
+          ) : (
+            <AllocationBar byType={byType} />
+          )
         ) : (
           <Empty text="Ajoutez des comptes dans l'onglet Comptes pour voir la répartition." />
         )}
@@ -104,7 +193,11 @@ export default function Dashboard() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
   content: { padding: 16, paddingBottom: 40 },
+  totalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  allocHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  reToggle: { marginTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border, paddingTop: 12 },
   totalLabel: { color: C.textDim, fontSize: 14 },
+  worthNote: { color: C.textFaint, fontSize: 12, marginTop: 2 },
   totalValue: { color: C.text, fontSize: 34, fontWeight: '700', marginTop: 2 },
   delta: { fontSize: 14, fontWeight: '600', marginTop: 4 },
   deltaPeriod: { color: C.textFaint, fontWeight: '400' },

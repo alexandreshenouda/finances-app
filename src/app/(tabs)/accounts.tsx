@@ -4,8 +4,8 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Dot, Empty } from '@/components/ui';
 import { C } from '@/constants/theme';
-import { formatEur } from '@/lib/format';
-import { accountCurrentValue } from '@/lib/portfolio';
+import { formatEur, formatPct } from '@/lib/format';
+import { accountCurrentValue, accountGain } from '@/lib/portfolio';
 import { useStore } from '@/lib/store';
 import {
   ACCOUNT_TYPE_COLORS,
@@ -19,6 +19,8 @@ export default function Accounts() {
   const accounts = useStore((s) => s.accounts);
   const holdings = useStore((s) => s.holdings);
   const snapshots = useStore((s) => s.snapshots);
+  const rates = useStore((s) => s.fxRates);
+  useStore((s) => s.privacyMode); // re-render au changement de mode confidentialité (masquage dans format.ts)
 
   const groups = useMemo(() => {
     const active = accounts.filter((a) => !a.archived);
@@ -28,13 +30,13 @@ export default function Accounts() {
     })).filter((g) => g.items.length > 0);
   }, [accounts]);
 
-  const value = (a: Account) => accountCurrentValue(a, holdings, snapshots);
+  const value = (a: Account) => accountCurrentValue(a, holdings, snapshots, rates);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Button title="+ Ajouter un compte" onPress={() => router.push('/account-form')} />
       {groups.length === 0 && (
-        <Empty text="Aucun compte. Ajoutez un compte manuellement ou connectez un service dans l'onglet Connexions." />
+        <Empty text="Aucun compte. Ajoutez un compte manuellement ou connectez un service via Paramètres → Connexions." />
       )}
       {groups.map((g) => (
         <View key={g.type}>
@@ -56,10 +58,24 @@ export default function Accounts() {
                   <Text style={styles.rowName}>{a.name}</Text>
                   <Text style={styles.rowSub}>
                     {a.institution ?? '—'}
+                    {a.currency && a.currency !== 'EUR' ? `  ·  ${a.currency}` : ''}
+                    {a.ownershipPct !== undefined && a.ownershipPct < 100 ? `  ·  détenu à ${formatPct(a.ownershipPct)}` : ''}
                     {a.connectionId ? '  ·  synchronisé' : ''}
                   </Text>
                 </View>
-                <Text style={styles.rowValue}>{formatEur(value(a))}</Text>
+                <View style={styles.rowRight}>
+                  <Text style={styles.rowValue}>{formatEur(value(a))}</Text>
+                  {(() => {
+                    const g = accountGain(a, holdings, rates);
+                    return g ? (
+                      <Text style={[styles.rowPerf, { color: g.abs >= 0 ? C.positive : C.negative }]}>
+                        {g.abs >= 0 ? '+' : ''}
+                        {formatEur(g.abs)}
+                        {g.pct !== undefined ? `  ·  ${formatPct(g.pct, true)}` : ''}
+                      </Text>
+                    ) : null;
+                  })()}
+                </View>
                 <Text style={styles.chevron}>›</Text>
               </Pressable>
             ))}
@@ -80,6 +96,8 @@ const styles = StyleSheet.create({
   rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
   rowName: { color: C.text, fontSize: 15, fontWeight: '500' },
   rowSub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
-  rowValue: { color: C.text, fontSize: 15, fontWeight: '600', marginLeft: 8 },
+  rowRight: { alignItems: 'flex-end', marginLeft: 8 },
+  rowValue: { color: C.text, fontSize: 15, fontWeight: '600' },
+  rowPerf: { fontSize: 12, fontWeight: '600', marginTop: 2 },
   chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
 });

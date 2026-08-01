@@ -1,5 +1,4 @@
-/** Connexions externes (Binance, Kraken, Enable Banking) + sauvegarde des données. */
-import * as Clipboard from 'expo-clipboard';
+/** Connexions externes (Binance, Kraken, Enable Banking, Trade Republic). */
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -9,14 +8,13 @@ import { confirmAction, notify } from '@/lib/confirm';
 import { syncConnection } from '@/lib/connectors';
 import { formatDate } from '@/lib/format';
 import { connectionSecretKey, deleteSecret } from '@/lib/secure';
-import { exportData, useStore, type AppData } from '@/lib/store';
+import { useStore } from '@/lib/store';
 import { PROVIDER_LABELS } from '@/lib/types';
 
 export default function Connections() {
   const router = useRouter();
   const connections = useStore((s) => s.connections);
   const deleteConnection = useStore((s) => s.deleteConnection);
-  const importData = useStore((s) => s.importData);
   const [syncing, setSyncing] = useState<string | null>(null);
 
   const onSync = async (id: string) => {
@@ -37,31 +35,14 @@ export default function Connections() {
       deleteConnection(id);
     });
 
-  const onExport = async () => {
-    await Clipboard.setStringAsync(JSON.stringify(exportData(), null, 2));
-    notify('Export', 'Données copiées dans le presse-papiers (sans les identifiants). Collez-les dans un fichier pour les sauvegarder.');
-  };
-
-  const onImport = async () => {
-    const text = await Clipboard.getStringAsync();
-    try {
-      const data = JSON.parse(text) as AppData;
-      if (!Array.isArray(data.accounts)) throw new Error('format invalide');
-      confirmAction('Importer', `Remplacer les données actuelles par ${data.accounts.length} compte(s) du presse-papiers ?`, () =>
-        importData(data)
-      );
-    } catch {
-      notify('Import impossible', 'Le presse-papiers ne contient pas un export valide.');
-    }
-  };
-
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       {Platform.OS === 'web' && (
         <Card style={{ borderColor: C.warning }}>
           <Text style={styles.webWarn}>
-            Dans un navigateur, les API de Binance, Kraken, Yahoo et Enable Banking sont bloquées (CORS).
-            La synchronisation fonctionne dans l'app Android ; ici, utilisez le suivi manuel et CoinGecko.
+            Dans un navigateur, les API de Binance, Kraken, Yahoo, Enable Banking et Trade Republic
+            sont bloquées (CORS). La synchronisation fonctionne dans l'app Android ; ici, utilisez le
+            suivi manuel et CoinGecko.
           </Text>
         </Card>
       )}
@@ -77,7 +58,12 @@ export default function Connections() {
           </Text>
           {c.lastError && <Text style={styles.connError}>{c.lastError}</Text>}
           <View style={styles.connButtons}>
-            <Button title="Synchroniser" onPress={() => onSync(c.id)} loading={syncing === c.id} style={{ flex: 1 }} />
+            {c.provider === 'traderepublic' ? (
+              // 2FA requise : la « synchro » repasse par l'écran interactif.
+              <Button title="Reconnecter" onPress={() => router.push({ pathname: '/tr-connect', params: { connectionId: c.id } })} style={{ flex: 1 }} />
+            ) : (
+              <Button title="Synchroniser" onPress={() => onSync(c.id)} loading={syncing === c.id} style={{ flex: 1 }} />
+            )}
             {c.provider === 'enablebanking' && (
               <Button title="Banques" variant="secondary" onPress={() => router.push({ pathname: '/eb-connect', params: { connectionId: c.id } })} style={{ flex: 1 }} />
             )}
@@ -94,18 +80,14 @@ export default function Connections() {
         </Text>
         <Button title="Binance (clé API lecture seule)" variant="secondary" onPress={() => router.push({ pathname: '/connection-form', params: { provider: 'binance' } })} />
         <Button title="Kraken (clé API lecture seule)" variant="secondary" onPress={() => router.push({ pathname: '/connection-form', params: { provider: 'kraken' } })} />
-        <Button title="Banques françaises via Enable Banking" variant="secondary" onPress={() => router.push('/eb-connect')} />
+        <Button title="Trade Republic (non officiel, 2FA)" variant="secondary" onPress={() => router.push('/tr-connect')} />
+        <Button title="Banques via Enable Banking (Revolut, FR…)" variant="secondary" onPress={() => router.push('/eb-connect')} />
         <Text style={styles.addNote}>
-          Enable Banking (gratuit, usage personnel) couvre les comptes courants des banques françaises
-          via DSP2. Les PEA, CTO et assurances vie ne sont pas couverts par les API bancaires : suivez-les
-          en manuel avec cours automatiques.
+          Enable Banking (gratuit, usage personnel) couvre les comptes courants via DSP2 : banques
+          françaises, et Revolut via la Lituanie. Les PEA, CTO et assurances vie ne sont pas couverts
+          par les API bancaires : suivez-les en manuel avec cours automatiques.{'\n\n'}
+          Trade Republic utilise une API non officielle (Android uniquement, 2FA à chaque synchro).
         </Text>
-      </Card>
-
-      <SectionTitle>Sauvegarde</SectionTitle>
-      <Card>
-        <Button title="Exporter les données (presse-papiers)" variant="secondary" onPress={onExport} />
-        <Button title="Importer depuis le presse-papiers" variant="secondary" onPress={onImport} />
       </Card>
     </ScrollView>
   );

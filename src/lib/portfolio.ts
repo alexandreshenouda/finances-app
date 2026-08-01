@@ -1,17 +1,26 @@
-/** Calculs de valorisation et de séries temporelles pour les courbes. */
+/** Calculs de valorisation et de séries temporelles pour les courbes.
+ *  Convention : cash et cours sont dans la devise du compte/de la ligne,
+ *  les snapshots et toutes les valeurs agrégées sont en EUR. */
+import { toEur } from './fx';
 import { addDays, todayKey } from './format';
-import type { Account, Holding, Period, Snapshot } from './types';
+import type { Account, Currency, FxRates, Holding, Period, Snapshot } from './types';
 
-/** Valeur actuelle d'un compte : liquidités + Σ lignes valorisées, sinon dernier snapshot. */
+/** Devise effective d'une ligne : la sienne, sinon celle du compte, sinon EUR. */
+export function holdingCurrency(h: Holding, account?: Account): Currency {
+  return h.currency ?? account?.currency ?? 'EUR';
+}
+
+/** Valeur actuelle d'un compte en EUR : liquidités + Σ lignes, sinon dernier snapshot. */
 export function accountCurrentValue(
   account: Account,
   holdings: Holding[],
-  snapshots: Snapshot[]
+  snapshots: Snapshot[],
+  rates: FxRates
 ): number {
   const lines = holdings.filter((h) => h.accountId === account.id);
-  const cash = account.cashBalance ?? 0;
+  const cash = toEur(account.cashBalance ?? 0, account.currency, rates);
   if (lines.length > 0) {
-    const sum = lines.reduce((acc, h) => acc + holdingValue(h), 0);
+    const sum = lines.reduce((acc, h) => acc + holdingValueEur(h, account, rates), 0);
     return cash + sum;
   }
   if (account.cashBalance !== undefined) return cash;
@@ -19,14 +28,61 @@ export function accountCurrentValue(
   return last?.value ?? 0;
 }
 
+/** Quote-part détenue du compte (0..1). Absent = 100 % (SCI/indivision : voir Account.ownershipPct). */
+export function accountShare(account: Account): number {
+  return account.ownershipPct === undefined ? 1 : Math.max(0, Math.min(100, account.ownershipPct)) / 100;
+}
+
+/** Valeur du compte revenant réellement au détenteur (valeur × quote-part), en EUR. */
+export function accountOwnedValue(
+  account: Account,
+  holdings: Holding[],
+  snapshots: Snapshot[],
+  rates: FxRates
+): number {
+  return accountCurrentValue(account, holdings, snapshots, rates) * accountShare(account);
+}
+
+/** Valeur d'une ligne dans sa propre devise. */
 export function holdingValue(h: Holding): number {
   return h.quantity * (h.unitPrice ?? 0);
+}
+
+/** Valeur d'une ligne convertie en EUR. */
+export function holdingValueEur(h: Holding, account: Account | undefined, rates: FxRates): number {
+  return toEur(holdingValue(h), holdingCurrency(h, account), rates);
 }
 
 /** Plus/moins-value latente en % par rapport au PRU, si connu. */
 export function holdingPerfPct(h: Holding): number | undefined {
   if (!h.buyPrice || !h.unitPrice || h.buyPrice <= 0) return undefined;
   return ((h.unitPrice - h.buyPrice) / h.buyPrice) * 100;
+}
+
+/**
+ * Plus/moins-value latente globale d'un compte, en EUR, agrégée sur les lignes
+ * dont le PRU est connu. `undefined` si aucune ligne n'a de PRU (compte cash,
+ * synchro sans prix d'achat…) — dans ce cas la +/- value n'est pas calculable.
+ * Non pondérée par la quote-part : elle se rapporte à la valeur affichée (pleine).
+ */
+export function accountGain(
+  account: Account,
+  holdings: Holding[],
+  rates: FxRates
+): { abs: number; pct?: number } | undefined {
+  const lines = holdings.filter((h) => h.accountId === account.id);
+  let cost = 0;
+  let gain = 0;
+  let any = false;
+  for (const h of lines) {
+    if (!h.buyPrice || !h.unitPrice || h.buyPrice <= 0) continue;
+    const cur = holdingCurrency(h, account);
+    cost += toEur(h.buyPrice * h.quantity, cur, rates);
+    gain += toEur((h.unitPrice - h.buyPrice) * h.quantity, cur, rates);
+    any = true;
+  }
+  if (!any || cost <= 0) return undefined;
+  return { abs: gain, pct: (gain / cost) * 100 };
 }
 
 export function lastSnapshot(accountId: string, snapshots: Snapshot[]): Snapshot | undefined {
@@ -46,6 +102,12 @@ export interface SeriesPoint {
 export function periodStart(period: Period, today = todayKey()): string | undefined {
   const d = new Date(`${today}T12:00:00`);
   switch (period) {
+    case '1J':
+      d.setDate(d.getDate() - 1);
+      break;
+    case '1S':
+      d.setDate(d.getDate() - 7);
+      break;
     case '1M':
       d.setMonth(d.getMonth() - 1);
       break;
@@ -78,7 +140,9 @@ export function buildSeries(
   accountIds: string[],
   snapshots: Snapshot[],
   period: Period,
-  today = todayKey()
+  today = todayKey(),
+  /** Pondération par compte (ex : quote-part SCI) ; défaut 1. */
+  weights?: Map<string, number>
 ): SeriesPoint[] {
   const relevant = snapshots
     .filter((s) => accountIds.includes(s.accountId))
@@ -120,7 +184,7 @@ export function buildSeries(
       cursors.set(accountId, i);
     }
     let total = 0;
-    for (const v of lastValues.values()) total += v;
+    for (const [accountId, v] of lastValues) total += v * (weights?.get(accountId) ?? 1);
     points.push({ date: day, value: total });
     if (day === today) break;
     const next = addDays(day, step);

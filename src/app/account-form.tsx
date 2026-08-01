@@ -2,11 +2,19 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { Button, Card, Chips, Field, SectionTitle } from '@/components/ui';
+import { Button, Card, Chips, Field, SectionTitle, SelectField } from '@/components/ui';
 import { C } from '@/constants/theme';
+import { toEur } from '@/lib/fx';
 import { todayKey } from '@/lib/format';
 import { useStore } from '@/lib/store';
-import { ACCOUNT_TYPE_LABELS, ACCOUNT_TYPE_ORDER, type AccountType } from '@/lib/types';
+import {
+  ACCOUNT_TYPE_LABELS,
+  ACCOUNT_TYPE_ORDER,
+  CURRENCIES,
+  CURRENCY_LABELS,
+  type AccountType,
+  type Currency,
+} from '@/lib/types';
 
 function parseNum(s: string): number | undefined {
   if (!s.trim()) return undefined;
@@ -23,15 +31,20 @@ export default function AccountForm() {
 
   const [name, setName] = useState(existing?.name ?? '');
   const [type, setType] = useState<AccountType>(existing?.type ?? 'pea');
+  const [currency, setCurrency] = useState<Currency>(existing?.currency ?? 'EUR');
   const [institution, setInstitution] = useState(existing?.institution ?? '');
   const [cash, setCash] = useState(existing?.cashBalance?.toString() ?? '');
+  const [ownershipPct, setOwnershipPct] = useState(existing?.ownershipPct?.toString() ?? '');
   const [entryPct, setEntryPct] = useState(existing?.fees?.entryPct?.toString() ?? '');
   const [managementPct, setManagementPct] = useState(existing?.fees?.managementPct?.toString() ?? '');
   const [custody, setCustody] = useState(existing?.fees?.custodyAnnual?.toString() ?? '');
   const [feeNotes, setFeeNotes] = useState(existing?.fees?.notes ?? '');
 
+  const pct = parseNum(ownershipPct);
+  const pctValid = type !== 'immobilier' || pct === undefined || (pct > 0 && pct <= 100);
+
   const save = () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !pctValid) return;
     const fees = {
       entryPct: parseNum(entryPct),
       managementPct: parseNum(managementPct),
@@ -43,13 +56,17 @@ export default function AccountForm() {
       id: existing?.id,
       name: name.trim(),
       type,
+      currency: currency === 'EUR' ? undefined : currency,
       institution: institution.trim() || undefined,
       cashBalance: parseNum(cash),
+      // Quote-part réservée aux comptes immobiliers ; 100 % ou vide = détention pleine.
+      ownershipPct: type === 'immobilier' && pct !== undefined && pct !== 100 ? pct : undefined,
       fees: hasFees ? fees : undefined,
     });
-    // Premier point de courbe pour un nouveau compte avec solde initial.
+    // Premier point de courbe (en EUR) pour un nouveau compte avec solde initial.
     if (!existing && parseNum(cash) !== undefined) {
-      recordSnapshot(account.id, parseNum(cash)!, 'manual', todayKey());
+      const rates = useStore.getState().fxRates;
+      recordSnapshot(account.id, toEur(parseNum(cash)!, currency, rates), 'manual', todayKey());
     }
     router.back();
   };
@@ -63,14 +80,35 @@ export default function AccountForm() {
           <Text style={styles.label}>Type de compte</Text>
           <Chips options={ACCOUNT_TYPE_ORDER} value={type} onChange={setType} labels={ACCOUNT_TYPE_LABELS} />
           <Field label="Établissement (optionnel)" value={institution} onChangeText={setInstitution} placeholder="ex : Boursorama" />
+          <SelectField
+            label="Devise du compte"
+            value={currency}
+            onChange={setCurrency}
+            options={CURRENCIES.map((c) => ({ value: c, label: CURRENCY_LABELS[c] }))}
+            hint={currency !== 'EUR' ? 'Les montants saisis sont dans cette devise ; l\'affichage est converti en € automatiquement.' : undefined}
+          />
           <Field
-            label="Liquidités / solde espèces en € (optionnel)"
+            label={`Liquidités / solde espèces en ${currency} (optionnel)`}
             value={cash}
             onChangeText={setCash}
             keyboardType="decimal-pad"
             placeholder="ex : 1500"
             hint="Pour un compte sans lignes (livret, fonds euros…), ce montant sert de valeur du compte."
           />
+          {type === 'immobilier' && (
+            <Field
+              label="Quote-part détenue en % (optionnel)"
+              value={ownershipPct}
+              onChangeText={setOwnershipPct}
+              keyboardType="decimal-pad"
+              placeholder="ex : 50 (SCI / indivision)"
+              hint={
+                !pctValid
+                  ? 'Saisissez un pourcentage entre 0 et 100.'
+                  : 'Laissez vide pour une détention pleine (100 %). Seule votre part est comptée dans le patrimoine ; le solde du compte reste affiché en entier.'
+              }
+            />
+          )}
         </Card>
 
         <SectionTitle>Frais (optionnel)</SectionTitle>
@@ -81,7 +119,7 @@ export default function AccountForm() {
           <Field label="Notes sur les frais" value={feeNotes} onChangeText={setFeeNotes} placeholder="ex : 0 % sur les ETF partenaires" />
         </Card>
 
-        <Button title="Enregistrer" onPress={save} disabled={!name.trim()} />
+        <Button title="Enregistrer" onPress={save} disabled={!name.trim() || !pctValid} />
         <Button title="Annuler" variant="secondary" onPress={() => router.back()} />
       </ScrollView>
     </>

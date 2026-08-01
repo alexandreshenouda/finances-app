@@ -9,6 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
+# Electron (build Windows)
+release/
+
 # Native
 .kotlin/
 *.orig.*
@@ -29,6 +32,9 @@ yarn-error.*
 # macOS
 .DS_Store
 *.pem
+
+# IDE
+.idea/
 
 # local env files
 .env*.local

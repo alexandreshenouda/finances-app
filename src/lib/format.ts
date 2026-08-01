@@ -1,21 +1,39 @@
 /** Formatage fr-FR des montants, pourcentages et dates. */
+import type { Currency } from './types';
 
-const eur = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-  maximumFractionDigits: 0,
-});
+/** Mode confidentialité : masque tous les montants (les % restent visibles).
+ *  Piloté par le store (privacyMode) via setMaskedMoney — pas d'import du store
+ *  ici pour éviter un cycle. */
+let maskedMoney = false;
+export function setMaskedMoney(v: boolean): void {
+  maskedMoney = v;
+}
 
-const eurPrecise = new Intl.NumberFormat('fr-FR', {
-  style: 'currency',
-  currency: 'EUR',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
+const moneyFormatters = new Map<string, Intl.NumberFormat>();
+
+function moneyFormatter(currency: Currency, precise: boolean): Intl.NumberFormat {
+  const key = `${currency}:${precise}`;
+  let f = moneyFormatters.get(key);
+  if (!f) {
+    f = new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: precise ? 2 : 0,
+      maximumFractionDigits: precise ? 2 : 0,
+    });
+    moneyFormatters.set(key, f);
+  }
+  return f;
+}
 
 export function formatEur(value: number, precise = false): string {
+  return formatMoney(value, 'EUR', precise);
+}
+
+export function formatMoney(value: number, currency: Currency = 'EUR', precise = false): string {
   if (!Number.isFinite(value)) return '—';
-  return precise ? eurPrecise.format(value) : eur.format(value);
+  if (maskedMoney) return '••••';
+  return moneyFormatter(currency, precise).format(value);
 }
 
 export function formatQuantity(value: number): string {
@@ -43,6 +61,16 @@ export function todayKey(d = new Date()): string {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+/** Durée en mois → « 12 ans 4 mois », « 8 mois », « 3 ans ». */
+export function formatDuration(months: number): string {
+  const m = Math.max(0, Math.round(months));
+  const years = Math.floor(m / 12);
+  const rem = m % 12;
+  if (years === 0) return `${rem} mois`;
+  if (rem === 0) return `${years} an${years > 1 ? 's' : ''}`;
+  return `${years} an${years > 1 ? 's' : ''} ${rem} mois`;
 }
 
 export function addDays(dateKey: string, days: number): string {

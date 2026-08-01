@@ -47,3 +47,11 @@ export async function fetchYahooPriceEur(symbol: string): Promise<number> {
   const rate = await eurRate(currency);
   return price / rate;
 }
+
+/** Prix d'un ticker Yahoo converti dans la devise cible (via les taux Yahoo). */
+export async function fetchYahooPrice(symbol: string, target: string): Promise<number> {
+  const { price, currency } = await fetchQuote(symbol);
+  if (currency === target) return price;
+  const priceEur = currency === 'EUR' ? price : price / (await eurRate(currency));
+  return target === 'EUR' ? priceEur : priceEur * (await eurRate(target));
+}

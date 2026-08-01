@@ -1,16 +1,34 @@
-# Patrimoine
+# Finances
 
-Application de suivi des investissements financiers — **React Native (Expo)**, un seul codebase
-pour **Android** et **Web**. Sans backend : toutes les données et tous les identifiants restent
-sur l'appareil.
+Application de suivi du patrimoine (nom affiché : **Finances**) — **React Native (Expo)**, un seul
+codebase pour **Android**, **iOS** et **Web**, plus une version de bureau **Windows** (Electron).
+Sans backend : toutes les données et tous les identifiants restent sur l'appareil.
 
 ## Fonctionnalités
 
-- **Courbes de suivi** du patrimoine total et de chaque compte sur 1M / 3M / 6M / 1A / YTD / Max
-  (inspection au doigt, variation absolue et en %).
+- **Patrimoine net ou brut** : la synthèse totalise comptes + immobilier, avec un basculement
+  **Net** (actifs − crédits) / **Brut**, et une case pour **inclure ou non les biens immobiliers**
+  dans le total (les comptes bancaires de type immobilier, eux, sont toujours comptés).
+- **Courbes de suivi** du patrimoine total et de chaque compte sur 1J / 1S / 1M / 3M / 6M / 1A /
+  YTD / Max — les 5 échelles courantes en puces, les autres dans un menu déroulant (inspection au
+  doigt, variation absolue et en %).
 - **Comptes classés par type** : compte courant, livret, PEA, CTO, assurance vie, PER, crypto,
-  immobilier, autre — avec répartition du patrimoine par type.
+  immobilier, autre — avec répartition du patrimoine par type, en **barre empilée ou camembert**.
 - **Lignes / fonds par compte** : quantité, cours, valeur, plus/moins-value vs PRU, frais.
+- **Plus/moins-value latente par compte** : agrégée sur les lignes à PRU connu, affichée dans la
+  liste des comptes et sur le détail (en € et en %, convertie en EUR pour les comptes multi-devises).
+- **Immobilier** : onglet dédié pour les biens physiques (appartement, maison, terrain…) —
+  - **valeur estimée** réévaluée automatiquement via un indice national des prix des logements
+    (INSEE, embarqué pour un fonctionnement hors-ligne), avec surcharge manuelle possible ;
+  - **plus-value latente** (valeur − prix de revient), en € et en % ;
+  - **crédits immobiliers** : échéancier d'amortissement calculé (mensualité, capital restant dû,
+    coût total, temps restant), en mensualités **constantes** ou **échelonnées par paliers**
+    (différé total/partiel géré), avec courbe du capital restant dû ;
+  - **quote-part détenue** (SCI / indivision) sur un bien ou un compte immobilier : le montant
+    complet reste affiché, mais seule votre part est comptée dans le patrimoine.
+- **Emprunts** : onglet dédié regroupant tous les prêts — crédits immobiliers (toujours
+  rattachables à un bien) et **prêts conso** (sans rattachement), créables et modifiables
+  depuis l'onglet ; les prêts conso sont déduits du patrimoine net.
 - **Frais** : frais d'entrée, de gestion, droits de garde par compte ; frais courants par fonds.
 - **Ajout manuel** de comptes et de lignes quand la synchro est impossible (cas notamment des
   PEA / CTO / assurances vie, non couverts par les API bancaires — voir plus bas).
@@ -19,11 +37,20 @@ sur l'appareil.
   - crypto : CoinGecko (id, ex. `bitcoin`).
 - **Synchronisation automatique** :
   - **Binance** et **Kraken** : clé API *lecture seule*, valorisation EUR via les cours de l'exchange ;
-  - **Banques françaises via Enable Banking** (DSP2) : soldes des comptes de paiement.
+  - **Banques via Enable Banking** (DSP2) : soldes des comptes de paiement — banques françaises,
+    et **Revolut** via la Lituanie (sélecteur de pays) ;
+  - **Trade Republic** : API *non officielle* (login téléphone/PIN + 2FA), liquidités + positions
+    valorisées en EUR. Android uniquement, à utiliser en connaissance de cause (voir plus bas).
 - **Snapshots quotidiens** : chaque mise à jour (cours, synchro ou saisie) enregistre au plus un
   point par jour et par compte ; les courbes se construisent à partir de ces points (report de la
   dernière valeur connue pour les comptes non mis à jour).
-- **Export / import** JSON des données via le presse-papiers (sans les identifiants).
+- **Multi-devises** : comptes et lignes en EUR (défaut), USD ou CHF — saisie dans la devise
+  d'origine, affichage et courbes convertis en € avec les taux BCE
+  ([frankfurter.dev](https://frankfurter.dev), rafraîchis à chaque mise à jour, derniers taux
+  conservés hors ligne).
+- **Export / import** JSON (sans les identifiants) : presse-papiers partout, et fichier
+  (partage / sélecteur de documents) sur Android. Les exports V1 sans devise restent importables
+  (traités en EUR).
 
 ## Pourquoi certaines choses sont comme elles sont
 
@@ -33,9 +60,19 @@ sur l'appareil.
   par les cours publics. C'est le choix de cette app.
 - **Enable Banking** est le seul agrégateur agréé avec un mode gratuit self-service
   (« restricted production ») limité à **vos propres comptes** — exactement le cas d'usage ici.
-- **CORS** : dans un navigateur, les API Binance, Kraken, Yahoo et Enable Banking refusent les
-  appels cross-origin. Ces fonctions marchent dans l'app **Android** (pas de CORS en natif).
-  Sur le web, le suivi manuel et CoinGecko fonctionnent.
+  Revolut, Fortuneo et BoursoBank n'exposent **pas** d'API directe pour les particuliers (DSP2
+  réservé aux prestataires agréés) : on passe donc par Enable Banking (Revolut = entité
+  lituanienne, Fortuneo et BoursoBank = France).
+- **Trade Republic** n'a aucune API officielle : le connecteur reprend le protocole non officiel
+  du web-login (téléphone/PIN → code 2FA) et du flux WebSocket. Conséquences : validation 2FA à
+  **chaque** synchronisation (pas de synchro silencieuse), fonctionne uniquement en natif Android,
+  et **peut casser** si Trade Republic change son protocole ou active son pare-feu applicatif.
+- **Yuh** (néobanque suisse) est hors périmètre DSP2 et n'expose pas d'API personnelle : suivi
+  manuel uniquement.
+- **CORS** : dans un navigateur, les API Binance, Kraken, Yahoo, Enable Banking et Trade Republic
+  refusent les appels cross-origin. Ces fonctions marchent dans les apps natives (**Android**,
+  **iOS** — pas de CORS en natif ; Trade Republic reste toutefois Android uniquement). Sur le web,
+  le suivi manuel et CoinGecko fonctionnent.
 
 ## Lancer l'app
 
@@ -43,17 +80,42 @@ sur l'appareil.
 npm install
 npm run web        # version web (http://localhost:8081)
 npm run android    # sur émulateur/appareil avec Android Studio, ou scannez le QR avec Expo Go
+npm run ios        # sur simulateur/appareil iOS (macOS + Xcode requis)
 ```
 
-Le plus simple sur téléphone : installer **Expo Go** (Play Store), lancer `npx expo start`,
-scanner le QR code. Pour un APK autonome :
+Le plus simple sur téléphone : installer **Expo Go** (Play Store / App Store), lancer
+`npx expo start`, scanner le QR code. Pour un binaire autonome :
 
 ```bash
-npm install -g eas-cli
-eas build -p android --profile preview   # nécessite un compte Expo (gratuit)
+npm install -g eas-cli                    # ou préfixer les commandes par `npx`
+eas build -p android --profile preview    # APK — nécessite un compte Expo (gratuit)
+eas build -p ios --profile preview        # .ipa — nécessite un compte Apple Developer (payant)
 ```
 
-(ou `npx expo run:android` avec Android Studio installé pour un build local).
+Le build iOS se fait sur le cloud EAS (pas besoin de macOS pour builder) ; EAS gère le
+provisioning (certificat + profil) au premier build via votre login Apple. L'app déclare
+`ios.bundleIdentifier` et `android.package` = `fr.perso.patrimoine`. Pour un build local,
+`npx expo run:android` (Android Studio) ou `npx expo run:ios` (macOS + Xcode).
+
+### Windows (application de bureau)
+
+La version Windows empaquette l'export web dans une coquille **Electron**. Un petit serveur HTTP
+local (port fixe `8099`) sert le build, et `webSecurity` est désactivé pour lever le CORS : les
+connecteurs (Binance, Kraken, Enable Banking, Yahoo, Trade Republic) **fonctionnent** sur Windows,
+contrairement à la version navigateur.
+
+```bash
+npm run windows:dev     # export web + lancement Electron (test rapide)
+npm run windows:build   # génère un installeur .exe dans release/
+```
+
+`windows:build` produit un installeur NSIS dans `release/`. Notes :
+
+- Les données (comptes, historique) sont dans le `localStorage` de l'origine `localhost:8099` —
+  d'où le **port fixe**, pour les conserver d'un lancement à l'autre.
+- Les secrets (clés API, identifiants) utilisent le repli `localStorage` d'`expo-secure-store`
+  (pas de coffre-fort OS comme l'Android Keystore) : **moins protégés que sur Android**. À garder
+  à l'esprit sur un poste partagé.
 
 ## Configurer les synchronisations
 
@@ -90,21 +152,25 @@ eas build -p android --profile preview   # nécessite un compte Expo (gratuit)
 
 ```
 src/
-  app/                 écrans (expo-router) : onglets Synthèse / Comptes / Connexions,
-                       détail de compte, formulaires, flux Enable Banking
-  components/          LineChart (SVG), AllocationBar, primitives UI
+  app/                 écrans (expo-router) : onglets Synthèse / Comptes / Immobilier /
+                       Emprunts / Paramètres (connexions, sauvegarde, affichage, entretien
+                       de l'historique), détail de compte et de bien, formulaires (compte,
+                       ligne, bien, prêt), flux Enable Banking
+  components/          LineChart (SVG), AllocationBar, PieChart, ProgressBar, primitives UI
   lib/
-    types.ts           modèle : Account, Holding, Snapshot, Connection
+    types.ts           modèle : Account, Holding, Snapshot, Connection, Property, Loan
     store.ts           store zustand persisté (AsyncStorage)
     secure.ts          secrets (expo-secure-store, repli localStorage sur web)
-    portfolio.ts       valorisation + construction des séries temporelles
-    prices/            Yahoo Finance & CoinGecko
+    portfolio.ts       valorisation comptes + construction des séries temporelles
+    realestate.ts      estimation des biens, amortissement des crédits (constant/paliers)
+    prices/            Yahoo Finance, CoinGecko & indice immobilier INSEE (embarqué)
     connectors/        Binance, Kraken, Enable Banking (JWT RS256)
 ```
 
-Données locales : documents (comptes, lignes, snapshots, connexions) en JSON dans AsyncStorage ;
-secrets à part dans le stockage sécurisé. Aucun serveur tiers autre que les API officielles
-citées ci-dessus.
+Données locales : documents (comptes, lignes, snapshots, connexions, biens et crédits immobiliers)
+en JSON dans AsyncStorage ; secrets à part dans le stockage sécurisé. La valeur d'un bien et le
+capital restant dû d'un crédit étant calculables analytiquement à toute date, la courbe immobilière
+est dérivée sans stocker de snapshots. Aucun serveur tiers autre que les API officielles citées.
 
 ## Avertissement
 

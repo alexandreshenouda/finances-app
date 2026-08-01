@@ -4,7 +4,9 @@
  *
  * Prérequis (gratuit pour un usage personnel, mode « restricted production ») :
  *  1. Créer un compte sur https://enablebanking.com et une application.
- *  2. Enregistrer l'URL de redirection `patrimoine://eb-callback` dans l'application.
+ *  2. Enregistrer l'URL de redirection https de la page de rebond (docs/eb-callback.html,
+ *     déployée par ex. via GitHub Pages) dans l'application — Enable Banking n'accepte pas
+ *     les schémas personnalisés type patrimoine:// en redirect_url.
  *  3. Récupérer l'Application ID et la clé privée PEM, à coller dans l'écran Connexions.
  *
  * Authentification API : JWT RS256 signé avec la clé privée de l'application.
@@ -80,9 +82,23 @@ export interface Aspsp {
   country: string;
 }
 
-/** Liste des banques françaises disponibles. */
-export async function listBanks(creds: EnableBankingCredentials): Promise<Aspsp[]> {
-  const json = await api(creds, '/aspsps?country=FR');
+/** Pays UE/EEE couramment utiles (Revolut = LT, N26 = DE, etc.). */
+export const EB_COUNTRIES: { code: string; label: string }[] = [
+  { code: 'FR', label: 'France' },
+  { code: 'LT', label: 'Lituanie (Revolut, Wise…)' },
+  { code: 'DE', label: 'Allemagne (N26, Trade Republic…)' },
+  { code: 'BE', label: 'Belgique' },
+  { code: 'ES', label: 'Espagne' },
+  { code: 'IT', label: 'Italie' },
+  { code: 'NL', label: 'Pays-Bas' },
+  { code: 'IE', label: 'Irlande' },
+  { code: 'PT', label: 'Portugal' },
+  { code: 'LU', label: 'Luxembourg' },
+];
+
+/** Liste des banques disponibles pour un pays donné (défaut : FR). */
+export async function listBanks(creds: EnableBankingCredentials, country = 'FR'): Promise<Aspsp[]> {
+  const json = await api(creds, `/aspsps?country=${encodeURIComponent(country)}`);
   return (json?.aspsps ?? []).map((a: any) => ({ name: a.name, country: a.country }));
 }
 

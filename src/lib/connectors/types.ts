@@ -7,6 +7,8 @@ export interface ExternalHolding {
   symbol?: string;
   quantity: number;
   unitPriceEur: number;
+  /** Prix de revient unitaire en EUR, si le fournisseur l'expose (→ +/- value latente). */
+  buyPriceEur?: number;
 }
 
 /** Compte renvoyé par un connecteur. */
