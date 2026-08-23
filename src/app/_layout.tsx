@@ -41,6 +41,7 @@ export default function RootLayout() {
         <Stack.Screen name="property/[id]" options={{ title: 'Bien' }} />
         <Stack.Screen name="property-form" options={{ title: 'Bien', presentation: 'modal' }} />
         <Stack.Screen name="loan-form" options={{ title: 'Crédit', presentation: 'modal' }} />
+        <Stack.Screen name="objective-form" options={{ title: 'Objectif', presentation: 'modal' }} />
         <Stack.Screen name="connections" options={{ title: 'Connexions' }} />
         <Stack.Screen name="backup" options={{ title: 'Sauvegarde' }} />
         <Stack.Screen name="display-settings" options={{ title: 'Affichage' }} />

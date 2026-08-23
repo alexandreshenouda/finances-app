@@ -260,3 +260,39 @@ export interface HousePricePoint {
   date: string;
   value: number;
 }
+
+// ─── Objectifs ─────────────────────────────────────────────────────────────
+
+export type ObjectiveCategory = 'epargne_precaution' | 'projet_long_terme' | 'projet_court_terme';
+
+export const OBJECTIVE_CATEGORY_LABELS: Record<ObjectiveCategory, string> = {
+  epargne_precaution: 'Épargne de précaution',
+  projet_long_terme: 'Projet à long terme',
+  projet_court_terme: 'Projet à court terme',
+};
+
+export const OBJECTIVE_CATEGORY_ORDER: ObjectiveCategory[] = [
+  'epargne_precaution',
+  'projet_long_terme',
+  'projet_court_terme',
+];
+
+/** Un objectif financier défini par l'utilisateur (épargne de précaution, projet…). */
+export interface Objective {
+  id: string;
+  category: ObjectiveCategory;
+  createdAt: string; // ISO
+
+  /** epargne_precaution : nombre de mois de dépenses visé (1 à 24). */
+  securityMonths?: number;
+  /** epargne_precaution : dépenses mensuelles (crédits, loyers, alimentation…), en EUR. */
+  monthlyExpenses?: number;
+
+  /** projet_long_terme / projet_court_terme */
+  name?: string;
+  targetAmount?: number;
+  /** projet_long_terme uniquement : montant à garder de côté une fois l'objectif atteint,
+   * réservé en plus de l'épargne de précaution. */
+  bufferAmount?: number;
+  deadline?: string; // YYYY-MM-DD
+}

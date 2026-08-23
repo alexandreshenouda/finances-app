@@ -11,6 +11,7 @@ import {
   type Holding,
   type HousePricePoint,
   type Loan,
+  type Objective,
   type Period,
   type Property,
   type Snapshot,
@@ -23,6 +24,7 @@ export interface AppData {
   connections: Connection[];
   properties: Property[];
   loans: Loan[];
+  objectives: Objective[];
 }
 
 interface AppState extends AppData {
@@ -63,6 +65,9 @@ interface AppState extends AppData {
   upsertLoan: (l: Partial<Loan> & { name: string; principal: number; annualRate: number; termMonths: number; startDate: string }) => Loan;
   deleteLoan: (id: string) => void;
 
+  upsertObjective: (o: Partial<Objective> & { category: Objective['category'] }) => Objective;
+  deleteObjective: (id: string) => void;
+
   upsertHolding: (h: Partial<Holding> & { accountId: string; name: string; quantity: number }) => Holding;
   deleteHolding: (id: string) => void;
 
@@ -90,6 +95,7 @@ export const useStore = create<AppState>()(
       connections: [],
       properties: [],
       loans: [],
+      objectives: [],
       hydrated: false,
 
       fxRates: DEFAULT_FX_RATES,
@@ -176,6 +182,24 @@ export const useStore = create<AppState>()(
 
       deleteLoan: (id) => set((s) => ({ loans: s.loans.filter((l) => l.id !== id) })),
 
+      upsertObjective: (o) => {
+        const existing = o.id ? get().objectives.find((x) => x.id === o.id) : undefined;
+        const objective: Objective = {
+          createdAt: new Date().toISOString(),
+          ...existing,
+          ...o,
+          id: existing?.id ?? o.id ?? uid(),
+        } as Objective;
+        set((s) => ({
+          objectives: existing
+            ? s.objectives.map((x) => (x.id === objective.id ? objective : x))
+            : [...s.objectives, objective],
+        }));
+        return objective;
+      },
+
+      deleteObjective: (id) => set((s) => ({ objectives: s.objectives.filter((o) => o.id !== id) })),
+
       upsertHolding: (h) => {
         const existing = h.id ? get().holdings.find((x) => x.id === h.id) : undefined;
         const holding: Holding = {
@@ -220,6 +244,7 @@ export const useStore = create<AppState>()(
           connections: [],
           properties: [],
           loans: [],
+          objectives: [],
           patrimoineNet: true,
           showRealEstate: true,
           defaultPeriod: '1A',
@@ -260,6 +285,7 @@ export const useStore = create<AppState>()(
           connections: data.connections ?? [],
           properties: data.properties ?? [],
           loans: data.loans ?? [],
+          objectives: data.objectives ?? [],
         }),
     }),
     {
@@ -272,6 +298,7 @@ export const useStore = create<AppState>()(
         connections: s.connections,
         properties: s.properties,
         loans: s.loans,
+        objectives: s.objectives,
         fxRates: s.fxRates,
         fxUpdatedAt: s.fxUpdatedAt,
         houseIndex: s.houseIndex,
@@ -294,6 +321,6 @@ export const useStore = create<AppState>()(
 useStore.subscribe((s) => setMaskedMoney(s.privacyMode));
 
 export function exportData(): AppData {
-  const { accounts, holdings, snapshots, connections, properties, loans } = useStore.getState();
-  return { accounts, holdings, snapshots, connections, properties, loans };
+  const { accounts, holdings, snapshots, connections, properties, loans, objectives } = useStore.getState();
+  return { accounts, holdings, snapshots, connections, properties, loans, objectives };
 }

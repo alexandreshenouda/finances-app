@@ -1,8 +1,10 @@
-/** Synthèse : valeur totale, courbe par période, répartition par type. */
+/** Synthèse : valeur totale, courbe par période, répartition par type, objectifs. */
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AllocationBar } from '@/components/AllocationBar';
 import { LineChart } from '@/components/LineChart';
+import { ObjectiveCard } from '@/components/ObjectiveCard';
 import { PieChart } from '@/components/PieChart';
 import { Button, Card, Checkbox, Chips, Empty, PeriodChips, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
@@ -22,6 +24,7 @@ const ALLOC_VIEWS = ['barre', 'camembert'] as const;
 const ALLOC_LABELS: Record<(typeof ALLOC_VIEWS)[number], string> = { barre: 'Barre', camembert: 'Camembert' };
 
 export default function Dashboard() {
+  const router = useRouter();
   const accounts = useStore((s) => s.accounts);
   const holdings = useStore((s) => s.holdings);
   const snapshots = useStore((s) => s.snapshots);
@@ -29,6 +32,7 @@ export default function Dashboard() {
   useStore((s) => s.privacyMode); // re-render au changement de mode confidentialité (masquage dans format.ts)
   const properties = useStore((s) => s.properties);
   const loans = useStore((s) => s.loans);
+  const objectives = useStore((s) => s.objectives);
   const houseIndex = useStore((s) => s.houseIndex);
   const patrimoineNet = useStore((s) => s.patrimoineNet);
   const setPatrimoineNet = useStore((s) => s.setPatrimoineNet);
@@ -186,6 +190,29 @@ export default function Dashboard() {
           <Empty text="Ajoutez des comptes dans l'onglet Comptes pour voir la répartition." />
         )}
       </Card>
+
+      <View style={styles.allocHeader}>
+        <SectionTitle>Objectifs</SectionTitle>
+      </View>
+      {objectives.length === 0 ? (
+        <Card>
+          <Empty text="Définissez un objectif d'épargne ou de projet." />
+        </Card>
+      ) : (
+        objectives.map((o) => (
+          <ObjectiveCard
+            key={o.id}
+            objective={o}
+            objectives={objectives}
+            accounts={active}
+            holdings={holdings}
+            snapshots={snapshots}
+            rates={rates}
+            onPress={() => router.push({ pathname: '/objective-form', params: { objectiveId: o.id } })}
+          />
+        ))
+      )}
+      <Button title="＋ Ajouter un objectif" variant="secondary" onPress={() => router.push('/objective-form')} />
     </ScrollView>
   );
 }

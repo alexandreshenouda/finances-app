@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Dimensions,
   Modal,
+  PanResponder,
   Pressable,
   StyleSheet,
   Text,
@@ -272,6 +273,81 @@ export function ProgressBar({ ratio, color = C.accent, height = 10 }: { ratio: n
   );
 }
 
+/** Couleur d'une barre de progression selon le taux d'atteinte d'un objectif :
+ * rouge <30%, orange 30-95%, vert 95-120%, rouge au-delà. */
+export function objectiveProgressColor(pct: number): string {
+  if (pct >= 95 && pct <= 120) return C.positive;
+  if (pct >= 30 && pct < 95) return C.warning;
+  return C.negative;
+}
+
+/** Curseur numérique (valeur entière min..max), ex : durée en mois. Pas de dépendance
+ * externe (aucune lib de slider n'est installée et l'app doit rester exportable en web) :
+ * repose sur PanResponder, compatible react-native-web. */
+export function Slider({
+  value,
+  min,
+  max,
+  step = 1,
+  onChange,
+  color = C.accent,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  step?: number;
+  onChange: (v: number) => void;
+  color?: string;
+}) {
+  const trackRef = useRef<View>(null);
+  const trackPageX = useRef(0);
+  // Layout/props are read through refs, not state: `responder` below is created once
+  // (via useRef) so its closures must read live values at call time rather than
+  // capturing them — otherwise they'd stay stuck on the first render's values
+  // (width === 0, before onLayout ever fires) for the component's whole lifetime.
+  const width = useRef(0);
+  const params = useRef({ min, max, step, onChange });
+  params.current = { min, max, step, onChange };
+
+  const ratio = Math.max(0, Math.min(1, (value - min) / (max - min)));
+
+  const handleTouch = (pageX: number) => {
+    if (width.current <= 0) return;
+    const { min, max, step, onChange } = params.current;
+    const r = Math.max(0, Math.min(1, (pageX - trackPageX.current) / width.current));
+    const raw = min + r * (max - min);
+    const stepped = Math.round(raw / step) * step;
+    onChange(Math.max(min, Math.min(max, stepped)));
+  };
+
+  const responder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => handleTouch(e.nativeEvent.pageX),
+      onPanResponderMove: (e) => handleTouch(e.nativeEvent.pageX),
+    })
+  ).current;
+
+  return (
+    <View
+      ref={trackRef}
+      onLayout={(e) => {
+        width.current = e.nativeEvent.layout.width;
+        trackRef.current?.measure((_x, _y, _w, _h, pageX) => {
+          trackPageX.current = pageX;
+        });
+      }}
+      style={styles.sliderTrack}
+      {...responder.panHandlers}
+    >
+      <View style={styles.sliderBase} />
+      <View style={[styles.sliderFill, { width: `${ratio * 100}%`, backgroundColor: color }]} />
+      <View style={[styles.sliderThumb, { left: `${ratio * 100}%`, borderColor: color }]} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     backgroundColor: C.card,
@@ -359,4 +435,31 @@ const styles = StyleSheet.create({
   menuItem: { paddingVertical: 10, paddingHorizontal: 16 },
   menuItemText: { color: C.text, fontSize: 14 },
   empty: { color: C.textFaint, fontSize: 14, textAlign: 'center', paddingVertical: 24 },
+  sliderTrack: {
+    height: 28,
+    justifyContent: 'center',
+  },
+  sliderBase: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: C.cardAlt,
+  },
+  sliderFill: {
+    position: 'absolute',
+    left: 0,
+    height: 6,
+    borderRadius: 3,
+  },
+  sliderThumb: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginLeft: -10,
+    backgroundColor: C.card,
+    borderWidth: 3,
+  },
 });
