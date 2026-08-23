@@ -2,6 +2,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Empty, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
@@ -12,6 +13,7 @@ import { useStore } from '@/lib/store';
 import { PROVIDER_LABELS } from '@/lib/types';
 
 export default function Connections() {
+  const { t } = useTranslation();
   const router = useRouter();
   const connections = useStore((s) => s.connections);
   const deleteConnection = useStore((s) => s.deleteConnection);
@@ -21,16 +23,16 @@ export default function Connections() {
     setSyncing(id);
     try {
       const r = await syncConnection(id);
-      notify('Synchronisation terminée', r.warnings.length > 0 ? r.warnings.join('\n') : 'Comptes à jour.');
+      notify(t('connections.sync_terminee_titre'), r.warnings.length > 0 ? r.warnings.join('\n') : t('connections.comptes_a_jour'));
     } catch (e: any) {
-      notify('Erreur de synchronisation', String(e?.message ?? e));
+      notify(t('connections.sync_erreur_titre'), String(e?.message ?? e));
     } finally {
       setSyncing(null);
     }
   };
 
   const onDelete = (id: string, label: string) =>
-    confirmAction('Supprimer la connexion', `« ${label} » : les identifiants seront effacés, les comptes et l'historique conservés.`, async () => {
+    confirmAction(t('connections.supprimer_titre'), t('connections.supprimer_confirm', { label }), async () => {
       await deleteSecret(connectionSecretKey(id));
       deleteConnection(id);
     });
@@ -39,55 +41,43 @@ export default function Connections() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       {Platform.OS === 'web' && (
         <Card style={{ borderColor: C.warning }}>
-          <Text style={styles.webWarn}>
-            Dans un navigateur, les API de Binance, Kraken, Yahoo, Enable Banking et Trade Republic
-            sont bloquées (CORS). La synchronisation fonctionne dans l'app Android ; ici, utilisez le
-            suivi manuel et CoinGecko.
-          </Text>
+          <Text style={styles.webWarn}>{t('connections.web_warning')}</Text>
         </Card>
       )}
 
-      <SectionTitle>Connexions actives</SectionTitle>
-      {connections.length === 0 && <Empty text="Aucune connexion. Ajoutez-en une ci-dessous : les identifiants restent stockés sur l'appareil." />}
+      <SectionTitle>{t('connections.actives')}</SectionTitle>
+      {connections.length === 0 && <Empty text={t('connections.aucune')} />}
       {connections.map((c) => (
         <Card key={c.id}>
           <Text style={styles.connLabel}>{c.label}</Text>
           <Text style={styles.connSub}>
             {PROVIDER_LABELS[c.provider]}
-            {c.lastSync ? `  ·  dernière synchro : ${formatDate(c.lastSync)}` : '  ·  jamais synchronisé'}
+            {c.lastSync ? `  ·  ${t('connections.derniere_synchro', { date: formatDate(c.lastSync) })}` : `  ·  ${t('connections.jamais_synchronise')}`}
           </Text>
           {c.lastError && <Text style={styles.connError}>{c.lastError}</Text>}
           <View style={styles.connButtons}>
             {c.provider === 'traderepublic' ? (
               // 2FA requise : la « synchro » repasse par l'écran interactif.
-              <Button title="Reconnecter" onPress={() => router.push({ pathname: '/tr-connect', params: { connectionId: c.id } })} style={{ flex: 1 }} />
+              <Button title={t('connections.reconnecter')} onPress={() => router.push({ pathname: '/tr-connect', params: { connectionId: c.id } })} style={{ flex: 1 }} />
             ) : (
-              <Button title="Synchroniser" onPress={() => onSync(c.id)} loading={syncing === c.id} style={{ flex: 1 }} />
+              <Button title={t('forms.connexion')} onPress={() => onSync(c.id)} loading={syncing === c.id} style={{ flex: 1 }} />
             )}
             {c.provider === 'enablebanking' && (
-              <Button title="Banques" variant="secondary" onPress={() => router.push({ pathname: '/eb-connect', params: { connectionId: c.id } })} style={{ flex: 1 }} />
+              <Button title={t('connections.banques')} variant="secondary" onPress={() => router.push({ pathname: '/eb-connect', params: { connectionId: c.id } })} style={{ flex: 1 }} />
             )}
-            <Button title="Supprimer" variant="danger" onPress={() => onDelete(c.id, c.label)} style={{ flex: 1 }} />
+            <Button title={t('common.delete')} variant="danger" onPress={() => onDelete(c.id, c.label)} style={{ flex: 1 }} />
           </View>
         </Card>
       ))}
 
-      <SectionTitle>Ajouter une connexion</SectionTitle>
+      <SectionTitle>{t('connections.ajouter_titre')}</SectionTitle>
       <Card>
-        <Text style={styles.addHint}>
-          Clés API en lecture seule uniquement. Elles sont chiffrées dans le stockage sécurisé de
-          l'appareil (Android Keystore) et ne quittent jamais l'appareil.
-        </Text>
-        <Button title="Binance (clé API lecture seule)" variant="secondary" onPress={() => router.push({ pathname: '/connection-form', params: { provider: 'binance' } })} />
-        <Button title="Kraken (clé API lecture seule)" variant="secondary" onPress={() => router.push({ pathname: '/connection-form', params: { provider: 'kraken' } })} />
-        <Button title="Trade Republic (non officiel, 2FA)" variant="secondary" onPress={() => router.push('/tr-connect')} />
-        <Button title="Banques via Enable Banking (Revolut, FR…)" variant="secondary" onPress={() => router.push('/eb-connect')} />
-        <Text style={styles.addNote}>
-          Enable Banking (gratuit, usage personnel) couvre les comptes courants via DSP2 : banques
-          françaises, et Revolut via la Lituanie. Les PEA, CTO et assurances vie ne sont pas couverts
-          par les API bancaires : suivez-les en manuel avec cours automatiques.{'\n\n'}
-          Trade Republic utilise une API non officielle (Android uniquement, 2FA à chaque synchro).
-        </Text>
+        <Text style={styles.addHint}>{t('connections.ajouter_hint')}</Text>
+        <Button title={t('connections.binance_bouton')} variant="secondary" onPress={() => router.push({ pathname: '/connection-form', params: { provider: 'binance' } })} />
+        <Button title={t('connections.kraken_bouton')} variant="secondary" onPress={() => router.push({ pathname: '/connection-form', params: { provider: 'kraken' } })} />
+        <Button title={t('connections.tr_bouton')} variant="secondary" onPress={() => router.push('/tr-connect')} />
+        <Button title={t('connections.eb_bouton')} variant="secondary" onPress={() => router.push('/eb-connect')} />
+        <Text style={styles.addNote}>{t('connections.ajouter_note')}</Text>
       </Card>
     </ScrollView>
   );

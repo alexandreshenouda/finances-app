@@ -2,6 +2,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Field } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { notify } from '@/lib/confirm';
@@ -11,6 +12,7 @@ import { useStore } from '@/lib/store';
 import { PROVIDER_LABELS } from '@/lib/types';
 
 export default function ConnectionForm() {
+  const { t } = useTranslation();
   const { provider } = useLocalSearchParams<{ provider: 'binance' | 'kraken' }>();
   const router = useRouter();
   const upsertConnection = useStore((s) => s.upsertConnection);
@@ -21,10 +23,7 @@ export default function ConnectionForm() {
   const [apiSecret, setApiSecret] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const help =
-    provider === 'kraken'
-      ? 'Créez une clé API sur kraken.com → Settings → API avec la seule permission « Query Funds ».'
-      : 'Créez une clé API sur binance.com → Gestion API, en lecture seule (décochez trading et retraits).';
+  const help = provider === 'kraken' ? t('connectionForm.aide_kraken') : t('connectionForm.aide_binance');
 
   const save = async () => {
     if (!apiKey.trim() || !apiSecret.trim() || !provider) return;
@@ -36,12 +35,12 @@ export default function ConnectionForm() {
         JSON.stringify({ apiKey: apiKey.trim(), apiSecret: apiSecret.trim() })
       );
       await syncConnection(conn.id);
-      notify('Connexion réussie', 'Comptes importés et synchronisés.');
+      notify(t('connectionForm.succes_titre'), t('connectionForm.succes_texte'));
       router.back();
     } catch (e: any) {
       // Première synchro échouée : on ne garde pas une connexion inutilisable.
       deleteConnection(conn.id);
-      notify('Échec de la connexion', String(e?.message ?? e));
+      notify(t('connectionForm.echec_titre'), String(e?.message ?? e));
     } finally {
       setSaving(false);
     }
@@ -53,20 +52,20 @@ export default function ConnectionForm() {
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Card>
           <Text style={styles.help}>{help}</Text>
-          <Field label="Libellé" value={label} onChangeText={setLabel} />
-          <Field label="Clé API" value={apiKey} onChangeText={setApiKey} autoCapitalize="none" autoCorrect={false} />
+          <Field label={t('connectionForm.libelle')} value={label} onChangeText={setLabel} />
+          <Field label={t('connectionForm.cle_api')} value={apiKey} onChangeText={setApiKey} autoCapitalize="none" autoCorrect={false} />
           <Field
-            label="Secret API"
+            label={t('connectionForm.secret_api')}
             value={apiSecret}
             onChangeText={setApiSecret}
             autoCapitalize="none"
             autoCorrect={false}
             secureTextEntry
-            hint="Stocké chiffré sur l'appareil, jamais transmis ailleurs qu'à l'API officielle."
+            hint={t('connectionForm.secret_hint')}
           />
         </Card>
-        <Button title="Connecter et synchroniser" onPress={save} loading={saving} disabled={!apiKey.trim() || !apiSecret.trim()} />
-        <Button title="Annuler" variant="secondary" onPress={() => router.back()} />
+        <Button title={t('connectionForm.connecter')} onPress={save} loading={saving} disabled={!apiKey.trim() || !apiSecret.trim()} />
+        <Button title={t('common.cancel')} variant="secondary" onPress={() => router.back()} />
       </ScrollView>
     </>
   );

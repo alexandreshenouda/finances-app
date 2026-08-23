@@ -5,6 +5,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, SelectField } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
@@ -27,14 +28,15 @@ function parseDate(s: string): string | undefined {
 }
 
 const MODES = ['constant', 'paliers'] as const;
-const MODE_LABELS: Record<(typeof MODES)[number], string> = {
-  constant: 'Mensualité constante',
-  paliers: 'Paliers',
-};
 
 type StepInput = { months: string; payment: string };
 
 export default function LoanForm() {
+  const { t } = useTranslation();
+  const MODE_LABELS: Record<(typeof MODES)[number], string> = {
+    constant: t('loanForm.mode_constant'),
+    paliers: t('loanForm.mode_paliers'),
+  };
   const { propertyId, loanId } = useLocalSearchParams<{ propertyId?: string; loanId?: string }>();
   const router = useRouter();
   const existing = useStore((s) => s.loans.find((l) => l.id === loanId));
@@ -47,7 +49,7 @@ export default function LoanForm() {
   const attachFixed = propertyId !== undefined;
   const [attach, setAttach] = useState<string>(existing?.propertyId ?? propertyId ?? 'conso');
 
-  const [name, setName] = useState(existing?.name ?? 'Prêt principal');
+  const [name, setName] = useState(existing?.name ?? t('loanForm.nom_defaut'));
   const [lender, setLender] = useState(existing?.lender ?? '');
   const [currency, setCurrency] = useState<Currency>(existing?.currency ?? property?.currency ?? 'EUR');
   const [principal, setPrincipal] = useState(existing?.principal?.toString() ?? '');
@@ -144,75 +146,71 @@ export default function LoanForm() {
   };
 
   const onDelete = () =>
-    confirmAction('Supprimer le crédit', `« ${existing?.name} » sera supprimé.`, () => {
+    confirmAction(t('loanForm.supprimer_titre'), t('loanForm.supprimer_confirm', { name: existing?.name }), () => {
       deleteLoan(existing!.id);
       router.back();
     });
 
   return (
     <>
-      <Stack.Screen options={{ title: existing ? 'Modifier le prêt' : 'Nouveau prêt' }} />
+      <Stack.Screen options={{ title: existing ? t('loanForm.titre_edit') : t('loanForm.titre_new') }} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Card>
           {!attachFixed && (
             <SelectField
-              label="Rattachement"
+              label={t('loanForm.rattachement')}
               value={attach}
               onChange={setAttach}
               options={[
-                { value: 'conso', label: 'Prêt conso — aucun bien' },
+                { value: 'conso', label: t('loanForm.rattachement_conso') },
                 ...properties.filter((p) => !p.archived).map((p) => ({ value: p.id, label: p.name })),
               ]}
-              hint="Un prêt rattaché à un bien compte dans l'équité de ce bien (onglet Immobilier) ; un prêt conso est déduit du patrimoine net."
+              hint={t('loanForm.rattachement_hint')}
             />
           )}
-          <Field label="Nom du prêt" value={name} onChangeText={setName} placeholder="ex : Prêt principal" />
-          <Field label="Prêteur / banque (optionnel)" value={lender} onChangeText={setLender} placeholder="ex : Crédit Agricole" />
+          <Field label={t('loanForm.nom')} value={name} onChangeText={setName} placeholder={t('loanForm.nom_placeholder')} />
+          <Field label={t('loanForm.preteur')} value={lender} onChangeText={setLender} placeholder={t('loanForm.preteur_placeholder')} />
           <SelectField
-            label="Devise du prêt"
+            label={t('loanForm.devise')}
             value={currency}
             onChange={setCurrency}
             options={CURRENCIES.map((c) => ({ value: c, label: CURRENCY_LABELS[c] }))}
           />
-          <Field label={`Capital emprunté en ${currency}`} value={principal} onChangeText={setPrincipal} keyboardType="decimal-pad" placeholder="ex : 200000" />
-          <Field label="Taux nominal annuel (%)" value={annualRate} onChangeText={setAnnualRate} keyboardType="decimal-pad" placeholder="ex : 3,2" />
+          <Field label={t('loanForm.capital', { currency })} value={principal} onChangeText={setPrincipal} keyboardType="decimal-pad" placeholder={t('loanForm.capital_placeholder')} />
+          <Field label={t('loanForm.taux')} value={annualRate} onChangeText={setAnnualRate} keyboardType="decimal-pad" placeholder={t('loanForm.taux_placeholder')} />
           <Field
-            label="Date de la 1re échéance"
+            label={t('loanForm.premiere_echeance')}
             value={startDate}
             onChangeText={setStartDate}
-            placeholder="AAAA-MM-JJ"
+            placeholder={t('propertyForm.date_placeholder')}
             autoCapitalize="none"
-            hint={date === undefined ? 'Format attendu : AAAA-MM-JJ.' : undefined}
+            hint={date === undefined ? t('loanForm.date_hint') : undefined}
           />
         </Card>
 
         <Card>
-          <Text style={styles.label}>Remboursement</Text>
+          <Text style={styles.label}>{t('loanForm.remboursement')}</Text>
           <Chips options={MODES} value={mode} onChange={setMode} labels={MODE_LABELS} />
 
           {mode === 'constant' ? (
             <View style={{ marginTop: 12 }}>
-              <Field label="Durée totale (mois)" value={termMonths} onChangeText={setTermMonths} keyboardType="number-pad" placeholder="ex : 240" hint="240 mois = 20 ans, 300 = 25 ans." />
+              <Field label={t('loanForm.duree_totale')} value={termMonths} onChangeText={setTermMonths} keyboardType="number-pad" placeholder={t('loanForm.duree_totale_placeholder')} hint={t('loanForm.duree_totale_hint')} />
               <Field
-                label={`Mensualité hors assurance en ${currency} (optionnel)`}
+                label={t('loanForm.mensualite', { currency })}
                 value={monthlyPayment}
                 onChangeText={setMonthlyPayment}
                 keyboardType="decimal-pad"
-                placeholder={previewPayment !== undefined ? `calculée : ${previewPayment.toFixed(2)}` : 'ex : 1133'}
+                placeholder={previewPayment !== undefined ? t('loanForm.mensualite_calculee', { value: previewPayment.toFixed(2) }) : t('loanForm.mensualite_placeholder')}
                 hint={
                   previewPayment !== undefined
-                    ? `Laissez vide pour utiliser la mensualité calculée : ${formatMoney(previewPayment, currency, true)}.`
-                    : 'Laissez vide pour la calculer automatiquement à partir du capital, du taux et de la durée.'
+                    ? t('loanForm.mensualite_hint_calculee', { value: formatMoney(previewPayment, currency, true) })
+                    : t('loanForm.mensualite_hint_auto')
                 }
               />
             </View>
           ) : (
             <View style={{ marginTop: 12 }}>
-              <Text style={styles.hint}>
-                Un palier = une mensualité constante sur une durée. Laissez la mensualité vide
-                pour qu'elle soit calculée (utile pour le dernier palier, ajusté afin de solder le prêt).
-                Mettez 0 pour un différé total.
-              </Text>
+              <Text style={styles.hint}>{t('loanForm.paliers_hint')}</Text>
               {steps.map((s, idx) => {
                 const monthsN = parseNum(s.months);
                 const pv = stepPreview[idx];
@@ -220,46 +218,52 @@ export default function LoanForm() {
                 return (
                   <View key={idx} style={styles.stepCard}>
                     <View style={styles.stepHead}>
-                      <Text style={styles.stepTitle}>Palier {idx + 1}</Text>
+                      <Text style={styles.stepTitle}>{t('loanForm.palier_titre', { n: idx + 1 })}</Text>
                       {steps.length > 1 && (
                         <Pressable onPress={() => removeStep(idx)} hitSlop={8}>
-                          <Text style={styles.stepRemove}>Retirer</Text>
+                          <Text style={styles.stepRemove}>{t('loanForm.palier_retirer')}</Text>
                         </Pressable>
                       )}
                     </View>
                     <View style={styles.stepRow}>
                       <View style={{ flex: 1 }}>
-                        <Field label="Durée (mois)" value={s.months} onChangeText={(v) => setStep(idx, 'months', v)} keyboardType="number-pad" placeholder="ex : 24" />
+                        <Field label={t('loanForm.palier_duree')} value={s.months} onChangeText={(v) => setStep(idx, 'months', v)} keyboardType="number-pad" placeholder={t('loanForm.palier_duree_placeholder')} />
                       </View>
                       <View style={{ width: 12 }} />
                       <View style={{ flex: 1 }}>
-                        <Field label={`Mensualité ${currency}`} value={s.payment} onChangeText={(v) => setStep(idx, 'payment', v)} keyboardType="decimal-pad" placeholder="auto" />
+                        <Field label={t('loanForm.palier_mensualite', { currency })} value={s.payment} onChangeText={(v) => setStep(idx, 'payment', v)} keyboardType="decimal-pad" placeholder={t('loanForm.palier_auto')} />
                       </View>
                     </View>
                     {monthsN !== undefined && monthsN > 0 && pv !== undefined && (
                       <Text style={styles.stepHint}>
-                        {formatMoney(pv, currency, true)}/mois{isAuto ? ' (calculée)' : ''} · {formatDuration(Math.round(monthsN))}
+                        {t('loanForm.palier_preview', {
+                          amount: formatMoney(pv, currency, true),
+                          auto: isAuto ? t('loanForm.palier_preview_calculee') : '',
+                          duration: formatDuration(Math.round(monthsN)),
+                        })}
                       </Text>
                     )}
                   </View>
                 );
               })}
-              <Button title="＋ Ajouter un palier" variant="secondary" onPress={addStep} />
+              <Button title={t('loanForm.ajouter_palier')} variant="secondary" onPress={addStep} />
               <Text style={styles.hint}>
-                Durée totale : {totalStepMonths > 0 ? `${totalStepMonths} mois (${formatDuration(totalStepMonths)})` : '—'}.
+                {t('loanForm.duree_totale_resume', {
+                  value: totalStepMonths > 0 ? t('loanForm.duree_totale_valeur', { months: totalStepMonths, duration: formatDuration(totalStepMonths) }) : '—',
+                })}
               </Text>
             </View>
           )}
         </Card>
 
         <Card>
-          <Field label={`Assurance emprunteur / mois en ${currency} (optionnel)`} value={insuranceMonthly} onChangeText={setInsuranceMonthly} keyboardType="decimal-pad" placeholder="ex : 30" />
-          <Field label="Notes (optionnel)" value={notes} onChangeText={setNotes} placeholder="ex : taux renégocié en 2024" multiline />
+          <Field label={t('loanForm.assurance', { currency })} value={insuranceMonthly} onChangeText={setInsuranceMonthly} keyboardType="decimal-pad" placeholder={t('loanForm.assurance_placeholder')} />
+          <Field label={t('propertyForm.notes')} value={notes} onChangeText={setNotes} placeholder={t('loanForm.notes_placeholder')} multiline />
         </Card>
 
-        <Button title="Enregistrer" onPress={save} disabled={!valid} />
-        {existing && <Button title="Supprimer le crédit" variant="danger" onPress={onDelete} />}
-        <Button title="Annuler" variant="secondary" onPress={() => router.back()} />
+        <Button title={t('common.save')} onPress={save} disabled={!valid} />
+        {existing && <Button title={t('loanForm.supprimer_bouton')} variant="danger" onPress={onDelete} />}
+        <Button title={t('common.cancel')} variant="secondary" onPress={() => router.back()} />
       </ScrollView>
     </>
   );

@@ -1,7 +1,9 @@
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import i18next from '@/lib/i18n';
+import { useStore } from '@/lib/store';
 import { C } from '@/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
@@ -19,14 +21,27 @@ const theme = {
 };
 
 export default function RootLayout() {
+  const language = useStore((s) => s.language);
+  const [refreshKey, setRefreshKey] = useState(0);
+
   useEffect(() => {
-    SplashScreen.hideAsync();
+    (async () => {
+      await i18next.changeLanguage(useStore.getState().language);
+      await SplashScreen.hideAsync();
+    })();
   }, []);
+
+  useEffect(() => {
+    setRefreshKey((x) => x + 1);
+  }, [language]);
+
+  const t = (key: string) => i18next.t(key);
 
   return (
     <ThemeProvider value={theme}>
       <StatusBar style="light" />
       <Stack
+        key={refreshKey}
         screenOptions={{
           headerStyle: { backgroundColor: C.bg },
           headerTintColor: C.text,
@@ -35,19 +50,20 @@ export default function RootLayout() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="account/[id]" options={{ title: 'Compte' }} />
-        <Stack.Screen name="account-form" options={{ title: 'Compte', presentation: 'modal' }} />
-        <Stack.Screen name="holding-form" options={{ title: 'Ligne', presentation: 'modal' }} />
-        <Stack.Screen name="property/[id]" options={{ title: 'Bien' }} />
-        <Stack.Screen name="property-form" options={{ title: 'Bien', presentation: 'modal' }} />
-        <Stack.Screen name="loan-form" options={{ title: 'Crédit', presentation: 'modal' }} />
-        <Stack.Screen name="objective-form" options={{ title: 'Objectif', presentation: 'modal' }} />
-        <Stack.Screen name="connections" options={{ title: 'Connexions' }} />
-        <Stack.Screen name="backup" options={{ title: 'Sauvegarde' }} />
-        <Stack.Screen name="display-settings" options={{ title: 'Affichage' }} />
-        <Stack.Screen name="erase-history" options={{ title: 'Effacer une zone' }} />
-        <Stack.Screen name="connection-form" options={{ title: 'Connexion', presentation: 'modal' }} />
-        <Stack.Screen name="eb-connect" options={{ title: 'Enable Banking' }} />
+        <Stack.Screen name="account/[id]" options={{ title: t('accounts.title') }} />
+        <Stack.Screen name="account-form" options={{ title: t('accountForm.titre_new'), presentation: 'modal' }} />
+        <Stack.Screen name="holding-form" options={{ title: t('holdingForm.titre_new'), presentation: 'modal' }} />
+        <Stack.Screen name="property/[id]" options={{ title: t('realEstate.title') }} />
+        <Stack.Screen name="property-form" options={{ title: t('propertyForm.titre_new'), presentation: 'modal' }} />
+        <Stack.Screen name="loan-form" options={{ title: t('loanForm.titre_new'), presentation: 'modal' }} />
+        <Stack.Screen name="objective-form" options={{ title: t('objectiveForm.titre_new'), presentation: 'modal' }} />
+        <Stack.Screen name="connections" options={{ title: t('connections.title') }} />
+        <Stack.Screen name="backup" options={{ title: t('backup.title') }} />
+        <Stack.Screen name="display-settings" options={{ title: t('settings.affichage') }} />
+        <Stack.Screen name="language-settings" options={{ title: t('settings.langue') }} />
+        <Stack.Screen name="erase-history" options={{ title: t('settings.effacer_zone') }} />
+        <Stack.Screen name="connection-form" options={{ title: t('connections.nouvelle'), presentation: 'modal' }} />
+        <Stack.Screen name="eb-connect" options={{ title: t('ebConnect.label_defaut') }} />
         <Stack.Screen name="tr-connect" options={{ title: 'Trade Republic' }} />
       </Stack>
     </ThemeProvider>

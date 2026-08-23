@@ -2,6 +2,7 @@
  *  avant une date, ou entre deux dates — pour lisser les erreurs de saisie. */
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, SectionTitle, SelectField } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
@@ -9,10 +10,6 @@ import { formatDate } from '@/lib/format';
 import { useStore } from '@/lib/store';
 
 const MODES = ['avant', 'entre'] as const;
-const MODE_LABELS: Record<(typeof MODES)[number], string> = {
-  avant: 'Avant une date',
-  entre: 'Entre deux dates',
-};
 
 /** Date valide au format AAAA-MM-JJ, sinon undefined. */
 function parseDay(s: string): string | undefined {
@@ -22,6 +19,11 @@ function parseDay(s: string): string | undefined {
 }
 
 export default function EraseHistory() {
+  const { t } = useTranslation();
+  const MODE_LABELS: Record<(typeof MODES)[number], string> = {
+    avant: t('eraseHistory.mode_avant'),
+    entre: t('eraseHistory.mode_entre'),
+  };
   const accounts = useStore((s) => s.accounts);
   const snapshots = useStore((s) => s.snapshots);
   const deleteSnapshotsByIds = useStore((s) => s.deleteSnapshotsByIds);
@@ -48,17 +50,17 @@ export default function EraseHistory() {
     });
   }, [valid, snapshots, scope, mode, beforeDay, fromDay, toDay]);
 
-  const scopeLabel = scope === 'all' ? 'tous les comptes' : `« ${accounts.find((a) => a.id === scope)?.name} »`;
+  const scopeLabel = scope === 'all' ? t('eraseHistory.tous_comptes') : t('eraseHistory.compte_nomme', { name: accounts.find((a) => a.id === scope)?.name });
 
   const onErase = () =>
     confirmAction(
-      'Effacer ces points',
+      t('eraseHistory.effacer_titre'),
       mode === 'avant'
-        ? `${matches.length} point(s) antérieur(s) au ${formatDate(beforeDay!)} seront supprimés (${scopeLabel}).`
-        : `${matches.length} point(s) entre le ${formatDate(fromDay!)} et le ${formatDate(toDay!)} inclus seront supprimés (${scopeLabel}).`,
+        ? t('eraseHistory.confirm_avant', { count: matches.length, date: formatDate(beforeDay!), scope: scopeLabel })
+        : t('eraseHistory.confirm_entre', { count: matches.length, from: formatDate(fromDay!), to: formatDate(toDay!), scope: scopeLabel }),
       () => {
         deleteSnapshotsByIds(matches.map((sn) => sn.id));
-        notify('Zone effacée', `${matches.length} point(s) supprimé(s) des courbes.`);
+        notify(t('eraseHistory.effacee_titre'), t('eraseHistory.effacee_texte', { count: matches.length }));
         setBefore('');
         setFrom('');
         setTo('');
@@ -67,53 +69,50 @@ export default function EraseHistory() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <SectionTitle>Zone à effacer</SectionTitle>
+      <SectionTitle>{t('eraseHistory.zone_titre')}</SectionTitle>
       <Card>
-        <Text style={styles.hint}>
-          Supprime des points des courbes (l'historique de valeur), par exemple pour lisser une
-          erreur de saisie. Les comptes, lignes et biens ne sont pas modifiés.
-        </Text>
-        <Text style={styles.label}>Mode</Text>
+        <Text style={styles.hint}>{t('eraseHistory.zone_hint')}</Text>
+        <Text style={styles.label}>{t('eraseHistory.mode')}</Text>
         <Chips options={MODES} value={mode} onChange={setMode} labels={MODE_LABELS} />
         <SelectField
-          label="Portée"
+          label={t('eraseHistory.portee')}
           value={scope}
           onChange={setScope}
           options={[
-            { value: 'all', label: 'Tous les comptes' },
+            { value: 'all', label: t('eraseHistory.tous_comptes_option') },
             ...accounts.map((a) => ({ value: a.id, label: a.name })),
           ]}
         />
         {mode === 'avant' ? (
           <Field
-            label="Effacer tout avant le"
+            label={t('eraseHistory.avant_le')}
             value={before}
             onChangeText={setBefore}
-            placeholder="AAAA-MM-JJ"
+            placeholder={t('propertyForm.date_placeholder')}
             autoCapitalize="none"
-            hint={before.trim() && beforeDay === undefined ? 'Format attendu : AAAA-MM-JJ.' : 'La date saisie est conservée ; seuls les points antérieurs sont supprimés.'}
+            hint={before.trim() && beforeDay === undefined ? t('loanForm.date_hint') : t('eraseHistory.avant_hint')}
           />
         ) : (
           <>
             <Field
-              label="Du (inclus)"
+              label={t('eraseHistory.du')}
               value={from}
               onChangeText={setFrom}
-              placeholder="AAAA-MM-JJ"
+              placeholder={t('propertyForm.date_placeholder')}
               autoCapitalize="none"
-              hint={from.trim() && fromDay === undefined ? 'Format attendu : AAAA-MM-JJ.' : undefined}
+              hint={from.trim() && fromDay === undefined ? t('loanForm.date_hint') : undefined}
             />
             <Field
-              label="Au (inclus)"
+              label={t('eraseHistory.au')}
               value={to}
               onChangeText={setTo}
-              placeholder="AAAA-MM-JJ"
+              placeholder={t('propertyForm.date_placeholder')}
               autoCapitalize="none"
               hint={
                 to.trim() && toDay === undefined
-                  ? 'Format attendu : AAAA-MM-JJ.'
+                  ? t('loanForm.date_hint')
                   : fromDay && toDay && fromDay > toDay
-                    ? 'La date de fin doit être postérieure à celle de début.'
+                    ? t('eraseHistory.date_fin_hint')
                     : undefined
               }
             />
@@ -122,11 +121,11 @@ export default function EraseHistory() {
         <Text style={[styles.preview, matches.length > 0 && { color: C.warning }]}>
           {valid
             ? matches.length > 0
-              ? `${matches.length} point(s) de courbe seront supprimés.`
-              : 'Aucun point dans cette zone.'
-            : 'Renseignez les dates pour voir les points concernés.'}
+              ? t('eraseHistory.points_seront_supprimes', { count: matches.length })
+              : t('eraseHistory.aucun_point')
+            : t('eraseHistory.renseignez_dates')}
         </Text>
-        <Button title={`Effacer ${matches.length} point(s)`} variant="danger" onPress={onErase} disabled={!valid || matches.length === 0} />
+        <Button title={t('eraseHistory.effacer_bouton', { count: matches.length })} variant="danger" onPress={onErase} disabled={!valid || matches.length === 0} />
       </Card>
     </ScrollView>
   );

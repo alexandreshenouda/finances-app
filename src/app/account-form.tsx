@@ -2,6 +2,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, SectionTitle, SelectField } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { toEur } from '@/lib/fx';
@@ -23,6 +24,7 @@ function parseNum(s: string): number | undefined {
 }
 
 export default function AccountForm() {
+  const { t } = useTranslation();
   const { accountId } = useLocalSearchParams<{ accountId?: string }>();
   const router = useRouter();
   const existing = useStore((s) => s.accounts.find((a) => a.id === accountId));
@@ -73,54 +75,50 @@ export default function AccountForm() {
 
   return (
     <>
-      <Stack.Screen options={{ title: existing ? 'Modifier le compte' : 'Nouveau compte' }} />
+      <Stack.Screen options={{ title: existing ? t('accountForm.titre_edit') : t('accountForm.titre_new') }} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Card>
-          <Field label="Nom du compte" value={name} onChangeText={setName} placeholder="ex : PEA Boursorama" />
-          <Text style={styles.label}>Type de compte</Text>
+          <Field label={t('accountForm.nom')} value={name} onChangeText={setName} placeholder={t('accountForm.nom_placeholder')} />
+          <Text style={styles.label}>{t('accountForm.type')}</Text>
           <Chips options={ACCOUNT_TYPE_ORDER} value={type} onChange={setType} labels={ACCOUNT_TYPE_LABELS} />
-          <Field label="Établissement (optionnel)" value={institution} onChangeText={setInstitution} placeholder="ex : Boursorama" />
+          <Field label={t('accountForm.etablissement')} value={institution} onChangeText={setInstitution} placeholder={t('accountForm.etablissement_placeholder')} />
           <SelectField
-            label="Devise du compte"
+            label={t('accountForm.devise')}
             value={currency}
             onChange={setCurrency}
             options={CURRENCIES.map((c) => ({ value: c, label: CURRENCY_LABELS[c] }))}
-            hint={currency !== 'EUR' ? 'Les montants saisis sont dans cette devise ; l\'affichage est converti en € automatiquement.' : undefined}
+            hint={currency !== 'EUR' ? t('accountForm.devise_hint') : undefined}
           />
           <Field
-            label={`Liquidités / solde espèces en ${currency} (optionnel)`}
+            label={t('accountForm.liquidites', { currency })}
             value={cash}
             onChangeText={setCash}
             keyboardType="decimal-pad"
-            placeholder="ex : 1500"
-            hint="Pour un compte sans lignes (livret, fonds euros…), ce montant sert de valeur du compte."
+            placeholder={t('accountForm.liquidites_placeholder')}
+            hint={t('accountForm.liquidites_hint')}
           />
           {type === 'immobilier' && (
             <Field
-              label="Quote-part détenue en % (optionnel)"
+              label={t('accountForm.quote_part')}
               value={ownershipPct}
               onChangeText={setOwnershipPct}
               keyboardType="decimal-pad"
-              placeholder="ex : 50 (SCI / indivision)"
-              hint={
-                !pctValid
-                  ? 'Saisissez un pourcentage entre 0 et 100.'
-                  : 'Laissez vide pour une détention pleine (100 %). Seule votre part est comptée dans le patrimoine ; le solde du compte reste affiché en entier.'
-              }
+              placeholder={t('accountForm.quote_part_placeholder')}
+              hint={!pctValid ? t('accountForm.quote_part_erreur') : t('accountForm.quote_part_hint')}
             />
           )}
         </Card>
 
-        <SectionTitle>Frais (optionnel)</SectionTitle>
+        <SectionTitle>{t('accountForm.frais_titre')}</SectionTitle>
         <Card>
-          <Field label="Frais d'entrée / versement (%)" value={entryPct} onChangeText={setEntryPct} keyboardType="decimal-pad" placeholder="ex : 0,5" />
-          <Field label="Frais de gestion annuels (%)" value={managementPct} onChangeText={setManagementPct} keyboardType="decimal-pad" placeholder="ex : 0,75" />
-          <Field label="Droits de garde / frais fixes annuels (€)" value={custody} onChangeText={setCustody} keyboardType="decimal-pad" placeholder="ex : 24" />
-          <Field label="Notes sur les frais" value={feeNotes} onChangeText={setFeeNotes} placeholder="ex : 0 % sur les ETF partenaires" />
+          <Field label={t('forms.frais_entree')} value={entryPct} onChangeText={setEntryPct} keyboardType="decimal-pad" placeholder={t('accountForm.frais_entree_placeholder')} />
+          <Field label={t('forms.frais_gestion')} value={managementPct} onChangeText={setManagementPct} keyboardType="decimal-pad" placeholder={t('accountForm.frais_gestion_placeholder')} />
+          <Field label={t('forms.frais_garde')} value={custody} onChangeText={setCustody} keyboardType="decimal-pad" placeholder={t('accountForm.frais_garde_placeholder')} />
+          <Field label={t('accountForm.frais_notes')} value={feeNotes} onChangeText={setFeeNotes} placeholder={t('accountForm.frais_notes_placeholder')} />
         </Card>
 
-        <Button title="Enregistrer" onPress={save} disabled={!name.trim() || !pctValid} />
-        <Button title="Annuler" variant="secondary" onPress={() => router.back()} />
+        <Button title={t('common.save')} onPress={save} disabled={!name.trim() || !pctValid} />
+        <Button title={t('common.cancel')} variant="secondary" onPress={() => router.back()} />
       </ScrollView>
     </>
   );

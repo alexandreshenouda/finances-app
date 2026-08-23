@@ -2,6 +2,7 @@
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Empty, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { formatDuration, formatEur, formatPct } from '@/lib/format';
@@ -11,6 +12,7 @@ import { useStore } from '@/lib/store';
 import { PROPERTY_KIND_LABELS } from '@/lib/types';
 
 export default function RealEstate() {
+  const { t } = useTranslation();
   const router = useRouter();
   const properties = useStore((s) => s.properties);
   const loans = useStore((s) => s.loans);
@@ -29,20 +31,18 @@ export default function RealEstate() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       {active.length > 0 && (
         <Card>
-          <Text style={styles.totalLabel}>Patrimoine immobilier net</Text>
+          <Text style={styles.totalLabel}>{t('realEstate.patrimoine_net')}</Text>
           <Text style={styles.totalValue}>{formatEur(totals.equity)}</Text>
           <View style={styles.totalRow}>
-            <Text style={styles.totalSub}>Biens {formatEur(totals.gross)}</Text>
-            <Text style={styles.totalSub}>Reste dû {formatEur(totals.debt)}</Text>
+            <Text style={styles.totalSub}>{t('realEstate.biens')} {formatEur(totals.gross)}</Text>
+            <Text style={styles.totalSub}>{t('realEstate.reste_du')} {formatEur(totals.debt)}</Text>
           </View>
         </Card>
       )}
 
-      <Button title="+ Ajouter un bien" onPress={() => router.push('/property-form')} />
+      <Button title={t('realEstate.ajouter')} onPress={() => router.push('/property-form')} />
 
-      {active.length === 0 && (
-        <Empty text="Aucun bien immobilier. Ajoutez un bien pour suivre sa valeur estimée, sa plus-value et ses crédits." />
-      )}
+      {active.length === 0 && <Empty text={t('realEstate.aucun_detail')} />}
 
       {active.map((p) => {
         const gain = propertyGainEur(p, series, rates);
@@ -62,7 +62,9 @@ export default function RealEstate() {
                   <Text style={styles.sub}>
                     {PROPERTY_KIND_LABELS[p.kind]}
                     {p.address ? `  ·  ${p.address}` : ''}
-                    {p.ownershipPct !== undefined && p.ownershipPct < 100 ? `  ·  détenu à ${formatPct(p.ownershipPct)}` : ''}
+                    {p.ownershipPct !== undefined && p.ownershipPct < 100
+                      ? `  ·  ${t('accounts.detenu_a', { pct: formatPct(p.ownershipPct) })}`
+                      : ''}
                   </Text>
                 </View>
                 <Text style={styles.chevron}>›</Text>
@@ -76,8 +78,10 @@ export default function RealEstate() {
               </View>
               {debt > 0 && (
                 <View style={styles.debtRow}>
-                  <Text style={styles.debtLabel}>Reste dû {formatEur(debt)}</Text>
-                  {remaining > 0 && <Text style={styles.debtLabel}>{formatDuration(remaining)} restant</Text>}
+                  <Text style={styles.debtLabel}>{t('realEstate.reste_du')} {formatEur(debt)}</Text>
+                  {remaining > 0 && (
+                    <Text style={styles.debtLabel}>{t('realEstate.restant', { duration: formatDuration(remaining) })}</Text>
+                  )}
                 </View>
               )}
             </Card>
@@ -87,12 +91,8 @@ export default function RealEstate() {
 
       {active.length > 0 && (
         <>
-          <SectionTitle>À propos de l'estimation</SectionTitle>
-          <Text style={styles.note}>
-            Les valeurs en mode « auto » sont réévaluées via l'indice national des prix des
-            logements anciens (INSEE) : c'est un ordre de grandeur, pas une expertise. Saisissez une
-            valeur manuelle dans un bien pour une estimation plus fine.
-          </Text>
+          <SectionTitle>{t('realEstate.a_propos_titre')}</SectionTitle>
+          <Text style={styles.note}>{t('realEstate.a_propos_texte')}</Text>
         </>
       )}
     </ScrollView>

@@ -1,6 +1,7 @@
 /** Carte d'un prêt : mensualité, progression, stats d'amortissement, paliers, courbe. */
 import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { LineChart } from '@/components/LineChart';
 import { Card, ProgressBar } from '@/components/ui';
 import { C } from '@/constants/theme';
@@ -21,6 +22,7 @@ export function LoanCard({
   /** Ligne de contexte optionnelle (ex : nom du bien financé). */
   context?: string;
 }) {
+  const { t } = useTranslation();
   const cur: Currency = loan.currency ?? 'EUR';
   const st = loanStats(loan);
   const schedule = useMemo(() => loanSchedule(loan), [loan]);
@@ -36,9 +38,9 @@ export function LoanCard({
             <Text style={styles.loanSub}>
               {context ? `${context}  ·  ` : ''}
               {loan.lender ? `${loan.lender}  ·  ` : ''}
-              {formatPct(loan.annualRate, false, 2)}  ·  {formatMoney(st.monthlyWithInsurance, cur, true)}/mois
-              {loan.insuranceMonthly ? ' (assur. incl.)' : ''}
-              {st.stepped ? '  ·  paliers' : ''}
+              {formatPct(loan.annualRate, false, 2)}  ·  {t('loanCard.par_mois', { amount: formatMoney(st.monthlyWithInsurance, cur, true) })}
+              {loan.insuranceMonthly ? ` ${t('loanCard.assurance_incluse')}` : ''}
+              {st.stepped ? `  ·  ${t('loans.stepped')}` : ''}
             </Text>
           </View>
           <Text style={styles.chevron}>›</Text>
@@ -47,33 +49,35 @@ export function LoanCard({
         <View style={styles.progressWrap}>
           <ProgressBar ratio={paidRatio} color={color} />
           <View style={styles.progressLabels}>
-            <Text style={styles.progressLabel}>Remboursé {formatMoney(st.paidPrincipal, cur)}</Text>
+            <Text style={styles.progressLabel}>{t('loanCard.rembourse', { amount: formatMoney(st.paidPrincipal, cur) })}</Text>
             <Text style={styles.progressLabel}>{formatPct(paidRatio * 100)}</Text>
           </View>
         </View>
 
         <View style={styles.loanStatsGrid}>
-          <Stat label="Capital restant dû" value={formatMoney(st.remainingBalance, cur)} />
-          <Stat label="Temps restant" value={st.remainingMonths > 0 ? formatDuration(st.remainingMonths) : 'Soldé'} />
-          <Stat label="Fin du prêt" value={formatDate(st.endDate)} />
-          <Stat label="Coût du crédit" value={formatMoney(st.totalCost, cur)} sub={loan.insuranceMonthly ? `dont assur. ${formatMoney(st.insuranceTotal, cur)}` : undefined} />
+          <Stat label={t('loans.capital_restant_du')} value={formatMoney(st.remainingBalance, cur)} />
+          <Stat label={t('loanCard.temps_restant')} value={st.remainingMonths > 0 ? formatDuration(st.remainingMonths) : t('loanCard.solde')} />
+          <Stat label={t('loanCard.fin_pret')} value={formatDate(st.endDate)} />
+          <Stat
+            label={t('loanCard.cout_credit')}
+            value={formatMoney(st.totalCost, cur)}
+            sub={loan.insuranceMonthly ? t('loanCard.dont_assurance', { amount: formatMoney(st.insuranceTotal, cur) }) : undefined}
+          />
         </View>
 
         {phases.length > 1 && (
           <View style={styles.phases}>
             {phases.map((ph, idx) => (
               <View key={idx} style={styles.phaseRow}>
-                <Text style={styles.phaseLabel}>
-                  Palier {idx + 1} · {formatDuration(ph.months)}
-                </Text>
-                <Text style={styles.phaseValue}>{formatMoney(ph.payment, cur, true)}/mois</Text>
+                <Text style={styles.phaseLabel}>{t('loanForm.palier_titre', { n: idx + 1 })} · {formatDuration(ph.months)}</Text>
+                <Text style={styles.phaseValue}>{t('loanCard.par_mois', { amount: formatMoney(ph.payment, cur, true) })}</Text>
               </View>
             ))}
           </View>
         )}
 
         <LineChart points={schedule} color={color} />
-        <Text style={styles.scheduleNote}>Capital restant dû sur la durée du prêt</Text>
+        <Text style={styles.scheduleNote}>{t('loanCard.courbe_note')}</Text>
       </Card>
     </Pressable>
   );

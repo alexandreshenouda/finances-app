@@ -1,6 +1,7 @@
 /** Onglet Paramètres : menus vers les sous-écrans + effacement des données. */
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
@@ -20,73 +21,76 @@ function MenuRow({ label, sub, onPress, last }: { label: string; sub?: string; o
 }
 
 export default function Settings() {
+  const { t } = useTranslation();
   const router = useRouter();
   const connections = useStore((s) => s.connections);
   const resetAll = useStore((s) => s.resetAll);
 
   const onWipe = () =>
     confirmAction(
-      'Effacer toutes les données',
-      'Comptes, lignes, historique, biens immobiliers, crédits et connexions seront définitivement supprimés de l\'appareil. Pensez à exporter une sauvegarde avant.',
+      t('settings.effacer_titre'),
+      t('settings.effacer_confirm'),
       async () => {
         // Purge aussi les identifiants chiffrés des connexions.
         for (const c of connections) {
           await deleteSecret(connectionSecretKey(c.id));
         }
         resetAll();
-        notify('Données effacées', 'L\'application est repartie de zéro.');
+        notify(t('settings.effacees_titre'), t('settings.effacees_texte'));
       }
     );
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <SectionTitle>Général</SectionTitle>
+      <SectionTitle>{t('settings.general')}</SectionTitle>
       <Card style={{ paddingVertical: 4 }}>
         <MenuRow
-          label="Connexions"
-          sub="Binance, Kraken, banques, Trade Republic"
+          label={t('settings.connexions')}
+          sub={t('settings.connexions_sub')}
           onPress={() => router.push('/connections')}
         />
         <MenuRow
-          label="Sauvegarde"
-          sub="Exporter / importer les données"
+          label={t('settings.sauvegarde')}
+          sub={t('settings.sauvegarde_sub')}
           onPress={() => router.push('/backup')}
         />
         <MenuRow
-          label="Affichage"
-          sub="Période affichée à l'ouverture"
+          label={t('settings.affichage')}
+          sub={t('settings.affichage_sub')}
           onPress={() => router.push('/display-settings')}
+        />
+        <MenuRow
+          label={t('settings.langue')}
+          sub="Français, English, Deutsch"
+          onPress={() => router.push('/language-settings')}
           last
         />
       </Card>
 
-      <SectionTitle>Historique</SectionTitle>
+      <SectionTitle>{t('settings.historique')}</SectionTitle>
       <Card style={{ paddingVertical: 4 }}>
         <MenuRow
-          label="Effacer une zone du graphique"
-          sub="Corriger des erreurs de saisie passées"
+          label={t('settings.effacer_zone')}
+          sub={t('settings.effacer_zone_sub')}
           onPress={() => router.push('/erase-history')}
           last
         />
       </Card>
 
-      <SectionTitle>Avancé</SectionTitle>
+      <SectionTitle>{t('settings.avance')}</SectionTitle>
       <Card style={{ paddingVertical: 4 }}>
         <MenuRow
-          label="Développeur"
-          sub="Journal de debug des connecteurs (Trade Republic…)"
+          label={t('settings.developpeur')}
+          sub={t('settings.developpeur_sub')}
           onPress={() => router.push('/dev-tools')}
           last
         />
       </Card>
 
-      <SectionTitle>Zone dangereuse</SectionTitle>
+      <SectionTitle>{t('settings.zone_dangereuse')}</SectionTitle>
       <Card>
-        <Button title="Effacer toutes les données…" variant="danger" onPress={onWipe} />
-        <Text style={styles.note}>
-          Efface tout le contenu local de l'application (irréversible). Les réglages reviennent aux
-          valeurs par défaut.
-        </Text>
+        <Button title={t('settings.effacer_bouton')} variant="danger" onPress={onWipe} />
+        <Text style={styles.note}>{t('settings.effacer_note')}</Text>
       </Card>
     </ScrollView>
   );

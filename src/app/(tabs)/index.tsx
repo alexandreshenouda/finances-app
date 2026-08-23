@@ -2,6 +2,7 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AllocationBar } from '@/components/AllocationBar';
 import { LineChart } from '@/components/LineChart';
 import { ObjectiveCard } from '@/components/ObjectiveCard';
@@ -18,12 +19,18 @@ import { useStore } from '@/lib/store';
 import { type AccountType, type Period } from '@/lib/types';
 
 const WORTH_MODES = ['net', 'brut'] as const;
-const WORTH_LABELS: Record<(typeof WORTH_MODES)[number], string> = { net: 'Net', brut: 'Brut' };
-
 const ALLOC_VIEWS = ['barre', 'camembert'] as const;
-const ALLOC_LABELS: Record<(typeof ALLOC_VIEWS)[number], string> = { barre: 'Barre', camembert: 'Camembert' };
 
 export default function Dashboard() {
+  const { t } = useTranslation();
+  const WORTH_LABELS: Record<(typeof WORTH_MODES)[number], string> = {
+    net: t('index.net'),
+    brut: t('index.brut'),
+  };
+  const ALLOC_LABELS: Record<(typeof ALLOC_VIEWS)[number], string> = {
+    barre: t('index.barre'),
+    camembert: t('index.camembert'),
+  };
   const router = useRouter();
   const accounts = useStore((s) => s.accounts);
   const holdings = useStore((s) => s.holdings);
@@ -110,11 +117,11 @@ export default function Dashboard() {
       const issues = [...prices.errors, ...sync.errors, ...sync.warnings, ...(idx.ok ? [] : [idx.error!])];
       setMessage(
         issues.length > 0
-          ? `Mise à jour partielle : ${issues.slice(0, 3).join(' · ')}${issues.length > 3 ? '…' : ''}`
-          : 'Cours et comptes synchronisés.'
+          ? t('index.maj_partielle', { issues: issues.slice(0, 3).join(' · '), ellipsis: issues.length > 3 ? '…' : '' })
+          : t('index.synchronise')
       );
     } catch (e: any) {
-      setMessage(`Erreur : ${e?.message ?? e}`);
+      setMessage(t('index.erreur', { message: e?.message ?? e }));
     } finally {
       setRefreshing(false);
     }
@@ -130,7 +137,7 @@ export default function Dashboard() {
     >
       <Card>
         <View style={styles.totalHeader}>
-          <Text style={styles.totalLabel}>Patrimoine total</Text>
+          <Text style={styles.totalLabel}>{t('index.patrimoine_total')}</Text>
           {((hasRealEstate && showRealEstate) || consoDebt > 0) && (
             <Chips
               options={WORTH_MODES}
@@ -144,8 +151,16 @@ export default function Dashboard() {
         {debtTotal > 0 && (
           <Text style={styles.worthNote}>
             {patrimoineNet
-              ? `Net de ${formatEur(debtTotal)} de crédits${consoDebt > 0 && reDebt === 0 ? ' conso' : reDebt > 0 && consoDebt === 0 ? ' immobiliers' : ''}`
-              : `Brut · ${formatEur(debtTotal)} de crédits non déduits`}
+              ? t('index.net_de_credits', {
+                  amount: formatEur(debtTotal),
+                  kind:
+                    consoDebt > 0 && reDebt === 0
+                      ? t('index.credits_conso')
+                      : reDebt > 0 && consoDebt === 0
+                        ? t('index.credits_immobiliers')
+                        : '',
+                })
+              : t('index.brut_credits', { amount: formatEur(debtTotal) })}
           </Text>
         )}
         {series.length >= 2 && (
@@ -153,7 +168,7 @@ export default function Dashboard() {
             {delta.abs >= 0 ? '+' : ''}
             {formatEur(delta.abs)}
             {delta.pct !== undefined ? `  (${formatPct(delta.pct, true)})` : ''}
-            <Text style={styles.deltaPeriod}>  sur {period}</Text>
+            <Text style={styles.deltaPeriod}>  {t('index.sur_periode', { period })}</Text>
           </Text>
         )}
         <View style={{ height: 12 }} />
@@ -162,7 +177,7 @@ export default function Dashboard() {
         {hasRealEstate && (
           <View style={styles.reToggle}>
             <Checkbox
-              label="Inclure les biens immobiliers"
+              label={t('index.inclure_biens')}
               value={showRealEstate}
               onChange={setShowRealEstate}
             />
@@ -170,11 +185,11 @@ export default function Dashboard() {
         )}
       </Card>
 
-      <Button title="Rafraîchir cours et synchronisations" variant="secondary" onPress={onRefresh} loading={refreshing} />
+      <Button title={t('index.rafraichir')} variant="secondary" onPress={onRefresh} loading={refreshing} />
       {message && <Text style={styles.message}>{message}</Text>}
 
       <View style={styles.allocHeader}>
-        <SectionTitle>Répartition</SectionTitle>
+        <SectionTitle>{t('index.repartition')}</SectionTitle>
         {byType.size > 0 && (
           <Chips options={ALLOC_VIEWS} value={allocView} onChange={setAllocView} labels={ALLOC_LABELS} />
         )}
@@ -187,16 +202,16 @@ export default function Dashboard() {
             <AllocationBar byType={byType} />
           )
         ) : (
-          <Empty text="Ajoutez des comptes dans l'onglet Comptes pour voir la répartition." />
+          <Empty text={t('index.repartition_vide')} />
         )}
       </Card>
 
       <View style={styles.allocHeader}>
-        <SectionTitle>Objectifs</SectionTitle>
+        <SectionTitle>{t('objectives.title')}</SectionTitle>
       </View>
       {objectives.length === 0 ? (
         <Card>
-          <Empty text="Définissez un objectif d'épargne ou de projet." />
+          <Empty text={t('index.objectifs_vide')} />
         </Card>
       ) : (
         objectives.map((o) => (
@@ -212,7 +227,7 @@ export default function Dashboard() {
           />
         ))
       )}
-      <Button title="＋ Ajouter un objectif" variant="secondary" onPress={() => router.push('/objective-form')} />
+      <Button title={t('index.ajouter_objectif')} variant="secondary" onPress={() => router.push('/objective-form')} />
     </ScrollView>
   );
 }

@@ -1,21 +1,20 @@
 /** Paramètres d'affichage : période par défaut des courbes et +/- value. */
 import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Card, PeriodChips, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { useStore } from '@/lib/store';
 
 export default function DisplaySettings() {
+  const { t } = useTranslation();
   const defaultPeriod = useStore((s) => s.defaultPeriod);
   const setDefaultPeriod = useStore((s) => s.setDefaultPeriod);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <SectionTitle>Période par défaut</SectionTitle>
+      <SectionTitle>{t('settings.periode')}</SectionTitle>
       <Card>
-        <Text style={styles.hint}>
-          Période affichée à l'ouverture de l'application, pour les courbes et le calcul de la
-          variation (+/- value) de la Synthèse et des écrans de détail.
-        </Text>
+        <Text style={styles.hint}>{t('settings.periode_description')}</Text>
         <PeriodChips value={defaultPeriod} onChange={setDefaultPeriod} />
       </Card>
     </ScrollView>

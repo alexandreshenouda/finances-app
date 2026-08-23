@@ -4,6 +4,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, Slider } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
@@ -33,6 +34,7 @@ function parseDate(s: string): string | undefined {
 const SECURITY_MONTHS_WARNING = 8;
 
 export default function ObjectiveForm() {
+  const { t } = useTranslation();
   const { objectiveId } = useLocalSearchParams<{ objectiveId?: string }>();
   const router = useRouter();
   const objectives = useStore((s) => s.objectives);
@@ -118,8 +120,8 @@ export default function ObjectiveForm() {
 
   const onDelete = () =>
     confirmAction(
-      "Supprimer l'objectif",
-      `« ${existing?.name || OBJECTIVE_CATEGORY_LABELS[existing!.category]} » sera supprimé.`,
+      t('objectiveForm.supprimer_titre'),
+      t('objectiveForm.supprimer_confirm', { name: existing?.name || OBJECTIVE_CATEGORY_LABELS[existing!.category] }),
       () => {
         deleteObjective(existing!.id);
         router.back();
@@ -128,79 +130,78 @@ export default function ObjectiveForm() {
 
   return (
     <>
-      <Stack.Screen options={{ title: existing ? "Modifier l'objectif" : 'Nouvel objectif' }} />
+      <Stack.Screen options={{ title: existing ? t('objectiveForm.titre_edit') : t('objectiveForm.titre_new') }} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Card>
-          <Text style={styles.label}>Catégorie</Text>
+          <Text style={styles.label}>{t('objectiveForm.categorie')}</Text>
           <Chips options={availableCategories} value={category} onChange={setCategory} labels={OBJECTIVE_CATEGORY_LABELS} />
         </Card>
 
         {category === 'epargne_precaution' ? (
           <Card>
-            <Text style={styles.label}>Durée de sécurité : {securityMonths} mois</Text>
+            <Text style={styles.label}>{t('objectiveForm.duree_securite', { months: securityMonths })}</Text>
             <Slider value={securityMonths} min={1} max={24} step={1} onChange={setSecurityMonths} color={sliderColor} />
             {securityMonths > SECURITY_MONTHS_WARNING && (
-              <Text style={styles.warning}>
-                Vous avez sélectionné une durée relativement longue pour une épargne de précaution, envisagez de
-                la réduire.
-              </Text>
+              <Text style={styles.warning}>{t('objectiveForm.duree_warning')}</Text>
             )}
             <Field
-              label="Dépenses mensuelles (EUR)"
+              label={t('objectiveForm.depenses_mensuelles')}
               value={monthlyExpenses}
               onChangeText={setMonthlyExpenses}
               keyboardType="decimal-pad"
-              placeholder="ex : 2200"
-              hint="Incluez les mensualités de crédits, les loyers et l'alimentation."
+              placeholder={t('objectiveForm.depenses_placeholder')}
+              hint={t('objectiveForm.depenses_hint')}
             />
           </Card>
         ) : (
           <Card>
-            <Field label="Nom du projet" value={name} onChangeText={setName} placeholder="ex : Achat voiture" />
+            <Field label={t('objectiveForm.nom_projet')} value={name} onChangeText={setName} placeholder={t('objectiveForm.nom_projet_placeholder')} />
             <Field
-              label="Montant nécessaire (EUR)"
+              label={t('objectiveForm.montant_necessaire')}
               value={targetAmount}
               onChangeText={setTargetAmount}
               keyboardType="decimal-pad"
-              placeholder="ex : 15000"
+              placeholder={t('objectiveForm.montant_placeholder')}
             />
             {category === 'projet_long_terme' && (
               <Field
-                label="Montant à garder de côté après l'objectif (optionnel)"
+                label={t('objectiveForm.montant_reserve')}
                 value={bufferAmount}
                 onChangeText={setBufferAmount}
                 keyboardType="decimal-pad"
-                placeholder="ex : 5000"
-                hint="Réservé en plus de l'épargne de précaution, exclu du calcul de progression."
+                placeholder={t('objectiveForm.montant_reserve_placeholder')}
+                hint={t('objectiveForm.montant_reserve_hint')}
               />
             )}
             <Field
-              label="Échéance (optionnel)"
+              label={t('objectiveForm.echeance')}
               value={deadline}
               onChangeText={setDeadline}
-              placeholder="AAAA-MM-JJ"
+              placeholder={t('propertyForm.date_placeholder')}
               autoCapitalize="none"
-              hint={deadline.trim() && deadlineDate === undefined ? 'Format attendu : AAAA-MM-JJ.' : undefined}
+              hint={deadline.trim() && deadlineDate === undefined ? t('loanForm.date_hint') : undefined}
             />
           </Card>
         )}
 
         <Card>
-          <Text style={styles.label}>Aperçu</Text>
+          <Text style={styles.label}>{t('objectiveForm.apercu')}</Text>
           <Text style={styles.previewLine}>
             {formatMoney(preview.current)} / {formatMoney(preview.target)} · {formatPct(preview.pct)}
           </Text>
           {preview.monthlyContribution !== undefined && (
             <Text style={styles.previewLine}>
-              À épargner : {formatMoney(preview.monthlyContribution)}/mois
-              {preview.monthsRemaining !== undefined ? ` sur ${formatDuration(preview.monthsRemaining)}` : ''}
+              {t('objectiveForm.a_epargner', {
+                amount: formatMoney(preview.monthlyContribution),
+                duration: preview.monthsRemaining !== undefined ? t('objectiveForm.sur_duree', { duration: formatDuration(preview.monthsRemaining) }) : '',
+              })}
             </Text>
           )}
         </Card>
 
-        <Button title="Enregistrer" onPress={save} disabled={!valid} />
-        {existing && <Button title="Supprimer l'objectif" variant="danger" onPress={onDelete} />}
-        <Button title="Annuler" variant="secondary" onPress={() => router.back()} />
+        <Button title={t('common.save')} onPress={save} disabled={!valid} />
+        {existing && <Button title={t('objectiveForm.supprimer_bouton')} variant="danger" onPress={onDelete} />}
+        <Button title={t('common.cancel')} variant="secondary" onPress={() => router.back()} />
       </ScrollView>
     </>
   );

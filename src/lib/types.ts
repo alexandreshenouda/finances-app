@@ -1,4 +1,15 @@
 /** Modèle de données central de l'application. */
+import i18next from './i18n';
+
+/** Proxy réactif : lit la traduction courante à chaque accès (`LABELS[key]`),
+ *  pas de recalcul/re-render nécessaire au changement de langue. */
+function createLabelProxy<T extends string>(prefix: string): Record<T, string> {
+  return new Proxy({} as Record<T, string>, {
+    get(_target, prop: string) {
+      return i18next.t(`${prefix}.${prop}`);
+    },
+  });
+}
 
 export type AccountType =
   | 'courant'
@@ -12,18 +23,7 @@ export type AccountType =
   | 'immobilier'
   | 'autre';
 
-export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  courant: 'Compte courant',
-  livret: 'Livret',
-  pea: 'PEA',
-  cto: 'CTO',
-  assurance_vie: 'Assurance vie',
-  per: 'PER',
-  private_equity: 'Private Equity',
-  crypto: 'Crypto',
-  immobilier: 'Immobilier',
-  autre: 'Autre',
-};
+export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = createLabelProxy('accountTypes');
 
 export const ACCOUNT_TYPE_ORDER: AccountType[] = [
   'courant',
@@ -62,11 +62,7 @@ export type Currency = 'EUR' | 'USD' | 'CHF';
 
 export const CURRENCIES: Currency[] = ['EUR', 'USD', 'CHF'];
 
-export const CURRENCY_LABELS: Record<Currency, string> = {
-  EUR: 'EUR — Euro',
-  USD: 'USD — Dollar américain',
-  CHF: 'CHF — Franc suisse',
-};
+export const CURRENCY_LABELS: Record<Currency, string> = createLabelProxy('currencies');
 
 /** Taux de conversion : 1 unité de devise → EUR. Mis à jour via l'API BCE (frankfurter). */
 export type FxRates = Record<Currency, number>;
@@ -151,12 +147,7 @@ export interface Connection {
   lastError?: string;
 }
 
-export const PROVIDER_LABELS: Record<ConnectorProvider, string> = {
-  binance: 'Binance',
-  kraken: 'Kraken',
-  enablebanking: 'Enable Banking (banques UE)',
-  traderepublic: 'Trade Republic',
-};
+export const PROVIDER_LABELS: Record<ConnectorProvider, string> = createLabelProxy('providers');
 
 export type Period = '1J' | '1S' | '1M' | '3M' | '6M' | '1A' | 'YTD' | 'MAX';
 
@@ -170,14 +161,7 @@ export const PERIODS_SECONDARY: Period[] = ['3M', '6M', 'YTD'];
 
 export type PropertyKind = 'appartement' | 'maison' | 'terrain' | 'immeuble' | 'parking' | 'autre';
 
-export const PROPERTY_KIND_LABELS: Record<PropertyKind, string> = {
-  appartement: 'Appartement',
-  maison: 'Maison',
-  terrain: 'Terrain',
-  immeuble: 'Immeuble',
-  parking: 'Parking / box',
-  autre: 'Autre',
-};
+export const PROPERTY_KIND_LABELS: Record<PropertyKind, string> = createLabelProxy('propertyTypes');
 
 export const PROPERTY_KIND_ORDER: PropertyKind[] = [
   'appartement',
@@ -265,11 +249,7 @@ export interface HousePricePoint {
 
 export type ObjectiveCategory = 'epargne_precaution' | 'projet_long_terme' | 'projet_court_terme';
 
-export const OBJECTIVE_CATEGORY_LABELS: Record<ObjectiveCategory, string> = {
-  epargne_precaution: 'Épargne de précaution',
-  projet_long_terme: 'Projet à long terme',
-  projet_court_terme: 'Projet à court terme',
-};
+export const OBJECTIVE_CATEGORY_LABELS: Record<ObjectiveCategory, string> = createLabelProxy('objectives');
 
 export const OBJECTIVE_CATEGORY_ORDER: ObjectiveCategory[] = [
   'epargne_precaution',

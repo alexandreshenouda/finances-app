@@ -2,6 +2,7 @@
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Dot, Empty } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { formatEur, formatPct } from '@/lib/format';
@@ -15,6 +16,7 @@ import {
 } from '@/lib/types';
 
 export default function Accounts() {
+  const { t } = useTranslation();
   const router = useRouter();
   const accounts = useStore((s) => s.accounts);
   const holdings = useStore((s) => s.holdings);
@@ -34,10 +36,8 @@ export default function Accounts() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Button title="+ Ajouter un compte" onPress={() => router.push('/account-form')} />
-      {groups.length === 0 && (
-        <Empty text="Aucun compte. Ajoutez un compte manuellement ou connectez un service via Paramètres → Connexions." />
-      )}
+      <Button title={t('accounts.ajouter')} onPress={() => router.push('/account-form')} />
+      {groups.length === 0 && <Empty text={t('accounts.aucun_detail')} />}
       {groups.map((g) => (
         <View key={g.type}>
           <View style={styles.groupHeader}>
@@ -59,8 +59,10 @@ export default function Accounts() {
                   <Text style={styles.rowSub}>
                     {a.institution ?? '—'}
                     {a.currency && a.currency !== 'EUR' ? `  ·  ${a.currency}` : ''}
-                    {a.ownershipPct !== undefined && a.ownershipPct < 100 ? `  ·  détenu à ${formatPct(a.ownershipPct)}` : ''}
-                    {a.connectionId ? '  ·  synchronisé' : ''}
+                    {a.ownershipPct !== undefined && a.ownershipPct < 100
+                      ? `  ·  ${t('accounts.detenu_a', { pct: formatPct(a.ownershipPct) })}`
+                      : ''}
+                    {a.connectionId ? `  ·  ${t('accounts.synchronise')}` : ''}
                   </Text>
                 </View>
                 <View style={styles.rowRight}>

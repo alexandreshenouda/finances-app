@@ -2,7 +2,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { setMaskedMoney, todayKey, uid } from './format';
+import { setMaskedMoney, setLocale, todayKey, uid } from './format';
+import i18next, { detectDeviceLanguage, type Language } from './i18n';
 import {
   DEFAULT_FX_RATES,
   type Account,
@@ -55,6 +56,10 @@ interface AppState extends AppData {
   /** Mode confidentialité : masque tous les montants (seuls les % restent visibles). */
   privacyMode: boolean;
   setPrivacyMode: (v: boolean) => void;
+
+  /** Langue de l'application. */
+  language: Language;
+  setLanguage: (l: Language) => void;
 
   upsertAccount: (a: Partial<Account> & { name: string; type: Account['type'] }) => Account;
   deleteAccount: (id: string) => void;
@@ -117,6 +122,9 @@ export const useStore = create<AppState>()(
 
       privacyMode: false,
       setPrivacyMode: (v) => set({ privacyMode: v }),
+
+      language: detectDeviceLanguage(),
+      setLanguage: (l) => set({ language: l }),
 
       upsertAccount: (a) => {
         const existing = a.id ? get().accounts.find((x) => x.id === a.id) : undefined;
@@ -249,6 +257,7 @@ export const useStore = create<AppState>()(
           showRealEstate: true,
           defaultPeriod: '1A',
           privacyMode: false,
+          language: detectDeviceLanguage(),
         }),
 
       upsertConnection: (c) => {
@@ -307,6 +316,7 @@ export const useStore = create<AppState>()(
         showRealEstate: s.showRealEstate,
         defaultPeriod: s.defaultPeriod,
         privacyMode: s.privacyMode,
+        language: s.language,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) state.hydrated = true;
@@ -319,6 +329,12 @@ export const useStore = create<AppState>()(
 // Tient le masquage des montants (format.ts) synchronisé avec le mode
 // confidentialité, réhydratation comprise.
 useStore.subscribe((s) => setMaskedMoney(s.privacyMode));
+
+const localeMap: Record<Language, string> = { fr: 'fr-FR', en: 'en-GB', de: 'de-DE' };
+useStore.subscribe((s) => {
+  i18next.changeLanguage(s.language);
+  setLocale(localeMap[s.language]);
+});
 
 export function exportData(): AppData {
   const { accounts, holdings, snapshots, connections, properties, loans, objectives } = useStore.getState();

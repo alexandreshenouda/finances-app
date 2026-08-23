@@ -2,6 +2,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, SelectField } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
@@ -11,11 +12,6 @@ import { useStore } from '@/lib/store';
 import { CURRENCIES, CURRENCY_LABELS, type Currency, type PriceSource } from '@/lib/types';
 
 const SOURCES: PriceSource[] = ['manual', 'yahoo', 'coingecko'];
-const SOURCE_LABELS: Record<string, string> = {
-  manual: 'Cours manuel',
-  yahoo: 'Bourse (Yahoo)',
-  coingecko: 'Crypto (CoinGecko)',
-};
 
 function parseNum(s: string): number | undefined {
   if (!s.trim()) return undefined;
@@ -24,6 +20,12 @@ function parseNum(s: string): number | undefined {
 }
 
 export default function HoldingForm() {
+  const { t } = useTranslation();
+  const SOURCE_LABELS: Record<string, string> = {
+    manual: t('holdingForm.source_manuel'),
+    yahoo: t('holdingForm.source_yahoo'),
+    coingecko: t('holdingForm.source_coingecko'),
+  };
   const { accountId, holdingId } = useLocalSearchParams<{ accountId: string; holdingId?: string }>();
   const router = useRouter();
   const existing = useStore((s) => s.holdings.find((h) => h.id === holdingId));
@@ -75,7 +77,7 @@ export default function HoldingForm() {
   };
 
   const onDelete = () =>
-    confirmAction('Supprimer la ligne', `« ${existing?.name} » sera supprimée.`, () => {
+    confirmAction(t('holdingForm.supprimer_titre'), t('holdingForm.supprimer_confirm', { name: existing?.name }), () => {
       deleteHolding(existing!.id);
       refreshAccountSnapshot();
       router.back();
@@ -83,22 +85,22 @@ export default function HoldingForm() {
 
   const symbolHint =
     source === 'yahoo'
-      ? 'Ticker Yahoo Finance : WPEA.PA, CW8.PA, AAPL… Le cours sera converti dans la devise de la ligne si besoin.'
+      ? t('holdingForm.hint_yahoo')
       : source === 'coingecko'
-        ? 'Identifiant CoinGecko : bitcoin, ethereum, solana… (voir coingecko.com)'
-        : 'Sans symbole : saisissez le cours unitaire à la main et mettez-le à jour de temps en temps.';
+        ? t('holdingForm.hint_coingecko')
+        : t('holdingForm.hint_manuel');
 
   return (
     <>
-      <Stack.Screen options={{ title: existing ? 'Modifier la ligne' : 'Nouvelle ligne' }} />
+      <Stack.Screen options={{ title: existing ? t('holdingForm.titre_edit') : t('holdingForm.titre_new') }} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Card>
-          <Field label="Nom" value={name} onChangeText={setName} placeholder="ex : iShares MSCI World (WPEA)" />
-          <Text style={styles.label}>Source du cours</Text>
+          <Field label={t('forms.nom')} value={name} onChangeText={setName} placeholder={t('holdingForm.nom_placeholder')} />
+          <Text style={styles.label}>{t('holdingForm.source')}</Text>
           <Chips options={SOURCES} value={source} onChange={setSource} labels={SOURCE_LABELS} />
           {source !== 'manual' && (
             <Field
-              label={source === 'yahoo' ? 'Ticker' : 'Id CoinGecko'}
+              label={source === 'yahoo' ? t('holdingForm.ticker') : t('holdingForm.id_coingecko')}
               value={symbol}
               onChangeText={setSymbol}
               autoCapitalize={source === 'yahoo' ? 'characters' : 'none'}
@@ -107,31 +109,34 @@ export default function HoldingForm() {
             />
           )}
           <SelectField
-            label="Devise de la ligne"
+            label={t('holdingForm.devise_ligne')}
             value={currency}
             onChange={setCurrency}
             options={[
-              { value: '' as const, label: `Devise du compte (${accountCurrency})` },
+              { value: '' as const, label: t('holdingForm.devise_du_compte', { currency: accountCurrency }) },
               ...CURRENCIES.map((c) => ({ value: c as Currency | '', label: CURRENCY_LABELS[c] })),
             ]}
-            hint={effectiveCurrency !== 'EUR' ? 'Cours et PRU saisis dans cette devise ; la valeur est convertie en € à l\'affichage.' : undefined}
+            hint={effectiveCurrency !== 'EUR' ? t('holdingForm.devise_hint') : undefined}
           />
-          <Field label="Quantité / nombre de parts" value={quantity} onChangeText={setQuantity} keyboardType="decimal-pad" placeholder="ex : 12,5" />
+          <Field label={t('holdingForm.quantite')} value={quantity} onChangeText={setQuantity} keyboardType="decimal-pad" placeholder={t('holdingForm.quantite_placeholder')} />
           <Field
-            label={`Cours unitaire en ${effectiveCurrency} ${source === 'manual' ? '' : '(optionnel, mis à jour automatiquement)'}`}
+            label={t('holdingForm.cours_unitaire', {
+              currency: effectiveCurrency,
+              auto: source === 'manual' ? '' : t('holdingForm.cours_auto'),
+            })}
             value={unitPrice}
             onChangeText={setUnitPrice}
             keyboardType="decimal-pad"
-            placeholder="ex : 105,3"
+            placeholder={t('holdingForm.cours_placeholder')}
             hint={source === 'manual' ? symbolHint : undefined}
           />
-          <Field label={`Prix de revient unitaire en ${effectiveCurrency} — PRU (optionnel)`} value={buyPrice} onChangeText={setBuyPrice} keyboardType="decimal-pad" placeholder="ex : 92" hint="Sert à afficher la plus/moins-value latente." />
-          <Field label="Frais courants du fonds en % (optionnel)" value={feesPct} onChangeText={setFeesPct} keyboardType="decimal-pad" placeholder="ex : 0,38" />
-          <Field label="ISIN (optionnel)" value={isin} onChangeText={setIsin} autoCapitalize="characters" placeholder="ex : IE0002XZSHO1" />
+          <Field label={t('holdingForm.pru', { currency: effectiveCurrency })} value={buyPrice} onChangeText={setBuyPrice} keyboardType="decimal-pad" placeholder={t('holdingForm.pru_placeholder')} hint={t('holdingForm.pru_hint')} />
+          <Field label={t('holdingForm.frais_courants')} value={feesPct} onChangeText={setFeesPct} keyboardType="decimal-pad" placeholder={t('holdingForm.frais_courants_placeholder')} />
+          <Field label={t('holdingForm.isin')} value={isin} onChangeText={setIsin} autoCapitalize="characters" placeholder={t('holdingForm.isin_placeholder')} />
         </Card>
-        <Button title="Enregistrer" onPress={save} disabled={!name.trim() || parseNum(quantity) === undefined} />
-        {existing && <Button title="Supprimer la ligne" variant="danger" onPress={onDelete} />}
-        <Button title="Annuler" variant="secondary" onPress={() => router.back()} />
+        <Button title={t('common.save')} onPress={save} disabled={!name.trim() || parseNum(quantity) === undefined} />
+        {existing && <Button title={t('holdingForm.supprimer_bouton')} variant="danger" onPress={onDelete} />}
+        <Button title={t('common.cancel')} variant="secondary" onPress={() => router.back()} />
       </ScrollView>
     </>
   );

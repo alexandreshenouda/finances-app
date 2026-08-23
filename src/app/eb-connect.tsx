@@ -8,6 +8,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Empty, Field, SectionTitle, SelectField } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { notify } from '@/lib/confirm';
@@ -27,6 +28,7 @@ import { connectionSecretKey, setSecret } from '@/lib/secure';
 import { useStore } from '@/lib/store';
 
 export default function EbConnect() {
+  const { t } = useTranslation();
   const { connectionId } = useLocalSearchParams<{ connectionId?: string }>();
   const router = useRouter();
   const upsertConnection = useStore((s) => s.upsertConnection);
@@ -71,11 +73,11 @@ export default function EbConnect() {
         sessions: [],
       };
       const app = await checkApplication(candidate);
-      const conn = existingConn ?? upsertConnection({ provider: 'enablebanking', label: 'Banques (Enable Banking)' });
+      const conn = existingConn ?? upsertConnection({ provider: 'enablebanking', label: t('ebConnect.label_defaut') });
       await saveCreds(conn.id, candidate);
-      notify('Application vérifiée', `« ${app.name} » est prête. Choisissez maintenant votre banque.`);
+      notify(t('ebConnect.app_verifiee_titre'), t('ebConnect.app_verifiee_texte', { name: app.name }));
     } catch (e: any) {
-      notify('Vérification impossible', String(e?.message ?? e));
+      notify(t('ebConnect.verification_impossible'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -87,7 +89,7 @@ export default function EbConnect() {
     try {
       setBanks(await listBanks(creds, forCountry));
     } catch (e: any) {
-      notify('Erreur', String(e?.message ?? e));
+      notify(t('common.error'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -106,13 +108,10 @@ export default function EbConnect() {
       if (result.type === 'success' && result.url) {
         await finishAuth(bank, result.url);
       } else {
-        notify(
-          'Autorisation à terminer',
-          "Si vous avez validé chez la banque mais que l'app n'a pas récupéré le retour, collez l'URL de redirection ci-dessous."
-        );
+        notify(t('ebConnect.autorisation_a_terminer_titre'), t('ebConnect.autorisation_a_terminer_texte'));
       }
     } catch (e: any) {
-      notify('Erreur', String(e?.message ?? e));
+      notify(t('common.error'), String(e?.message ?? e));
       setPendingBank(null);
     } finally {
       setBusy(false);
@@ -125,7 +124,7 @@ export default function EbConnect() {
     const parsed = Linking.parse(redirectedUrl);
     const code = (parsed.queryParams?.code as string) ?? '';
     if (!code) {
-      notify('Code introuvable', "L'URL de redirection ne contient pas de paramètre « code ».");
+      notify(t('ebConnect.code_introuvable_titre'), t('ebConnect.code_introuvable_texte'));
       return;
     }
     setBusy(true);
@@ -136,10 +135,10 @@ export default function EbConnect() {
       setPendingBank(null);
       setManualRedirect('');
       await syncConnection(existingConn.id);
-      notify('Banque connectée', `${session.accounts.length} compte(s) importé(s) depuis ${bank.name}.`);
+      notify(t('ebConnect.banque_connectee_titre'), t('ebConnect.banque_connectee_texte', { count: session.accounts.length, bank: bank.name }));
       router.back();
     } catch (e: any) {
-      notify('Erreur', String(e?.message ?? e));
+      notify(t('common.error'), String(e?.message ?? e));
     } finally {
       setBusy(false);
     }
@@ -151,45 +150,35 @@ export default function EbConnect() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Banques (Enable Banking)' }} />
+      <Stack.Screen options={{ title: t('ebConnect.label_defaut') }} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         {!creds ? (
           <>
             <Card>
-              <Text style={styles.help}>
-                Enable Banking donne un accès gratuit (usage personnel, « restricted production ») aux
-                comptes de paiement de vos banques via DSP2.{'\n\n'}
-                1. Créez un compte sur enablebanking.com puis une application (environnement
-                Production).{'\n'}
-                2. Enable Banking n'accepte que des URL de redirection https : enregistrez-y
-                l'adresse de votre page de rebond (fichier docs/eb-callback.html du projet,
-                déployé via GitHub Pages), ou n'importe quelle URL https à défaut — vous
-                collerez alors l'URL de retour à la main après validation chez la banque.{'\n'}
-                3. Collez ici l'Application ID, la clé privée PEM et cette même URL https.
-              </Text>
-              <Field label="Application ID" value={appId} onChangeText={setAppId} autoCapitalize="none" autoCorrect={false} placeholder="ex : 8a7b6c5d-…" />
+              <Text style={styles.help}>{t('ebConnect.intro')}</Text>
+              <Field label={t('ebConnect.app_id')} value={appId} onChangeText={setAppId} autoCapitalize="none" autoCorrect={false} placeholder={t('ebConnect.app_id_placeholder')} />
               <Field
-                label="URL de redirection (https)"
+                label={t('ebConnect.redirect_url')}
                 value={redirectUrl}
                 onChangeText={setRedirectUrl}
                 autoCapitalize="none"
                 autoCorrect={false}
-                placeholder="ex : https://votre-pseudo.github.io/eb-callback.html"
-                hint="Doit être identique à l'URL enregistrée dans l'application Enable Banking."
+                placeholder={t('ebConnect.redirect_url_placeholder')}
+                hint={t('ebConnect.redirect_url_hint')}
               />
               <Field
-                label="Clé privée (PEM)"
+                label={t('ebConnect.private_key')}
                 value={pem}
                 onChangeText={setPem}
                 autoCapitalize="none"
                 autoCorrect={false}
                 multiline
                 placeholder="-----BEGIN PRIVATE KEY-----…"
-                hint="Stockée chiffrée sur l'appareil (Android Keystore). Elle ne sert qu'à signer les requêtes vers api.enablebanking.com."
+                hint={t('ebConnect.private_key_hint')}
               />
             </Card>
             <Button
-              title="Vérifier et enregistrer"
+              title={t('ebConnect.verifier_bouton')}
               onPress={registerApp}
               loading={busy}
               disabled={!appId.trim() || !pem.trim() || !redirectUrl.trim().toLowerCase().startsWith('https://')}
@@ -199,15 +188,15 @@ export default function EbConnect() {
           <>
             {creds.sessions.length > 0 && (
               <>
-                <SectionTitle>Banques connectées</SectionTitle>
+                <SectionTitle>{t('ebConnect.banques_connectees')}</SectionTitle>
                 <Card>
                   {creds.sessions.map((s, i) => (
                     <View key={s.sessionId} style={[styles.sessionRow, i < creds.sessions.length - 1 && styles.rowBorder]}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.sessionName}>{s.aspspName}</Text>
                         <Text style={styles.sessionSub}>
-                          {s.accounts.length} compte(s)
-                          {s.validUntil ? ` · consentement jusqu'au ${formatDate(s.validUntil)}` : ''}
+                          {t('ebConnect.n_comptes', { count: s.accounts.length })}
+                          {s.validUntil ? ` · ${t('ebConnect.consentement_jusqu', { date: formatDate(s.validUntil) })}` : ''}
                         </Text>
                       </View>
                     </View>
@@ -216,20 +205,20 @@ export default function EbConnect() {
               </>
             )}
 
-            <SectionTitle>Ajouter une banque</SectionTitle>
+            <SectionTitle>{t('ebConnect.ajouter_banque')}</SectionTitle>
             <Card>
               <SelectField
-                label="Pays de la banque"
+                label={t('ebConnect.pays_banque')}
                 value={country}
                 onChange={(c) => {
                   setCountry(c);
                   setBanks(null);
                 }}
                 options={EB_COUNTRIES.map((c) => ({ value: c.code, label: c.label }))}
-                hint="Revolut se connecte via la Lituanie ; Fortuneo et BoursoBank via la France."
+                hint={t('ebConnect.pays_hint')}
               />
               <Button
-                title={banks ? 'Recharger la liste' : 'Charger les banques'}
+                title={banks ? t('ebConnect.recharger_liste') : t('ebConnect.charger_banques')}
                 variant="secondary"
                 onPress={() => loadBankList(country)}
                 loading={busy}
@@ -237,8 +226,8 @@ export default function EbConnect() {
             </Card>
             {banks && (
               <Card>
-                <Field label="Rechercher" value={filter} onChangeText={setFilter} placeholder="ex : Revolut, Boursorama…" />
-                {filtered.length === 0 && <Empty text="Aucune banque trouvée." />}
+                <Field label={t('ebConnect.rechercher')} value={filter} onChangeText={setFilter} placeholder={t('ebConnect.rechercher_placeholder')} />
+                {filtered.length === 0 && <Empty text={t('ebConnect.aucune_banque')} />}
                 {filtered.map((b) => (
                   <Pressable key={b.name} onPress={() => authorize(b)} style={styles.bankRow} disabled={busy}>
                     <Text style={styles.bankName}>{b.name}</Text>
@@ -250,18 +239,18 @@ export default function EbConnect() {
 
             {pendingBank && (
               <>
-                <SectionTitle>Finaliser {pendingBank.name}</SectionTitle>
+                <SectionTitle>{t('ebConnect.finaliser', { name: pendingBank.name })}</SectionTitle>
                 <Card>
                   <Field
-                    label="URL de redirection reçue"
+                    label={t('ebConnect.url_recue')}
                     value={manualRedirect}
                     onChangeText={setManualRedirect}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    placeholder="https://…?code=… (URL complète après validation)"
-                    hint="Si le retour automatique n'a pas fonctionné : copiez l'URL complète de la page atteinte après validation chez la banque (elle contient ?code=…) et collez-la ici."
+                    placeholder={t('ebConnect.url_recue_placeholder')}
+                    hint={t('ebConnect.url_recue_hint')}
                   />
-                  <Button title="Valider le code" onPress={() => finishAuth(pendingBank, manualRedirect)} loading={busy} disabled={!manualRedirect.trim()} />
+                  <Button title={t('ebConnect.valider_code')} onPress={() => finishAuth(pendingBank, manualRedirect)} loading={busy} disabled={!manualRedirect.trim()} />
                 </Card>
               </>
             )}

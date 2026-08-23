@@ -1,4 +1,5 @@
-/** Formatage fr-FR des montants, pourcentages et dates. */
+/** Formatage des montants, pourcentages et dates selon la locale active. */
+import i18next from './i18n';
 import type { Currency } from './types';
 
 /** Mode confidentialité : masque tous les montants (les % restent visibles).
@@ -9,13 +10,19 @@ export function setMaskedMoney(v: boolean): void {
   maskedMoney = v;
 }
 
+let locale: string = 'fr-FR';
+export function setLocale(v: string): void {
+  locale = v;
+  moneyFormatters.clear();
+}
+
 const moneyFormatters = new Map<string, Intl.NumberFormat>();
 
 function moneyFormatter(currency: Currency, precise: boolean): Intl.NumberFormat {
   const key = `${currency}:${precise}`;
   let f = moneyFormatters.get(key);
   if (!f) {
-    f = new Intl.NumberFormat('fr-FR', {
+    f = new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
       minimumFractionDigits: precise ? 2 : 0,
@@ -37,12 +44,12 @@ export function formatMoney(value: number, currency: Currency = 'EUR', precise =
 }
 
 export function formatQuantity(value: number): string {
-  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 8 }).format(value);
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 8 }).format(value);
 }
 
 export function formatPct(value: number, signed = false, maxDecimals = 1): string {
   if (!Number.isFinite(value)) return '—';
-  const s = new Intl.NumberFormat('fr-FR', {
+  const s = new Intl.NumberFormat(locale, {
     minimumFractionDigits: 1,
     maximumFractionDigits: maxDecimals,
   }).format(value);
@@ -52,7 +59,7 @@ export function formatPct(value: number, signed = false, maxDecimals = 1): strin
 export function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString('fr-FR');
+  return d.toLocaleDateString(locale);
 }
 
 /** Jour local au format YYYY-MM-DD. */
@@ -68,9 +75,9 @@ export function formatDuration(months: number): string {
   const m = Math.max(0, Math.round(months));
   const years = Math.floor(m / 12);
   const rem = m % 12;
-  if (years === 0) return `${rem} mois`;
-  if (rem === 0) return `${years} an${years > 1 ? 's' : ''}`;
-  return `${years} an${years > 1 ? 's' : ''} ${rem} mois`;
+  if (years === 0) return `${rem} ${i18next.t('common.months', { count: rem })}`;
+  if (rem === 0) return `${years} ${i18next.t('common.years', { count: years })}`;
+  return `${years} ${i18next.t('common.years', { count: years })} ${rem} ${i18next.t('common.months', { count: rem })}`;
 }
 
 export function addDays(dateKey: string, days: number): string {

@@ -2,6 +2,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, SectionTitle, SelectField } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { todayKey } from '@/lib/format';
@@ -31,12 +32,13 @@ function parseDate(s: string): string | undefined {
 }
 
 const VALUATION_MODES: ValuationMode[] = ['index', 'manual'];
-const VALUATION_LABELS: Record<ValuationMode, string> = {
-  index: 'Auto (indice)',
-  manual: 'Valeur manuelle',
-};
 
 export default function PropertyForm() {
+  const { t } = useTranslation();
+  const VALUATION_LABELS: Record<ValuationMode, string> = {
+    index: t('propertyForm.valuation_auto'),
+    manual: t('propertyForm.valuation_manuelle'),
+  };
   const { propertyId } = useLocalSearchParams<{ propertyId?: string }>();
   const router = useRouter();
   const existing = useStore((s) => s.properties.find((p) => p.id === propertyId));
@@ -84,77 +86,69 @@ export default function PropertyForm() {
 
   return (
     <>
-      <Stack.Screen options={{ title: existing ? 'Modifier le bien' : 'Nouveau bien' }} />
+      <Stack.Screen options={{ title: existing ? t('propertyForm.titre_edit') : t('propertyForm.titre_new') }} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Card>
-          <Field label="Nom du bien" value={name} onChangeText={setName} placeholder="ex : Appartement Lyon 3e" />
-          <Text style={styles.label}>Type de bien</Text>
+          <Field label={t('propertyForm.nom')} value={name} onChangeText={setName} placeholder={t('propertyForm.nom_placeholder')} />
+          <Text style={styles.label}>{t('realEstate.type')}</Text>
           <Chips options={PROPERTY_KIND_ORDER} value={kind} onChange={setKind} labels={PROPERTY_KIND_LABELS} />
-          <Field label="Adresse (optionnel)" value={address} onChangeText={setAddress} placeholder="ex : 12 rue de la Paix, Lyon" />
+          <Field label={t('propertyForm.adresse')} value={address} onChangeText={setAddress} placeholder={t('propertyForm.adresse_placeholder')} />
           <SelectField
-            label="Devise du bien"
+            label={t('propertyForm.devise')}
             value={currency}
             onChange={setCurrency}
             options={CURRENCIES.map((c) => ({ value: c, label: CURRENCY_LABELS[c] }))}
-            hint={currency !== 'EUR' ? 'Montants saisis dans cette devise ; affichage converti en €.' : undefined}
+            hint={currency !== 'EUR' ? t('propertyForm.devise_hint') : undefined}
           />
         </Card>
 
-        <SectionTitle>Acquisition</SectionTitle>
+        <SectionTitle>{t('propertyForm.acquisition')}</SectionTitle>
         <Card>
-          <Field label={`Prix d'achat en ${currency}`} value={purchasePrice} onChangeText={setPurchasePrice} keyboardType="decimal-pad" placeholder="ex : 250000" />
-          <Field label={`Frais d'acquisition en ${currency} — notaire, agence (optionnel)`} value={purchaseCosts} onChangeText={setPurchaseCosts} keyboardType="decimal-pad" placeholder="ex : 20000" />
+          <Field label={t('propertyForm.prix_achat', { currency })} value={purchasePrice} onChangeText={setPurchasePrice} keyboardType="decimal-pad" placeholder={t('propertyForm.prix_achat_placeholder')} />
+          <Field label={t('propertyForm.frais_acquisition', { currency })} value={purchaseCosts} onChangeText={setPurchaseCosts} keyboardType="decimal-pad" placeholder={t('propertyForm.frais_acquisition_placeholder')} />
           <Field
-            label="Date d'achat"
+            label={t('propertyForm.date_achat')}
             value={purchaseDate}
             onChangeText={setPurchaseDate}
-            placeholder="AAAA-MM-JJ"
+            placeholder={t('propertyForm.date_placeholder')}
             autoCapitalize="none"
-            hint={date === undefined ? 'Format attendu : AAAA-MM-JJ (ex : 2019-06-15).' : undefined}
+            hint={date === undefined ? t('propertyForm.date_hint') : undefined}
           />
-          <Field label="Surface en m² (optionnel)" value={surface} onChangeText={setSurface} keyboardType="decimal-pad" placeholder="ex : 65" />
+          <Field label={t('propertyForm.surface')} value={surface} onChangeText={setSurface} keyboardType="decimal-pad" placeholder={t('propertyForm.surface_placeholder')} />
           <Field
-            label="Quote-part détenue en % (optionnel)"
+            label={t('accountForm.quote_part')}
             value={ownershipPct}
             onChangeText={setOwnershipPct}
             keyboardType="decimal-pad"
-            placeholder="ex : 50 (SCI / indivision)"
-            hint={
-              !pctValid
-                ? 'Saisissez un pourcentage entre 0 et 100.'
-                : 'Laissez vide pour une détention pleine (100 %). En SCI ou indivision, la valeur et la dette sont pondérées par cette part dans le patrimoine.'
-            }
+            placeholder={t('accountForm.quote_part_placeholder')}
+            hint={!pctValid ? t('accountForm.quote_part_erreur') : t('propertyForm.quote_part_hint')}
           />
         </Card>
 
-        <SectionTitle>Estimation de la valeur</SectionTitle>
+        <SectionTitle>{t('propertyForm.estimation_titre')}</SectionTitle>
         <Card>
-          <Text style={styles.label}>Mode d'estimation</Text>
+          <Text style={styles.label}>{t('propertyForm.estimation_mode')}</Text>
           <Chips options={VALUATION_MODES} value={valuationMode} onChange={setValuationMode} labels={VALUATION_LABELS} />
           {valuationMode === 'index' ? (
-            <Text style={styles.hint}>
-              La valeur est réévaluée automatiquement depuis le prix d'achat via l'indice national
-              des prix des logements anciens (INSEE). Basculez en « Valeur manuelle » pour saisir
-              votre propre estimation.
-            </Text>
+            <Text style={styles.hint}>{t('propertyForm.estimation_auto_texte')}</Text>
           ) : (
             <Field
-              label={`Valeur estimée actuelle en ${currency}`}
+              label={t('propertyForm.valeur_estimee', { currency })}
               value={manualValue}
               onChangeText={setManualValue}
               keyboardType="decimal-pad"
-              placeholder="ex : 290000"
-              hint="Par ex. l'estimation d'un agent ou de DVF. Prime sur l'indice."
+              placeholder={t('propertyForm.valeur_estimee_placeholder')}
+              hint={t('propertyForm.valeur_estimee_hint')}
             />
           )}
         </Card>
 
         <Card>
-          <Field label="Notes (optionnel)" value={notes} onChangeText={setNotes} placeholder="ex : locataire jusqu'en 2027" multiline />
+          <Field label={t('propertyForm.notes')} value={notes} onChangeText={setNotes} placeholder={t('propertyForm.notes_placeholder')} multiline />
         </Card>
 
-        <Button title="Enregistrer" onPress={save} disabled={!valid} />
-        <Button title="Annuler" variant="secondary" onPress={() => router.back()} />
+        <Button title={t('common.save')} onPress={save} disabled={!valid} />
+        <Button title={t('common.cancel')} variant="secondary" onPress={() => router.back()} />
       </ScrollView>
     </>
   );

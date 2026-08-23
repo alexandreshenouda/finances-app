@@ -2,6 +2,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { LineChart } from '@/components/LineChart';
 import { Button, Card, Dot, Empty, PeriodChips, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
@@ -23,6 +24,7 @@ import { useStore } from '@/lib/store';
 import { ACCOUNT_TYPE_COLORS, ACCOUNT_TYPE_LABELS, type Period } from '@/lib/types';
 
 export default function AccountDetail() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const account = useStore((s) => s.accounts.find((a) => a.id === id));
@@ -45,7 +47,7 @@ export default function AccountDetail() {
   );
 
   if (!account) {
-    return <Empty text="Compte introuvable." />;
+    return <Empty text={t('accountDetail.introuvable')} />;
   }
 
   const value = accountCurrentValue(account, allHoldings, snapshots, rates);
@@ -71,8 +73,8 @@ export default function AccountDetail() {
 
   const onDelete = () =>
     confirmAction(
-      'Supprimer le compte',
-      `« ${account.name} », ses lignes et son historique seront supprimés.`,
+      t('accountDetail.supprimer_titre'),
+      t('accountDetail.supprimer_confirm', { name: account.name }),
       () => {
         deleteAccount(account.id);
         router.back();
@@ -96,17 +98,20 @@ export default function AccountDetail() {
               {gain.abs >= 0 ? '+' : ''}
               {formatEur(gain.abs)}
               {gain.pct !== undefined ? `  (${formatPct(gain.pct, true)})` : ''}
-              <Text style={styles.gainLabel}>  de +/- value latente</Text>
+              <Text style={styles.gainLabel}>  {t('accountDetail.plus_value_latente')}</Text>
             </Text>
           )}
           {share < 1 && (
             <Text style={styles.ownership}>
-              Votre part ({formatPct(account.ownershipPct!)}) : {formatEur(value * share)}
+              {t('accountDetail.votre_part', { pct: formatPct(account.ownershipPct!), amount: formatEur(value * share) })}
             </Text>
           )}
           {last && (
             <Text style={styles.lastUpdate}>
-              Dernière valeur : {formatDate(last.date)} ({last.source === 'manual' ? 'saisie' : last.source === 'sync' ? 'synchro' : 'cours'})
+              {t('accountDetail.derniere_valeur', {
+                date: formatDate(last.date),
+                source: last.source === 'manual' ? t('accountDetail.source_saisie') : last.source === 'sync' ? t('accountDetail.source_synchro') : t('accountDetail.source_cours'),
+              })}
             </Text>
           )}
           <View style={{ height: 12 }} />
@@ -114,12 +119,12 @@ export default function AccountDetail() {
           <LineChart points={series} color={ACCOUNT_TYPE_COLORS[account.type]} />
         </Card>
 
-        <SectionTitle>Lignes / fonds</SectionTitle>
+        <SectionTitle>{t('accountDetail.lignes_titre')}</SectionTitle>
         <Card style={{ paddingVertical: 4 }}>
           {(account.cashBalance ?? 0) !== 0 && (
             <View style={[styles.holdingRow, holdings.length > 0 && styles.rowBorder]}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.holdingName}>Liquidités</Text>
+                <Text style={styles.holdingName}>{t('accountDetail.liquidites')}</Text>
                 {accountCurrency !== 'EUR' && (
                   <Text style={styles.holdingSub}>{formatMoney(account.cashBalance!, accountCurrency, true)}</Text>
                 )}
@@ -130,7 +135,7 @@ export default function AccountDetail() {
             </View>
           )}
           {holdings.length === 0 && (account.cashBalance ?? 0) === 0 && (
-            <Empty text="Aucune ligne. Ajoutez un fonds, une action ou un actif." />
+            <Empty text={t('accountDetail.aucune_ligne')} />
           )}
           {holdings.map((h, i) => {
             const perf = holdingPerfPct(h);
@@ -149,7 +154,7 @@ export default function AccountDetail() {
                   <Text style={styles.holdingName}>{h.name}</Text>
                   <Text style={styles.holdingSub}>
                     {formatQuantity(h.quantity)} × {h.unitPrice !== undefined ? formatMoney(h.unitPrice, hCur, true) : '—'}
-                    {h.feesPct !== undefined ? `  ·  frais ${formatPct(h.feesPct, false, 2)}` : ''}
+                    {h.feesPct !== undefined ? `  ·  ${t('accountDetail.frais', { pct: formatPct(h.feesPct, false, 2) })}` : ''}
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
@@ -166,35 +171,33 @@ export default function AccountDetail() {
         </Card>
         {!isSynced && (
           <Button
-            title="+ Ajouter une ligne"
+            title={t('accountDetail.ajouter_ligne')}
             variant="secondary"
             onPress={() => router.push({ pathname: '/holding-form', params: { accountId: account.id } })}
           />
         )}
-        {isSynced && (
-          <Text style={styles.syncNote}>
-            Compte synchronisé : les lignes sont mises à jour automatiquement à chaque synchronisation.
-          </Text>
-        )}
+        {isSynced && <Text style={styles.syncNote}>{t('accountDetail.sync_note')}</Text>}
 
         {!isSynced && holdings.length === 0 && (
           <>
-            <SectionTitle>Mettre à jour la valeur</SectionTitle>
+            <SectionTitle>{t('accountDetail.maj_valeur_titre')}</SectionTitle>
             <Card>
               <Text style={styles.manualHint}>
-                Saisissez la valeur totale actuelle du compte en {accountCurrency} (un point par jour
-                alimente la courbe{accountCurrency !== 'EUR' ? ', converti en €' : ''}).
+                {t('accountDetail.maj_valeur_hint', {
+                  currency: accountCurrency,
+                  converted: accountCurrency !== 'EUR' ? t('accountDetail.converti_eur') : '',
+                })}
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <TextInput
                   value={manualValue}
                   onChangeText={setManualValue}
-                  placeholder="ex : 12500"
+                  placeholder={t('accountDetail.maj_valeur_placeholder')}
                   placeholderTextColor={C.textFaint}
                   keyboardType="decimal-pad"
                   style={styles.manualInput}
                 />
-                <Button title="Enregistrer" onPress={saveManualValue} style={{ marginVertical: 0 }} />
+                <Button title={t('common.save')} onPress={saveManualValue} style={{ marginVertical: 0 }} />
               </View>
             </Card>
           </>
@@ -202,11 +205,11 @@ export default function AccountDetail() {
 
         {hasFees && (
           <>
-            <SectionTitle>Frais</SectionTitle>
+            <SectionTitle>{t('accountDetail.frais_titre')}</SectionTitle>
             <Card>
-              {fees!.entryPct !== undefined && <FeeRow label="Frais d'entrée / versement" value={formatPct(fees!.entryPct)} />}
-              {fees!.managementPct !== undefined && <FeeRow label="Frais de gestion annuels" value={formatPct(fees!.managementPct)} />}
-              {fees!.custodyAnnual !== undefined && <FeeRow label="Droits de garde / an" value={formatEur(fees!.custodyAnnual, true)} />}
+              {fees!.entryPct !== undefined && <FeeRow label={t('forms.frais_entree')} value={formatPct(fees!.entryPct)} />}
+              {fees!.managementPct !== undefined && <FeeRow label={t('forms.frais_gestion')} value={formatPct(fees!.managementPct)} />}
+              {fees!.custodyAnnual !== undefined && <FeeRow label={t('accountDetail.frais_garde_an')} value={formatEur(fees!.custodyAnnual, true)} />}
               {fees!.notes ? <Text style={styles.feeNotes}>{fees!.notes}</Text> : null}
             </Card>
           </>
@@ -214,11 +217,11 @@ export default function AccountDetail() {
 
         <View style={{ height: 16 }} />
         <Button
-          title="Modifier le compte"
+          title={t('accountDetail.modifier')}
           variant="secondary"
           onPress={() => router.push({ pathname: '/account-form', params: { accountId: account.id } })}
         />
-        <Button title="Supprimer le compte" variant="danger" onPress={onDelete} />
+        <Button title={t('accountDetail.supprimer_bouton')} variant="danger" onPress={onDelete} />
       </ScrollView>
     </>
   );
