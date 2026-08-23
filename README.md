@@ -1,49 +1,115 @@
-# Finances
+<p align="center">
+  <img src="assets/images/icon.png" width="88" alt="" />
+</p>
 
-Application de suivi du patrimoine (nom affiché : **Finances**) — **React Native (Expo)**, un seul
-codebase pour **Android**, **iOS** et **Web**, plus une version de bureau **Windows** (Electron).
-Sans backend : toutes les données et tous les identifiants restent sur l'appareil.
+<h1 align="center">Finances</h1>
+<p align="center">
+  Suivi de patrimoine personnel — comptes, bourse, crypto, immobilier et crédits.<br/>
+  <b>React Native (Expo)</b>, un seul codebase pour Android, iOS, Web et Windows. Sans backend.
+</p>
+
+<p align="center">
+  <img alt="Plateformes" src="https://img.shields.io/badge/plateformes-Android%20%7C%20iOS%20%7C%20Web%20%7C%20Windows-5B8DEF">
+  <img alt="Expo SDK" src="https://img.shields.io/badge/Expo%20SDK-57-000020?logo=expo&logoColor=white">
+  <img alt="Licence" src="https://img.shields.io/badge/licence-MIT-34D399">
+  <img alt="Backend" src="https://img.shields.io/badge/backend-aucun%2C%20100%25%20local-16233D">
+</p>
+
+Toutes les données et tous les identifiants restent sur l'appareil : pas de compte, pas de
+serveur, pas de tracking. Les comptes se remplissent à la main ou se synchronisent depuis
+quelques sources publiques (Binance, Kraken, banques françaises via Enable Banking, Trade
+Republic) — voir [Pourquoi certaines choses sont comme elles sont](#pourquoi-certaines-choses-sont-comme-elles-sont)
+pour le détail des contraintes.
+
+## Aperçu
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/synthese.png" width="230" alt="Synthèse : patrimoine total, courbe et répartition"><br/>
+      <sub>Synthèse</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/comptes.png" width="230" alt="Liste des comptes groupés par type"><br/>
+      <sub>Comptes</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/compte-detail.png" width="230" alt="Détail d'un compte PEA avec ses lignes"><br/>
+      <sub>Détail d'un compte</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/immobilier.png" width="230" alt="Détail d'un bien : estimation, équité et crédit"><br/>
+      <sub>Immobilier</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/emprunts.png" width="230" alt="Onglet Emprunts : crédit immobilier et prêt conso"><br/>
+      <sub>Emprunts</sub>
+    </td>
+    <td width="33%"></td>
+  </tr>
+</table>
+
+## Sommaire
+
+- [Fonctionnalités](#fonctionnalités)
+- [Lancer l'app](#lancer-lapp)
+- [Windows (application de bureau)](#windows-application-de-bureau)
+- [Configurer les synchronisations](#configurer-les-synchronisations)
+- [Architecture](#architecture)
+- [Pourquoi certaines choses sont comme elles sont](#pourquoi-certaines-choses-sont-comme-elles-sont)
+- [Avertissement](#avertissement)
 
 ## Fonctionnalités
 
+**Vue d'ensemble**
 - **Patrimoine net ou brut** : la synthèse totalise comptes + immobilier, avec un basculement
   **Net** (actifs − crédits) / **Brut**, et une case pour **inclure ou non les biens immobiliers**
   dans le total (les comptes bancaires de type immobilier, eux, sont toujours comptés).
 - **Courbes de suivi** du patrimoine total et de chaque compte sur 1J / 1S / 1M / 3M / 6M / 1A /
   YTD / Max — les 5 échelles courantes en puces, les autres dans un menu déroulant (inspection au
   doigt, variation absolue et en %).
+- **Répartition du patrimoine** par type de compte, en **barre empilée ou camembert**.
+
+**Comptes & placements**
 - **Comptes classés par type** : compte courant, livret, PEA, CTO, assurance vie, PER, crypto,
-  immobilier, autre — avec répartition du patrimoine par type, en **barre empilée ou camembert**.
+  immobilier, autre.
 - **Lignes / fonds par compte** : quantité, cours, valeur, plus/moins-value vs PRU, frais.
 - **Plus/moins-value latente par compte** : agrégée sur les lignes à PRU connu, affichée dans la
   liste des comptes et sur le détail (en € et en %, convertie en EUR pour les comptes multi-devises).
+- **Frais** : frais d'entrée, de gestion, droits de garde par compte ; frais courants par fonds.
+- **Ajout manuel** de comptes et de lignes quand la synchro est impossible (cas notamment des
+  PEA / CTO / assurances vie, non couverts par les API bancaires).
+- **Cours automatiques** pour valoriser les lignes manuelles : actions / ETF / fonds cotés via
+  Yahoo Finance (ticker, ex. `WPEA.PA`, conversion en € automatique) ; crypto via CoinGecko
+  (id, ex. `bitcoin`).
+
+**Immobilier & crédits**
 - **Immobilier** : onglet dédié pour les biens physiques (appartement, maison, terrain…) —
   - **valeur estimée** réévaluée automatiquement via un indice national des prix des logements
     (INSEE, embarqué pour un fonctionnement hors-ligne), avec surcharge manuelle possible ;
   - **plus-value latente** (valeur − prix de revient), en € et en % ;
-  - **crédits immobiliers** : échéancier d'amortissement calculé (mensualité, capital restant dû,
-    coût total, temps restant), en mensualités **constantes** ou **échelonnées par paliers**
-    (différé total/partiel géré), avec courbe du capital restant dû ;
   - **quote-part détenue** (SCI / indivision) sur un bien ou un compte immobilier : le montant
     complet reste affiché, mais seule votre part est comptée dans le patrimoine.
 - **Emprunts** : onglet dédié regroupant tous les prêts — crédits immobiliers (toujours
   rattachables à un bien) et **prêts conso** (sans rattachement), créables et modifiables
-  depuis l'onglet ; les prêts conso sont déduits du patrimoine net.
-- **Frais** : frais d'entrée, de gestion, droits de garde par compte ; frais courants par fonds.
-- **Ajout manuel** de comptes et de lignes quand la synchro est impossible (cas notamment des
-  PEA / CTO / assurances vie, non couverts par les API bancaires — voir plus bas).
-- **Cours automatiques** pour valoriser les lignes manuelles :
-  - actions / ETF / fonds cotés : Yahoo Finance (ticker, ex. `WPEA.PA`), conversion en € automatique ;
-  - crypto : CoinGecko (id, ex. `bitcoin`).
-- **Synchronisation automatique** :
-  - **Binance** et **Kraken** : clé API *lecture seule*, valorisation EUR via les cours de l'exchange ;
-  - **Banques via Enable Banking** (DSP2) : soldes des comptes de paiement — banques françaises,
-    et **Revolut** via la Lituanie (sélecteur de pays) ;
-  - **Trade Republic** : API *non officielle* (login téléphone/PIN + 2FA), liquidités + positions
-    valorisées en EUR. Android uniquement, à utiliser en connaissance de cause (voir plus bas).
+  depuis l'onglet ; les prêts conso sont déduits du patrimoine net. Échéancier d'amortissement
+  calculé (mensualité, capital restant dû, coût total, temps restant), en mensualités
+  **constantes** ou **échelonnées par paliers** (différé total/partiel géré), avec courbe du
+  capital restant dû.
+
+**Synchronisation automatique**
+- **Binance** et **Kraken** : clé API *lecture seule*, valorisation EUR via les cours de l'exchange.
+- **Banques via Enable Banking** (DSP2) : soldes des comptes de paiement — banques françaises,
+  et **Revolut** via la Lituanie (sélecteur de pays).
+- **Trade Republic** : API *non officielle* (login téléphone/PIN + 2FA), liquidités + positions
+  valorisées en EUR. Android uniquement, à utiliser en connaissance de cause (voir plus bas).
 - **Snapshots quotidiens** : chaque mise à jour (cours, synchro ou saisie) enregistre au plus un
   point par jour et par compte ; les courbes se construisent à partir de ces points (report de la
   dernière valeur connue pour les comptes non mis à jour).
+
+**Confidentialité & données**
 - **Multi-devises** : comptes et lignes en EUR (défaut), USD ou CHF — saisie dans la devise
   d'origine, affichage et courbes convertis en € avec les taux BCE
   ([frankfurter.dev](https://frankfurter.dev), rafraîchis à chaque mise à jour, derniers taux
@@ -51,28 +117,6 @@ Sans backend : toutes les données et tous les identifiants restent sur l'appare
 - **Export / import** JSON (sans les identifiants) : presse-papiers partout, et fichier
   (partage / sélecteur de documents) sur Android. Les exports V1 sans devise restent importables
   (traités en EUR).
-
-## Pourquoi certaines choses sont comme elles sont
-
-- **DSP2 ne couvre que les comptes de paiement.** Les PEA, CTO, assurances vie et PER ne sont
-  accessibles que via les connecteurs propriétaires d'agrégateurs B2B payants (Powens, Linxo…).
-  Sans backend ni contrat B2B, la seule voie est la saisie manuelle + valorisation automatique
-  par les cours publics. C'est le choix de cette app.
-- **Enable Banking** est le seul agrégateur agréé avec un mode gratuit self-service
-  (« restricted production ») limité à **vos propres comptes** — exactement le cas d'usage ici.
-  Revolut, Fortuneo et BoursoBank n'exposent **pas** d'API directe pour les particuliers (DSP2
-  réservé aux prestataires agréés) : on passe donc par Enable Banking (Revolut = entité
-  lituanienne, Fortuneo et BoursoBank = France).
-- **Trade Republic** n'a aucune API officielle : le connecteur reprend le protocole non officiel
-  du web-login (téléphone/PIN → code 2FA) et du flux WebSocket. Conséquences : validation 2FA à
-  **chaque** synchronisation (pas de synchro silencieuse), fonctionne uniquement en natif Android,
-  et **peut casser** si Trade Republic change son protocole ou active son pare-feu applicatif.
-- **Yuh** (néobanque suisse) est hors périmètre DSP2 et n'expose pas d'API personnelle : suivi
-  manuel uniquement.
-- **CORS** : dans un navigateur, les API Binance, Kraken, Yahoo, Enable Banking et Trade Republic
-  refusent les appels cross-origin. Ces fonctions marchent dans les apps natives (**Android**,
-  **iOS** — pas de CORS en natif ; Trade Republic reste toutefois Android uniquement). Sur le web,
-  le suivi manuel et CoinGecko fonctionnent.
 
 ## Lancer l'app
 
@@ -97,7 +141,7 @@ provisioning (certificat + profil) au premier build via votre login Apple. L'app
 `ios.bundleIdentifier` et `android.package` = `fr.perso.patrimoine`. Pour un build local,
 `npx expo run:android` (Android Studio) ou `npx expo run:ios` (macOS + Xcode).
 
-### Windows (application de bureau)
+## Windows (application de bureau)
 
 La version Windows empaquette l'export web dans une coquille **Electron**. Un petit serveur HTTP
 local (port fixe `8099`) sert le build, et `webSecurity` est désactivé pour lever le CORS : les
@@ -171,6 +215,34 @@ Données locales : documents (comptes, lignes, snapshots, connexions, biens et c
 en JSON dans AsyncStorage ; secrets à part dans le stockage sécurisé. La valeur d'un bien et le
 capital restant dû d'un crédit étant calculables analytiquement à toute date, la courbe immobilière
 est dérivée sans stocker de snapshots. Aucun serveur tiers autre que les API officielles citées.
+
+## Pourquoi certaines choses sont comme elles sont
+
+<details>
+<summary>DSP2, agrégateurs, Trade Republic, CORS — les contraintes qui façonnent l'app</summary>
+<br/>
+
+- **DSP2 ne couvre que les comptes de paiement.** Les PEA, CTO, assurances vie et PER ne sont
+  accessibles que via les connecteurs propriétaires d'agrégateurs B2B payants (Powens, Linxo…).
+  Sans backend ni contrat B2B, la seule voie est la saisie manuelle + valorisation automatique
+  par les cours publics. C'est le choix de cette app.
+- **Enable Banking** est le seul agrégateur agréé avec un mode gratuit self-service
+  (« restricted production ») limité à **vos propres comptes** — exactement le cas d'usage ici.
+  Revolut, Fortuneo et BoursoBank n'exposent **pas** d'API directe pour les particuliers (DSP2
+  réservé aux prestataires agréés) : on passe donc par Enable Banking (Revolut = entité
+  lituanienne, Fortuneo et BoursoBank = France).
+- **Trade Republic** n'a aucune API officielle : le connecteur reprend le protocole non officiel
+  du web-login (téléphone/PIN → code 2FA) et du flux WebSocket. Conséquences : validation 2FA à
+  **chaque** synchronisation (pas de synchro silencieuse), fonctionne uniquement en natif Android,
+  et **peut casser** si Trade Republic change son protocole ou active son pare-feu applicatif.
+- **Yuh** (néobanque suisse) est hors périmètre DSP2 et n'expose pas d'API personnelle : suivi
+  manuel uniquement.
+- **CORS** : dans un navigateur, les API Binance, Kraken, Yahoo, Enable Banking et Trade Republic
+  refusent les appels cross-origin. Ces fonctions marchent dans les apps natives (**Android**,
+  **iOS** — pas de CORS en natif ; Trade Republic reste toutefois Android uniquement). Sur le web,
+  le suivi manuel et CoinGecko fonctionnent.
+
+</details>
 
 ## Avertissement
 
