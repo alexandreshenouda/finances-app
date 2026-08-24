@@ -42,17 +42,18 @@ export const ACCOUNT_TYPE_ORDER: AccountType[] = [
  * Palette catégorielle sombre validée (contraste ≥ 3:1 sur #0F172A, ordre
  * optimisé daltonisme) ; « autre » est le gris neutre réservé au divers.
  */
+/** Palette pâle et désaturée, en harmonie avec le thème sombre/or (pas de teintes vives qui jurent). */
 export const ACCOUNT_TYPE_COLORS: Record<AccountType, string> = {
-  courant: '#3987e5',
-  livret: '#199e70',
-  pea: '#c98500',
-  cto: '#008300',
-  assurance_vie: '#9085e9',
-  per: '#e66767',
-  private_equity: '#22b8d4',
-  crypto: '#d55181',
-  immobilier: '#d95926',
-  autre: '#64748B',
+  courant: '#8FADC9',
+  livret: '#8FC2A6',
+  pea: '#D9C07A',
+  cto: '#C9954E',
+  assurance_vie: '#B0A0C9',
+  per: '#C98FA0',
+  private_equity: '#7FBFBF',
+  crypto: '#B98FC9',
+  immobilier: '#C98060',
+  autre: '#9C9C9C',
 };
 
 export type ConnectorProvider = 'binance' | 'kraken' | 'enablebanking' | 'traderepublic';

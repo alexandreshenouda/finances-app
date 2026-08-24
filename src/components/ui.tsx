@@ -43,7 +43,7 @@ export function Button({
 }) {
   const bg =
     variant === 'primary' ? C.accent : variant === 'danger' ? 'rgba(248,113,113,0.15)' : C.cardAlt;
-  const color = variant === 'danger' ? C.negative : variant === 'primary' ? '#fff' : C.text;
+  const color = variant === 'danger' ? C.negative : variant === 'primary' ? C.onAccent : C.text;
   return (
     <Pressable
       onPress={onPress}
@@ -103,7 +103,7 @@ export function Chips<T extends string>({
             onPress={() => onChange(opt)}
             style={[styles.chip, active && { backgroundColor: C.accent }]}
           >
-            <Text style={[styles.chipText, active && { color: '#fff', fontWeight: '600' }]}>
+            <Text style={[styles.chipText, active && { color: C.onAccent, fontWeight: '600' }]}>
               {labels?.[opt] ?? opt}
             </Text>
           </Pressable>
@@ -164,7 +164,7 @@ export function PeriodChips({ value, onChange }: { value: Period; onChange: (p: 
             onPress={() => onChange(opt)}
             style={[styles.chip, active && { backgroundColor: C.accent }]}
           >
-            <Text style={[styles.chipText, active && { color: '#fff', fontWeight: '600' }]}>{opt}</Text>
+            <Text style={[styles.chipText, active && { color: C.onAccent, fontWeight: '600' }]}>{opt}</Text>
           </Pressable>
         );
       })}
@@ -173,7 +173,7 @@ export function PeriodChips({ value, onChange }: { value: Period; onChange: (p: 
         onPress={openMenu}
         style={[styles.chip, secondaryActive && { backgroundColor: C.accent }]}
       >
-        <Text style={[styles.chipText, secondaryActive && { color: '#fff', fontWeight: '600' }]}>
+        <Text style={[styles.chipText, secondaryActive && { color: C.onAccent, fontWeight: '600' }]}>
           {moreLabel}
         </Text>
       </Pressable>
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   checkboxBoxOn: { backgroundColor: C.accent, borderColor: C.accent },
-  checkboxTick: { color: '#fff', fontSize: 12, fontWeight: '700', lineHeight: 16 },
+  checkboxTick: { color: C.onAccent, fontSize: 12, fontWeight: '700', lineHeight: 16 },
   checkboxLabel: { color: C.text, fontSize: 14 },
   menuBackdrop: { flex: 1 },
   menu: {
