@@ -230,9 +230,21 @@ export function propertyValueEur(
   rates: FxRates,
   dateKey: string = todayKey()
 ): number {
+  // Mode local : valeur directe (€/m² de ventes DVF comparables × surface) à
+  // aujourd'hui ; on emprunte la FORME de l'indice national pour projeter dans le
+  // passé (DVF n'est pas une série temporelle exploitable point par point), ancrée
+  // sur la valeur du jour. Retombe sur le mode indice si pas encore d'estimation
+  // (mode tout juste choisi, jamais rafraîchi, ou surface manquante).
+  if (property.valuationMode === 'local' && property.localEstimate && property.surface) {
+    const today = todayKey();
+    const localToday = property.localEstimate.pricePerM2 * property.surface;
+    const value = dateKey === today ? localToday : localToday * indexRatio(series, today, dateKey);
+    return toEur(value, property.currency, rates);
+  }
+
   // Mode manuel : la valeur saisie vaut pour aujourd'hui ; on la projette dans le
-  // passé via l'indice pour tracer une courbe cohérente. Mode indice : on part du
-  // prix d'achat réévalué depuis la date d'acquisition.
+  // passé via l'indice pour tracer une courbe cohérente. Mode indice (par défaut) :
+  // on part du prix d'achat réévalué depuis la date d'acquisition.
   const manual = property.valuationMode === 'manual' && property.manualValue !== undefined;
   const base = manual ? property.manualValue! : property.purchasePrice;
   const refDate = manual ? todayKey() : property.purchaseDate;

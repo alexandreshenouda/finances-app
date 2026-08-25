@@ -18,3 +18,19 @@ export async function fetchCoinGeckoPrices(ids: string[]): Promise<CoinGeckoPric
   }
   return out;
 }
+
+// CoinGecko renvoie souvent des catégories peu parlantes comme tag "secteur" (noms d'indices,
+// mentions d'un exchange en faillite…) — écartées pour ne garder que la première catégorie
+// réellement descriptive.
+const NOISY_CATEGORY = /index|holdings|ecosystem/i;
+
+/** Première catégorie CoinGecko utilisable comme tag sectoriel (ex : "Layer 1 (L1)", "DeFi") ;
+ * `undefined` si le coin n'a aucune catégorie exploitable. */
+export async function fetchCoinGeckoCategory(id: string): Promise<string | undefined> {
+  const url = `${BASE}/coins/${encodeURIComponent(id)}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status} pour ${id}`);
+  const json = (await res.json()) as { categories?: unknown };
+  const categories = Array.isArray(json.categories) ? json.categories.filter((c): c is string => typeof c === 'string') : [];
+  return categories.find((c) => !NOISY_CATEGORY.test(c)) ?? categories[0];
+}

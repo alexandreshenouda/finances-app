@@ -68,7 +68,7 @@ function createWindow() {
     width: 1100,
     height: 800,
     minWidth: 380,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0A0A0A',
     title: 'Patrimoine',
     webPreferences: {
       webSecurity: false, // lève le CORS pour les connecteurs (contenu local de confiance)

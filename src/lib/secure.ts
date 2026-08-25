@@ -36,3 +36,7 @@ export async function deleteSecret(key: string): Promise<void> {
 export function connectionSecretKey(connectionId: string): string {
   return `conn.${connectionId}`;
 }
+
+/** Clé API Alpha Vantage (classification sectorielle/géographique, voir `classification.ts`) —
+ * un seul secret global, pas de connexion par compte. */
+export const ALPHA_VANTAGE_SECRET_KEY = 'alphavantage.apiKey';

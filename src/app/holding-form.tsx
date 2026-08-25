@@ -5,9 +5,10 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, SelectField } from '@/components/ui';
 import { C } from '@/constants/theme';
-import { confirmAction } from '@/lib/confirm';
+import { confirmAction, notify } from '@/lib/confirm';
 import { todayKey } from '@/lib/format';
 import { accountCurrentValue } from '@/lib/portfolio';
+import { searchYahooSymbol } from '@/lib/prices/yahoo';
 import { useStore } from '@/lib/store';
 import { CURRENCIES, CURRENCY_LABELS, type Currency, type PriceSource } from '@/lib/types';
 
@@ -46,6 +47,40 @@ export default function HoldingForm() {
   const [unitPrice, setUnitPrice] = useState(existing?.unitPrice?.toString() ?? '');
   const [buyPrice, setBuyPrice] = useState(existing?.buyPrice?.toString() ?? '');
   const [feesPct, setFeesPct] = useState(existing?.feesPct?.toString() ?? '');
+  const [resolvingIsin, setResolvingIsin] = useState(false);
+
+  const resolveTickerFromIsin = async () => {
+    const query = isin.trim();
+    if (!query) return;
+    setResolvingIsin(true);
+    try {
+      const matches = await searchYahooSymbol(query);
+      if (matches.length === 0) {
+        notify(t('holdingForm.isin_resolve_titre'), t('holdingForm.isin_resolve_aucun', { isin: query }));
+        return;
+      }
+      setSymbol(matches[0].symbol);
+      if (matches.length > 1) {
+        const others = matches
+          .slice(1, 5)
+          .map((m) => `${m.symbol} — ${m.name} (${m.exchange})`)
+          .join('\n');
+        notify(
+          t('holdingForm.isin_resolve_titre'),
+          t('holdingForm.isin_resolve_plusieurs', {
+            symbol: matches[0].symbol,
+            name: matches[0].name,
+            exchange: matches[0].exchange,
+            others,
+          }),
+        );
+      }
+    } catch (e: any) {
+      notify(t('holdingForm.isin_resolve_titre'), e?.message ?? String(e));
+    } finally {
+      setResolvingIsin(false);
+    }
+  };
 
   const refreshAccountSnapshot = () => {
     const state = useStore.getState();
@@ -108,6 +143,16 @@ export default function HoldingForm() {
               hint={symbolHint}
             />
           )}
+          <Field label={t('holdingForm.isin')} value={isin} onChangeText={setIsin} autoCapitalize="characters" placeholder={t('holdingForm.isin_placeholder')} />
+          {source === 'yahoo' && (
+            <Button
+              title={t('holdingForm.isin_resolve_bouton')}
+              variant="secondary"
+              loading={resolvingIsin}
+              disabled={!isin.trim()}
+              onPress={resolveTickerFromIsin}
+            />
+          )}
           <SelectField
             label={t('holdingForm.devise_ligne')}
             value={currency}
@@ -132,7 +177,6 @@ export default function HoldingForm() {
           />
           <Field label={t('holdingForm.pru', { currency: effectiveCurrency })} value={buyPrice} onChangeText={setBuyPrice} keyboardType="decimal-pad" placeholder={t('holdingForm.pru_placeholder')} hint={t('holdingForm.pru_hint')} />
           <Field label={t('holdingForm.frais_courants')} value={feesPct} onChangeText={setFeesPct} keyboardType="decimal-pad" placeholder={t('holdingForm.frais_courants_placeholder')} />
-          <Field label={t('holdingForm.isin')} value={isin} onChangeText={setIsin} autoCapitalize="characters" placeholder={t('holdingForm.isin_placeholder')} />
         </Card>
         <Button title={t('common.save')} onPress={save} disabled={!name.trim() || parseNum(quantity) === undefined} />
         {existing && <Button title={t('holdingForm.supprimer_bouton')} variant="danger" onPress={onDelete} />}

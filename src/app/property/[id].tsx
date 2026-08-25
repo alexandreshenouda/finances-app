@@ -10,6 +10,7 @@ import { C } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { formatDate, formatEur, formatPct } from '@/lib/format';
 import { houseIndexSeries } from '@/lib/prices/houseIndex';
+import { fetchLocalEstimate } from '@/lib/prices/localValuation';
 import { buildPropertyValueSeries, ownershipShare, propertyDebtEur, propertyGainEur } from '@/lib/realestate';
 import { useStore } from '@/lib/store';
 import { ACCOUNT_TYPE_COLORS, PROPERTY_KIND_LABELS, type Currency, type Period } from '@/lib/types';
@@ -26,10 +27,13 @@ export default function PropertyDetail() {
   useStore((s) => s.privacyMode); // re-render au changement de mode confidentialité (masquage dans format.ts)
   const houseIndex = useStore((s) => s.houseIndex);
   const deleteProperty = useStore((s) => s.deleteProperty);
+  const upsertProperty = useStore((s) => s.upsertProperty);
 
   const defaultPeriod = useStore((s) => s.defaultPeriod);
   const [periodOverride, setPeriodOverride] = useState<Period | null>(null);
   const period = periodOverride ?? defaultPeriod;
+  const [localRefreshing, setLocalRefreshing] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const series = useMemo(() => houseIndexSeries(), [houseIndex]);
   const loans = useMemo(() => allLoans.filter((l) => l.propertyId === id), [allLoans, id]);
@@ -54,6 +58,29 @@ export default function PropertyDetail() {
       router.back();
     });
 
+  const onRefreshLocalEstimate = async () => {
+    if (!property.geo) return;
+    setLocalRefreshing(true);
+    setLocalError(null);
+    try {
+      const est = await fetchLocalEstimate(property.geo, property.kind);
+      if (!est.ok) {
+        setLocalError(est.error);
+        return;
+      }
+      upsertProperty({
+        id: property.id,
+        name: property.name,
+        kind: property.kind,
+        purchasePrice: property.purchasePrice,
+        purchaseDate: property.purchaseDate,
+        localEstimate: est.estimate,
+      });
+    } finally {
+      setLocalRefreshing(false);
+    }
+  };
+
   return (
     <>
       <Stack.Screen options={{ title: property.name }} />
@@ -74,8 +101,31 @@ export default function PropertyDetail() {
           <PeriodChips value={period} onChange={setPeriodOverride} />
           <LineChart points={valueSeries} color={IMMO} />
           <Text style={styles.estimateNote}>
-            {property.valuationMode === 'manual' ? t('propertyDetail.estimation_manuelle') : t('propertyDetail.estimation_auto')}
+            {property.valuationMode === 'manual'
+              ? t('propertyDetail.estimation_manuelle')
+              : property.valuationMode === 'local' && property.localEstimate
+                ? t(
+                  property.localEstimate.scope === 'departement'
+                    ? 'propertyDetail.estimation_local_departement'
+                    : 'propertyDetail.estimation_local',
+                  { n: property.localEstimate.sampleSize }
+                )
+                : property.valuationMode === 'local'
+                  ? t('propertyDetail.estimation_local_manquante')
+                  : t('propertyDetail.estimation_auto')}
           </Text>
+          {property.valuationMode === 'local' && property.geo && (
+            <>
+              <Button
+                title={t('propertyDetail.actualiser_estimation')}
+                variant="secondary"
+                loading={localRefreshing}
+                onPress={onRefreshLocalEstimate}
+                style={styles.refreshButton}
+              />
+              {localError && <Text style={[styles.estimateNote, styles.errorText]}>{localError}</Text>}
+            </>
+          )}
         </Card>
 
         <SectionTitle>{t('propertyDetail.bilan')}</SectionTitle>
@@ -146,6 +196,8 @@ const styles = StyleSheet.create({
   gain: { fontSize: 14, fontWeight: '600', marginTop: 4 },
   gainRef: { color: C.textFaint, fontWeight: '400' },
   estimateNote: { color: C.textFaint, fontSize: 12, marginTop: 4, lineHeight: 16 },
+  refreshButton: { marginTop: 10 },
+  errorText: { color: C.negative },
   row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   rowLabel: { color: C.textDim, fontSize: 14 },
   rowValue: { color: C.text, fontSize: 14, fontWeight: '600' },

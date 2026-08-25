@@ -1,14 +1,14 @@
-/** Connexions externes (Binance, Kraken, Enable Banking, Trade Republic). */
+/** Connexions externes (Binance, Kraken, Enable Banking, Trade Republic, Alpha Vantage). */
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Empty, SectionTitle } from '@/components/ui';
+import { Button, Card, Empty, Field, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
 import { syncConnection } from '@/lib/connectors';
 import { formatDate } from '@/lib/format';
-import { connectionSecretKey, deleteSecret } from '@/lib/secure';
+import { ALPHA_VANTAGE_SECRET_KEY, connectionSecretKey, deleteSecret, getSecret, setSecret } from '@/lib/secure';
 import { useStore } from '@/lib/store';
 import { PROVIDER_LABELS } from '@/lib/types';
 
@@ -18,6 +18,37 @@ export default function Connections() {
   const connections = useStore((s) => s.connections);
   const deleteConnection = useStore((s) => s.deleteConnection);
   const [syncing, setSyncing] = useState<string | null>(null);
+
+  const [avKey, setAvKey] = useState('');
+  const [avHasKey, setAvHasKey] = useState(false);
+  const [avSaving, setAvSaving] = useState(false);
+
+  useEffect(() => {
+    getSecret(ALPHA_VANTAGE_SECRET_KEY).then((v) => {
+      if (v) {
+        setAvKey(v);
+        setAvHasKey(true);
+      }
+    });
+  }, []);
+
+  const onSaveAvKey = async () => {
+    setAvSaving(true);
+    try {
+      await setSecret(ALPHA_VANTAGE_SECRET_KEY, avKey.trim());
+      setAvHasKey(true);
+      notify(t('connections.av_enregistree_titre'), t('connections.av_enregistree_texte'));
+    } finally {
+      setAvSaving(false);
+    }
+  };
+
+  const onDeleteAvKey = () =>
+    confirmAction(t('connections.av_supprimer_titre'), t('connections.av_supprimer_confirm'), async () => {
+      await deleteSecret(ALPHA_VANTAGE_SECRET_KEY);
+      setAvKey('');
+      setAvHasKey(false);
+    });
 
   const onSync = async (id: string) => {
     setSyncing(id);
@@ -78,6 +109,23 @@ export default function Connections() {
         <Button title={t('connections.tr_bouton')} variant="secondary" onPress={() => router.push('/tr-connect')} />
         <Button title={t('connections.eb_bouton')} variant="secondary" onPress={() => router.push('/eb-connect')} />
         <Text style={styles.addNote}>{t('connections.ajouter_note')}</Text>
+      </Card>
+
+      <SectionTitle>{t('connections.av_titre')}</SectionTitle>
+      <Card>
+        <Text style={styles.addHint}>{t('connections.av_hint')}</Text>
+        <Field
+          label={t('connections.av_cle')}
+          value={avKey}
+          onChangeText={setAvKey}
+          autoCapitalize="none"
+          autoCorrect={false}
+          secureTextEntry
+        />
+        <View style={styles.connButtons}>
+          <Button title={t('common.save')} onPress={onSaveAvKey} loading={avSaving} disabled={!avKey.trim()} style={{ flex: 1 }} />
+          {avHasKey && <Button title={t('common.delete')} variant="danger" onPress={onDeleteAvKey} style={{ flex: 1 }} />}
+        </View>
       </Card>
     </ScrollView>
   );

@@ -1,7 +1,7 @@
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import i18next from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { C } from '@/constants/theme';
@@ -23,6 +23,7 @@ const theme = {
 export default function RootLayout() {
   const language = useStore((s) => s.language);
   const [refreshKey, setRefreshKey] = useState(0);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     (async () => {
@@ -32,6 +33,10 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     setRefreshKey((x) => x + 1);
   }, [language]);
 

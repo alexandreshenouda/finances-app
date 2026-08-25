@@ -56,6 +56,22 @@ export const ACCOUNT_TYPE_COLORS: Record<AccountType, string> = {
   autre: '#9C9C9C',
 };
 
+/** Profil de risque déclaratif utilisé par les suggestions de répartition (voir
+ * `diversification.ts`) : une préférence choisie par l'utilisateur, pas une évaluation
+ * d'adéquation réglementaire. */
+export type RiskProfile = 'prudent' | 'equilibre' | 'dynamique';
+
+export const RISK_PROFILE_LABELS: Record<RiskProfile, string> = createLabelProxy('riskProfiles');
+
+export const RISK_PROFILE_ORDER: RiskProfile[] = ['prudent', 'equilibre', 'dynamique'];
+
+/** Grandes poches utilisées pour comparer la répartition actuelle à un profil de référence
+ * (voir `diversification.ts`) — regroupement d'`AccountType`, pas une classe d'actif réelle. */
+export type AllocationBucket = 'liquidites' | 'fonds_euro_per' | 'actions_marches' | 'crypto';
+
+export const ALLOCATION_BUCKET_LABELS: Record<AllocationBucket, string> =
+  createLabelProxy('allocationBuckets');
+
 export type ConnectorProvider = 'binance' | 'kraken' | 'enablebanking' | 'traderepublic';
 
 /** Devises gérées. L'EUR est la devise de référence : tout est converti en EUR à l'affichage. */
@@ -105,6 +121,49 @@ export interface Account {
 
 export type PriceSource = 'yahoo' | 'coingecko' | 'exchange' | 'manual';
 
+/** Secteur GICS simplifié, utilisé par les suggestions de diversification sectorielle
+ * (voir `diversification.ts`) — ensemble fermé pour normaliser des libellés hétérogènes
+ * venus de fournisseurs externes (Alpha Vantage, CoinGecko), même logique que
+ * `AllocationBucket`. */
+export type SectorKey =
+  | 'technology'
+  | 'financials'
+  | 'healthcare'
+  | 'consumer_discretionary'
+  | 'consumer_staples'
+  | 'industrials'
+  | 'energy'
+  | 'materials'
+  | 'utilities'
+  | 'real_estate'
+  | 'communication'
+  | 'crypto'
+  | 'other';
+
+export const SECTOR_LABELS: Record<SectorKey, string> = createLabelProxy('sectors');
+
+/** Pays de l'émetteur (ISIN) ou du siège (Alpha Vantage), utilisé par les suggestions de
+ * diversification géographique. Ensemble volontairement restreint aux pays les plus
+ * probables pour un investisseur français ; `autre` couvre le reste. */
+export type CountryCode =
+  | 'FR'
+  | 'DE'
+  | 'IT'
+  | 'ES'
+  | 'NL'
+  | 'BE'
+  | 'LU'
+  | 'IE'
+  | 'GB'
+  | 'CH'
+  | 'US'
+  | 'CA'
+  | 'JP'
+  | 'CN'
+  | 'autre';
+
+export const COUNTRY_LABELS: Record<CountryCode, string> = createLabelProxy('countries');
+
 export interface Holding {
   id: string;
   accountId: string;
@@ -124,6 +183,20 @@ export interface Holding {
   buyPrice?: number;
   /** Frais courants du fonds, en % */
   feesPct?: number;
+  /** Répartition sectorielle (voir `diversification.ts`) : une action = une entrée à 100 %,
+   * un ETF/fonds = la ventilation Alpha Vantage. Poids sommant à 1. */
+  sectorWeights?: { sector: SectorKey; weight: number }[];
+  /** Pays de l'émetteur (action) ou de domiciliation (fonds) — approximatif pour un fonds,
+   * seule info dispo hors `countryWeights` (aucune source gratuite ne donne le look-through
+   * géographique d'un ETF au cas par cas). */
+  country?: CountryCode;
+  /** Ventilation géographique réelle (voir `referenceEtfs.ts`) — repli local pour les ETF les
+   * plus courants, quand elle est connue. Prioritaire sur `country` si présente. */
+  countryWeights?: { country: CountryCode; weight: number }[];
+  classificationSource?: 'isin' | 'yahoo' | 'alphavantage' | 'coingecko' | 'reference';
+  /** Marque la ligne comme déjà traitée par `classifyHoldings` (succès ou non) pour ne pas
+   * re-consommer le quota Alpha Vantage sur une ligne déjà tentée. */
+  classifiedAt?: string; // ISO
   notes?: string;
 }
 
@@ -174,7 +247,25 @@ export const PROPERTY_KIND_ORDER: PropertyKind[] = [
 ];
 
 /** Comment on estime la valeur actuelle du bien. */
-export type ValuationMode = 'index' | 'manual';
+export type ValuationMode = 'index' | 'manual' | 'local';
+
+/** Localisation géocodée de `Property.address` (cache, pour éviter de re-géocoder). */
+export interface PropertyGeo {
+  inseeCode: string;
+  postalCode?: string;
+  lat: number;
+  lon: number;
+  label: string;
+}
+
+/** Dernière estimation calculée à partir de ventes DVF comparables à proximité. */
+export interface LocalEstimate {
+  pricePerM2: number;
+  sampleSize: number;
+  /** Échelle géographique effectivement utilisée (commune privilégiée, département si trop peu de ventes locales). */
+  scope: 'commune' | 'departement';
+  computedAt: string; // ISO
+}
 
 /** Un bien immobilier physique (distinct des comptes bancaires). */
 export interface Property {
@@ -189,10 +280,15 @@ export interface Property {
   purchaseDate: string; // YYYY-MM-DD
   /** Surface en m² (affichage prix/m²) ; non nécessaire à l'estimation. */
   surface?: number;
-  /** 'index' = réévaluation auto via l'indice ; 'manual' = valeur saisie. */
+  /** 'index' = réévaluation auto via l'indice national ; 'manual' = valeur saisie ;
+   *  'local' = estimation via ventes DVF comparables à proximité. */
   valuationMode: ValuationMode;
   /** Valeur saisie manuellement (surcharge de l'indice) si mode manuel. */
   manualValue?: number;
+  /** Localisation géocodée de `address`, calculée pour le mode 'local'. */
+  geo?: PropertyGeo;
+  /** Dernière estimation locale calculée (mode 'local'). */
+  localEstimate?: LocalEstimate;
   /** Devise du bien ; absent = EUR. */
   currency?: Currency;
   /** Quote-part détenue, en % (SCI, indivision…). Absent = 100 % (détention pleine).

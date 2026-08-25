@@ -15,6 +15,7 @@ import {
   type Objective,
   type Period,
   type Property,
+  type RiskProfile,
   type Snapshot,
 } from './types';
 
@@ -48,6 +49,23 @@ interface AppState extends AppData {
   /** Inclure les biens immobiliers dans le patrimoine total (pas les comptes bancaires immo). Défaut : oui. */
   showRealEstate: boolean;
   setShowRealEstate: (v: boolean) => void;
+
+  /** Visibilité des onglets Immobilier / Emprunts dans la barre de navigation. Défaut : visibles. */
+  showImmobilierTab: boolean;
+  setShowImmobilierTab: (v: boolean) => void;
+  showEmpruntsTab: boolean;
+  setShowEmpruntsTab: (v: boolean) => void;
+  showDiversificationTab: boolean;
+  setShowDiversificationTab: (v: boolean) => void;
+
+  /** Profil de risque déclaratif pour les suggestions de répartition. Défaut : équilibré. */
+  riskProfile: RiskProfile;
+  setRiskProfile: (p: RiskProfile) => void;
+
+  /** L'utilisateur a fermé le bandeau "renseignez une clé Alpha Vantage" sur l'onglet
+   * Diversification — ne pas le réafficher tant qu'il n'a pas ajouté (ou retiré) la clé. */
+  dismissedAlphaVantageHint: boolean;
+  setDismissedAlphaVantageHint: (v: boolean) => void;
 
   /** Période affichée par défaut à l'ouverture (courbes et +/- value). */
   defaultPeriod: Period;
@@ -116,6 +134,19 @@ export const useStore = create<AppState>()(
 
       showRealEstate: true,
       setShowRealEstate: (v) => set({ showRealEstate: v }),
+
+      showImmobilierTab: true,
+      setShowImmobilierTab: (v) => set({ showImmobilierTab: v }),
+      showEmpruntsTab: true,
+      setShowEmpruntsTab: (v) => set({ showEmpruntsTab: v }),
+      showDiversificationTab: true,
+      setShowDiversificationTab: (v) => set({ showDiversificationTab: v }),
+
+      riskProfile: 'equilibre',
+      setRiskProfile: (p) => set({ riskProfile: p }),
+
+      dismissedAlphaVantageHint: false,
+      setDismissedAlphaVantageHint: (v) => set({ dismissedAlphaVantageHint: v }),
 
       defaultPeriod: '1A',
       setDefaultPeriod: (p) => set({ defaultPeriod: p }),
@@ -255,6 +286,11 @@ export const useStore = create<AppState>()(
           objectives: [],
           patrimoineNet: true,
           showRealEstate: true,
+          showImmobilierTab: true,
+          showEmpruntsTab: true,
+          showDiversificationTab: true,
+          riskProfile: 'equilibre',
+          dismissedAlphaVantageHint: false,
           defaultPeriod: '1A',
           privacyMode: false,
           language: detectDeviceLanguage(),
@@ -314,6 +350,11 @@ export const useStore = create<AppState>()(
         houseIndexUpdatedAt: s.houseIndexUpdatedAt,
         patrimoineNet: s.patrimoineNet,
         showRealEstate: s.showRealEstate,
+        showImmobilierTab: s.showImmobilierTab,
+        showEmpruntsTab: s.showEmpruntsTab,
+        showDiversificationTab: s.showDiversificationTab,
+        riskProfile: s.riskProfile,
+        dismissedAlphaVantageHint: s.dismissedAlphaVantageHint,
         defaultPeriod: s.defaultPeriod,
         privacyMode: s.privacyMode,
         language: s.language,

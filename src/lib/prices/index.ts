@@ -7,7 +7,7 @@ import { todayKey } from '../format';
 import { accountCurrentValue, holdingCurrency } from '../portfolio';
 import { useStore } from '../store';
 import { fetchCoinGeckoPrices } from './coingecko';
-import { fetchYahooPrice } from './yahoo';
+import { fetchYahooPrice, searchYahooSymbol } from './yahoo';
 
 export interface RefreshResult {
   updated: number;
@@ -48,12 +48,40 @@ export async function refreshAllPrices(): Promise<RefreshResult> {
     }
   }
 
+  // Yahoo : lignes sans ticker mais avec ISIN → on résout le ticker une fois
+  // (recherche Yahoo) et on le mémorise sur la ligne pour les prochains refresh.
+  const yahooHoldings = holdings.filter(
+    (h) => h.priceSource === 'yahoo' && (h.symbol?.trim() || h.isin?.trim()),
+  );
+  const isinToSymbol = new Map<string, string>();
+  for (const h of yahooHoldings) {
+    if (h.symbol?.trim() || !h.isin?.trim()) continue;
+    const isin = h.isin.trim().toUpperCase();
+    let symbol = isinToSymbol.get(isin);
+    if (symbol === undefined) {
+      try {
+        const matches = await searchYahooSymbol(isin);
+        symbol = matches[0]?.symbol ?? '';
+        isinToSymbol.set(isin, symbol);
+      } catch (e: any) {
+        errors.push(`${h.name} : résolution ISIN ${isin} → ${e?.message ?? e}`);
+        continue;
+      }
+    }
+    if (!symbol) {
+      errors.push(`${h.name} : aucun ticker Yahoo trouvé pour l'ISIN ${isin}`);
+      continue;
+    }
+    h.symbol = symbol;
+    upsertHolding({ ...h, symbol });
+  }
+
   // Yahoo : un appel par couple ticker + devise cible (dédupliqué).
-  const yahooHoldings = holdings.filter((h) => h.priceSource === 'yahoo' && h.symbol);
   const byRequest = new Map<string, typeof yahooHoldings>();
   for (const h of yahooHoldings) {
+    if (!h.symbol?.trim()) continue;
     const currency = holdingCurrency(h, accountById.get(h.accountId));
-    const key = `${h.symbol!.trim().toUpperCase()}|${currency}`;
+    const key = `${h.symbol.trim().toUpperCase()}|${currency}`;
     byRequest.set(key, [...(byRequest.get(key) ?? []), h]);
   }
   for (const [key, hs] of byRequest) {

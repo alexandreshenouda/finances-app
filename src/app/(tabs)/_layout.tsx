@@ -9,6 +9,9 @@ import { useStore } from '@/lib/store';
 
 export default function TabsLayout() {
   const language = useStore((s) => s.language);
+  const showImmobilierTab = useStore((s) => s.showImmobilierTab);
+  const showEmpruntsTab = useStore((s) => s.showEmpruntsTab);
+  const showDiversificationTab = useStore((s) => s.showDiversificationTab);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -51,6 +54,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="real-estate"
         options={{
+          href: showImmobilierTab ? undefined : null,
           title: t('tabs.immobilier'),
           tabBarLabel: t('tabs.immobilier'),
           tabBarIcon: ({ color, focused }) => <TabIcon name="immobilier" color={color} focused={focused} />,
@@ -59,9 +63,19 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="loans"
         options={{
+          href: showEmpruntsTab ? undefined : null,
           title: t('tabs.emprunts'),
           tabBarLabel: t('tabs.emprunts'),
           tabBarIcon: ({ color, focused }) => <TabIcon name="emprunts" color={color} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="diversification"
+        options={{
+          href: showDiversificationTab ? undefined : null,
+          title: t('tabs.diversification'),
+          tabBarLabel: t('tabs.diversification'),
+          tabBarIcon: ({ color, focused }) => <TabIcon name="diversification" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
