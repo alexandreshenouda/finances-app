@@ -224,6 +224,14 @@ export default function AccountDetail() {
   );
 }
 
+function FeeRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.feeRow}>
+      <Text style={styles.feeLabel}>{label}</Text>
+      <Text style={styles.feeValue}>{value}</Text>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },

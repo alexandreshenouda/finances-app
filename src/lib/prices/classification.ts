@@ -20,7 +20,7 @@
  * faute de quota : dans ce cas la ligne reste éligible à un prochain passage plutôt que de se
  * figer sur un résultat partiel (ISIN/Yahoo/table locale déjà tentés, mais pas Alpha Vantage).
  */
-import { getSecret, ALPHA_VANTAGE_SECRET_KEY } from '../secure';
+import { ALPHA_VANTAGE_SECRET_KEY, getSecret } from '../secure';
 import { useStore } from '../store';
 import type { CountryCode, Holding } from '../types';
 import { fetchAlphaVantageEtfProfile, fetchAlphaVantageOverview } from './alphavantage';
@@ -94,6 +94,8 @@ export async function classifyHoldings(): Promise<ClassifyResult> {
     let sectorWeights: Holding['sectorWeights'];
     let source: Holding['classificationSource'] | undefined = country ? 'isin' : undefined;
 
+    let holdingHasError = false;
+
     if (isCrypto) {
       try {
         const category = await fetchCoinGeckoCategory(h.symbol!.toLowerCase().trim());
@@ -103,9 +105,12 @@ export async function classifyHoldings(): Promise<ClassifyResult> {
         }
       } catch (e: any) {
         errors.push(`${h.name} : ${e?.message ?? e}`);
+        holdingHasError = true;
       }
-      upsertHolding({ ...h, country, sectorWeights, classificationSource: source, classifiedAt: new Date().toISOString() });
-      classified++;
+      
+      const isDeferred = !sectorWeights && holdingHasError;
+      upsertHolding({ ...h, country, sectorWeights, classificationSource: source, classifiedAt: isDeferred ? h.classifiedAt : new Date().toISOString() });
+      if (!isDeferred) classified++;
       continue;
     }
 
@@ -123,6 +128,7 @@ export async function classifyHoldings(): Promise<ClassifyResult> {
         }
       } catch (e: any) {
         errors.push(`${h.name} : ${e?.message ?? e}`);
+        holdingHasError = true;
       }
     }
 
@@ -157,6 +163,7 @@ export async function classifyHoldings(): Promise<ClassifyResult> {
           }
         } catch (e: any) {
           errors.push(`${h.name} : ${e?.message ?? e}`);
+          holdingHasError = true;
         }
       }
     }
@@ -177,6 +184,9 @@ export async function classifyHoldings(): Promise<ClassifyResult> {
     // sans objet : la ligne est traitée, pas besoin de la retenter juste pour un Alpha Vantage
     // qui n'aurait de toute façon rien apporté de plus.
     if (sectorWeights) deferred = false;
+    
+    // S'il n'y a pas eu de classification finale ET qu'une erreur s'est produite en chemin, on diffère
+    if (!sectorWeights && holdingHasError) deferred = true;
 
     upsertHolding({
       ...h,
