@@ -77,6 +77,7 @@ export function persistExternalAccounts(conn: Connection, result: SyncResult): v
         accountId: account.id,
         name: h.name,
         symbol: h.symbol,
+        isin: h.isin,
         priceSource: 'exchange',
         quantity: h.quantity,
         unitPrice: h.unitPriceEur,

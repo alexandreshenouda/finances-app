@@ -5,6 +5,7 @@ import type { AccountType } from '../types';
 export interface ExternalHolding {
   name: string;
   symbol?: string;
+  isin?: string;
   quantity: number;
   unitPriceEur: number;
   /** Prix de revient unitaire en EUR, si le fournisseur l'expose (→ +/- value latente). */

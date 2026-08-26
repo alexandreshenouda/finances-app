@@ -1,8 +1,4 @@
 /** Création / édition d'une ligne (fonds, action, crypto…) d'un compte manuel. */
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, SelectField } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
@@ -11,6 +7,10 @@ import { accountCurrentValue } from '@/lib/portfolio';
 import { searchYahooSymbol } from '@/lib/prices/yahoo';
 import { useStore } from '@/lib/store';
 import { CURRENCIES, CURRENCY_LABELS, type Currency, type PriceSource } from '@/lib/types';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 
 const SOURCES: PriceSource[] = ['manual', 'yahoo', 'coingecko'];
 
@@ -118,6 +118,7 @@ export default function HoldingForm() {
       router.back();
     });
 
+  const isSynced = !!account?.connectionId;
   const symbolHint =
     source === 'yahoo'
       ? t('holdingForm.hint_yahoo')
@@ -127,12 +128,12 @@ export default function HoldingForm() {
 
   return (
     <>
-      <Stack.Screen options={{ title: existing ? t('holdingForm.titre_edit') : t('holdingForm.titre_new') }} />
+      <Stack.Screen options={{ title: existing ? (isSynced ? t('holdingForm.titre_detail', { defaultValue: 'Détail de la ligne' }) : t('holdingForm.titre_edit')) : t('holdingForm.titre_new') }} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Card>
-          <Field label={t('forms.nom')} value={name} onChangeText={setName} placeholder={t('holdingForm.nom_placeholder')} />
+          <Field label={t('forms.nom')} value={name} onChangeText={setName} placeholder={t('holdingForm.nom_placeholder')} editable={!isSynced} />
           <Text style={styles.label}>{t('holdingForm.source')}</Text>
-          <Chips options={SOURCES} value={source} onChange={setSource} labels={SOURCE_LABELS} />
+          <Chips options={SOURCES} value={source} onChange={(v) => !isSynced && setSource(v)} labels={SOURCE_LABELS} />
           {source !== 'manual' && (
             <Field
               label={source === 'yahoo' ? t('holdingForm.ticker') : t('holdingForm.id_coingecko')}
@@ -141,10 +142,11 @@ export default function HoldingForm() {
               autoCapitalize={source === 'yahoo' ? 'characters' : 'none'}
               placeholder={source === 'yahoo' ? 'WPEA.PA' : 'bitcoin'}
               hint={symbolHint}
+              editable={!isSynced}
             />
           )}
-          <Field label={t('holdingForm.isin')} value={isin} onChangeText={setIsin} autoCapitalize="characters" placeholder={t('holdingForm.isin_placeholder')} />
-          {source === 'yahoo' && (
+          <Field label={t('holdingForm.isin')} value={isin} onChangeText={setIsin} autoCapitalize="characters" placeholder={t('holdingForm.isin_placeholder')} editable={!isSynced} />
+          {source === 'yahoo' && !isSynced && (
             <Button
               title={t('holdingForm.isin_resolve_bouton')}
               variant="secondary"
@@ -162,8 +164,9 @@ export default function HoldingForm() {
               ...CURRENCIES.map((c) => ({ value: c as Currency | '', label: CURRENCY_LABELS[c] })),
             ]}
             hint={effectiveCurrency !== 'EUR' ? t('holdingForm.devise_hint') : undefined}
+            enabled={!isSynced}
           />
-          <Field label={t('holdingForm.quantite')} value={quantity} onChangeText={setQuantity} keyboardType="decimal-pad" placeholder={t('holdingForm.quantite_placeholder')} />
+          <Field label={t('holdingForm.quantite')} value={quantity} onChangeText={setQuantity} keyboardType="decimal-pad" placeholder={t('holdingForm.quantite_placeholder')} editable={!isSynced} />
           <Field
             label={t('holdingForm.cours_unitaire', {
               currency: effectiveCurrency,
@@ -174,13 +177,14 @@ export default function HoldingForm() {
             keyboardType="decimal-pad"
             placeholder={t('holdingForm.cours_placeholder')}
             hint={source === 'manual' ? symbolHint : undefined}
+            editable={!isSynced}
           />
-          <Field label={t('holdingForm.pru', { currency: effectiveCurrency })} value={buyPrice} onChangeText={setBuyPrice} keyboardType="decimal-pad" placeholder={t('holdingForm.pru_placeholder')} hint={t('holdingForm.pru_hint')} />
-          <Field label={t('holdingForm.frais_courants')} value={feesPct} onChangeText={setFeesPct} keyboardType="decimal-pad" placeholder={t('holdingForm.frais_courants_placeholder')} />
+          <Field label={t('holdingForm.pru', { currency: effectiveCurrency })} value={buyPrice} onChangeText={setBuyPrice} keyboardType="decimal-pad" placeholder={t('holdingForm.pru_placeholder')} hint={t('holdingForm.pru_hint')} editable={!isSynced} />
+          <Field label={t('holdingForm.frais_courants')} value={feesPct} onChangeText={setFeesPct} keyboardType="decimal-pad" placeholder={t('holdingForm.frais_courants_placeholder')} editable={!isSynced} />
         </Card>
-        <Button title={t('common.save')} onPress={save} disabled={!name.trim() || parseNum(quantity) === undefined} />
-        {existing && <Button title={t('holdingForm.supprimer_bouton')} variant="danger" onPress={onDelete} />}
-        <Button title={t('common.cancel')} variant="secondary" onPress={() => router.back()} />
+        {!isSynced && <Button title={t('common.save')} onPress={save} disabled={!name.trim() || parseNum(quantity) === undefined} />}
+        {!isSynced && existing && <Button title={t('holdingForm.supprimer_bouton')} variant="danger" onPress={onDelete} />}
+        <Button title={isSynced ? t('common.retour', { defaultValue: 'Retour' }) : t('common.cancel')} variant="secondary" onPress={() => router.back()} />
       </ScrollView>
     </>
   );

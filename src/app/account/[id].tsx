@@ -1,27 +1,26 @@
 /** Détail d'un compte : courbe, lignes, frais, mise à jour de valeur. */
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { LineChart } from '@/components/LineChart';
 import { Button, Card, Dot, Empty, PeriodChips, SectionTitle } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
-import { toEur } from '@/lib/fx';
 import { formatDate, formatEur, formatMoney, formatPct, formatQuantity } from '@/lib/format';
+import { toEur } from '@/lib/fx';
 import {
-  accountCurrentValue,
-  accountGain,
-  accountShare,
-  buildSeries,
-  holdingCurrency,
-  holdingPerfPct,
-  holdingValue,
-  holdingValueEur,
-  lastSnapshot,
+    accountCurrentValue,
+    accountGain,
+    accountShare,
+    buildSeries,
+    holdingCurrency,
+    holdingPerfPct,
+    holdingValueEur,
+    lastSnapshot
 } from '@/lib/portfolio';
 import { useStore } from '@/lib/store';
 import { ACCOUNT_TYPE_COLORS, ACCOUNT_TYPE_LABELS, type Period } from '@/lib/types';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function AccountDetail() {
   const { t } = useTranslation();
@@ -144,9 +143,7 @@ export default function AccountDetail() {
               <Pressable
                 key={h.id}
                 onPress={() =>
-                  isSynced
-                    ? undefined
-                    : router.push({ pathname: '/holding-form', params: { accountId: account.id, holdingId: h.id } })
+                  router.push({ pathname: '/holding-form', params: { accountId: account.id, holdingId: h.id } })
                 }
                 style={[styles.holdingRow, i < holdings.length - 1 && styles.rowBorder]}
               >
@@ -227,14 +224,6 @@ export default function AccountDetail() {
   );
 }
 
-function FeeRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.feeRow}>
-      <Text style={styles.feeLabel}>{label}</Text>
-      <Text style={styles.feeValue}>{value}</Text>
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },

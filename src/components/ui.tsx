@@ -1,22 +1,22 @@
 /** Primitives UI partagées : cartes, boutons, champs, badges. */
+import { C } from '@/constants/theme';
+import { PERIODS_PRIMARY, PERIODS_SECONDARY, type Period } from '@/lib/types';
 import { Picker } from '@react-native-picker/picker';
 import React, { useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Dimensions,
-  Modal,
-  PanResponder,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  type StyleProp,
-  type TextInputProps,
-  type ViewStyle,
+    ActivityIndicator,
+    Dimensions,
+    Modal,
+    PanResponder,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+    type StyleProp,
+    type TextInputProps,
+    type ViewStyle,
 } from 'react-native';
-import { C } from '@/constants/theme';
-import { PERIODS_PRIMARY, PERIODS_SECONDARY, type Period } from '@/lib/types';
 
 export function Card({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   return <View style={[styles.card, style]}>{children}</View>;
@@ -217,12 +217,14 @@ export function SelectField<T extends string>({
   onChange,
   options,
   hint,
+  enabled = true,
 }: {
   label: string;
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string }[];
   hint?: string;
+  enabled?: boolean;
 }) {
   return (
     <View style={{ marginBottom: 12 }}>
@@ -234,6 +236,7 @@ export function SelectField<T extends string>({
           dropdownIconColor={C.textDim}
           mode="dropdown"
           style={styles.picker}
+          enabled={enabled}
         >
           {options.map((o) => (
             <Picker.Item

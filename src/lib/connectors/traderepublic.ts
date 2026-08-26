@@ -615,6 +615,7 @@ export async function trFetchPortfolio(): Promise<TrPortfolioResult> {
         (isPrivateMarket ? privateMarkets : holdings).push({
           name,
           symbol: isin,
+          isin,
           quantity,
           unitPriceEur: price ?? 0,
           buyPriceEur: positionBuyPrice(pos),
