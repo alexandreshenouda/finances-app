@@ -2,24 +2,24 @@
  * seuils sur les données déjà en mémoire (comptes, lignes, objectifs), triées par sévérité
  * puis par ampleur. Chaque `Insight` porte une clé i18n + des paramètres déjà formatés
  * (même convention que `index.tsx` : `formatEur`/`formatPct` en amont de `t()`). */
+import { formatPct } from './format';
 import { cashAndLivretTotal, epargnePrecautionTarget } from './objectives';
 import { accountShare, holdingCurrency, holdingValueEur } from './portfolio';
-import { formatPct } from './format';
 import {
-  ACCOUNT_TYPE_LABELS,
-  ALLOCATION_BUCKET_LABELS,
-  COUNTRY_LABELS,
-  SECTOR_LABELS,
-  type Account,
-  type AccountType,
-  type AllocationBucket,
-  type CountryCode,
-  type FxRates,
-  type Holding,
-  type Objective,
-  type RiskProfile,
-  type SectorKey,
-  type Snapshot,
+    ACCOUNT_TYPE_LABELS,
+    ALLOCATION_BUCKET_LABELS,
+    COUNTRY_LABELS,
+    SECTOR_LABELS,
+    type Account,
+    type AccountType,
+    type AllocationBucket,
+    type CountryCode,
+    type FxRates,
+    type Holding,
+    type Objective,
+    type RiskProfile,
+    type SectorKey,
+    type Snapshot,
 } from './types';
 
 export type InsightSeverity = 'warning' | 'info' | 'positive';
@@ -395,11 +395,11 @@ export function computeClassificationBreakdown(
 
   const topSectors = [...bySector.entries()]
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
+    .slice(0, 5)
     .map(([sector, value]) => ({ sector, pct: sectorCovered > 0 ? (value / sectorCovered) * 100 : 0 }));
   const topCountries = [...byCountry.entries()]
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
+    .slice(0, 5)
     .map(([country, value]) => ({ country, pct: countryCovered > 0 ? (value / countryCovered) * 100 : 0 }));
 
   return {

@@ -1,8 +1,4 @@
 /** Diversification : avertissement légal, comparaison à un profil de référence, suggestions. */
-import { useCallback, useMemo, useState } from 'react';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { AlphaVantageHint } from '@/components/AlphaVantageHint';
 import { InsightCard } from '@/components/InsightCard';
 import { LegalDisclaimer } from '@/components/LegalDisclaimer';
@@ -17,13 +13,17 @@ import { realEstateTotals } from '@/lib/realestate';
 import { ALPHA_VANTAGE_SECRET_KEY, getSecret } from '@/lib/secure';
 import { useStore } from '@/lib/store';
 import {
-  ALLOCATION_BUCKET_LABELS,
-  COUNTRY_LABELS,
-  RISK_PROFILE_LABELS,
-  RISK_PROFILE_ORDER,
-  SECTOR_LABELS,
-  type AccountType,
+    ALLOCATION_BUCKET_LABELS,
+    COUNTRY_LABELS,
+    RISK_PROFILE_LABELS,
+    RISK_PROFILE_ORDER,
+    SECTOR_LABELS,
+    type AccountType,
 } from '@/lib/types';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 function gapColor(actualPct: number, targetPct: number): string {
   const gap = Math.abs(actualPct - targetPct);
@@ -165,51 +165,60 @@ export default function Diversification() {
           onDismiss={() => setDismissedAlphaVantageHint(true)}
         />
       )}
+
+      {/* ── Répartition sectorielle ── */}
       <Card>
-        {breakdown.topSectors.length > 0 || breakdown.topCountries.length > 0 ? (
+        <Text style={styles.cardTitle}>{t('diversification.secteur_titre')}</Text>
+        {breakdown.topSectors.length > 0 ? (
           <>
-            {breakdown.topSectors.length > 0 && (
-              <>
-                <Text style={styles.coverage}>
-                  {t('diversification.couverture_secteur', { pct: formatPct(breakdown.sectorCoverage * 100) })}
-                </Text>
-                {breakdown.topSectors.map((s, i) => (
-                  <View key={s.sector} style={[styles.row, i > 0 && styles.rowBorder]}>
-                    <View style={styles.rowHead}>
-                      <Text style={styles.rowLabel}>{SECTOR_LABELS[s.sector]}</Text>
-                      <Text style={styles.rowValues}>{formatPct(s.pct)}</Text>
-                    </View>
-                    <ProgressBar ratio={s.pct / 100} color={C.accent} />
-                  </View>
-                ))}
-              </>
-            )}
-            {breakdown.topCountries.length > 0 && (
-              <>
-                <Text style={[styles.coverage, breakdown.topSectors.length > 0 && { marginTop: 12 }]}>
-                  {t('diversification.couverture_geo', { pct: formatPct(breakdown.geoCoverage * 100) })}
-                </Text>
-                {breakdown.topCountries.map((c, i) => (
-                  <View key={c.country} style={[styles.row, i > 0 && styles.rowBorder]}>
-                    <View style={styles.rowHead}>
-                      <Text style={styles.rowLabel}>{COUNTRY_LABELS[c.country]}</Text>
-                      <Text style={styles.rowValues}>{formatPct(c.pct)}</Text>
-                    </View>
-                    <ProgressBar ratio={c.pct / 100} color={C.accent} />
-                  </View>
-                ))}
-              </>
-            )}
+            <Text style={styles.coverage}>
+              {t('diversification.couverture_secteur', { pct: formatPct(breakdown.sectorCoverage * 100) })}
+            </Text>
+            {breakdown.topSectors.map((s, i) => (
+              <View key={s.sector} style={[styles.row, i > 0 && styles.rowBorder]}>
+                <View style={styles.rowHead}>
+                  <Text style={styles.rowLabel}>{SECTOR_LABELS[s.sector]}</Text>
+                  <Text style={styles.rowValues}>{formatPct(s.pct)}</Text>
+                </View>
+                <ProgressBar ratio={s.pct / 100} color={C.accent} />
+              </View>
+            ))}
           </>
         ) : (
           <Empty text={t('diversification.secteur_geo_vide')} />
         )}
+      </Card>
+
+      {/* ── Répartition géographique ── */}
+      <Card>
+        <Text style={styles.cardTitle}>{t('diversification.geo_titre')}</Text>
+        {breakdown.topCountries.length > 0 ? (
+          <>
+            <Text style={styles.coverage}>
+              {t('diversification.couverture_geo', { pct: formatPct(breakdown.geoCoverage * 100) })}
+            </Text>
+            {breakdown.topCountries.map((c, i) => (
+              <View key={c.country} style={[styles.row, i > 0 && styles.rowBorder]}>
+                <View style={styles.rowHead}>
+                  <Text style={styles.rowLabel}>{COUNTRY_LABELS[c.country]}</Text>
+                  <Text style={styles.rowValues}>{formatPct(c.pct)}</Text>
+                </View>
+                <ProgressBar ratio={c.pct / 100} color={C.accent} />
+              </View>
+            ))}
+          </>
+        ) : (
+          <Empty text={t('diversification.geo_vide')} />
+        )}
+      </Card>
+
+      {/* ── Bouton de classification ── */}
+      <Card>
         <Button
           title={t('diversification.classer')}
           variant="secondary"
           onPress={onClassify}
           loading={classifying}
-          style={{ marginTop: breakdown.topSectors.length > 0 || breakdown.topCountries.length > 0 ? 12 : 0 }}
         />
         {classifyMessage && <Text style={styles.classifyMessage}>{classifyMessage}</Text>}
       </Card>
@@ -235,6 +244,7 @@ const styles = StyleSheet.create({
   rowLabel: { color: C.text, fontSize: 14, fontWeight: '600' },
   rowValues: { color: C.textDim, fontSize: 12 },
   excluded: { color: C.textFaint, fontSize: 12, marginTop: 12, lineHeight: 16 },
+  cardTitle: { color: C.text, fontSize: 15, fontWeight: '700', marginBottom: 10 },
   coverage: { color: C.textDim, fontSize: 12, marginBottom: 8 },
   classifyMessage: { color: C.textFaint, fontSize: 12, marginTop: 10, lineHeight: 16 },
 });
