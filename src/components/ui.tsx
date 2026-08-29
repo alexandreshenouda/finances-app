@@ -1,6 +1,6 @@
 /** Primitives UI partagées : cartes, boutons, champs, badges. */
 import { C } from '@/constants/theme';
-import { PERIODS_PRIMARY, PERIODS_SECONDARY, type Period } from '@/lib/types';
+import { PERIODS_PRIMARY, PERIODS_SECONDARY, type ObjectiveCategory, type Period } from '@/lib/types';
 import { Picker } from '@react-native-picker/picker';
 import React, { useRef, useState } from 'react';
 import {
@@ -277,10 +277,16 @@ export function ProgressBar({ ratio, color = C.accent, height = 10 }: { ratio: n
 }
 
 /** Couleur d'une barre de progression selon le taux d'atteinte d'un objectif :
- * rouge <30%, orange 30-95%, vert 95-120%, rouge au-delà. */
-export function objectiveProgressColor(pct: number): string {
-  if (pct >= 95 && pct <= 120) return C.positive;
-  if (pct >= 30 && pct < 95) return C.warning;
+ * - épargne de précaution : rouge <30%, orange 30-95%, vert 95-120%, rouge au-delà.
+ * - projets (court / long terme) : rouge <30%, orange 30-95%, vert >= 95%. */
+export function objectiveProgressColor(pct: number, category?: ObjectiveCategory): string {
+  if (category === 'epargne_precaution') {
+    if (pct >= 95 && pct <= 120) return C.positive;
+    if (pct >= 30 && pct < 95) return C.warning;
+    return C.negative;
+  }
+  if (pct >= 95) return C.positive;
+  if (pct >= 30) return C.warning;
   return C.negative;
 }
 

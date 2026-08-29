@@ -32,7 +32,7 @@ export function ObjectiveCard({
   onPress: () => void;
 }) {
   const progress = objectiveProgress(objective, { accounts, holdings, snapshots, rates, objectives });
-  const color = objectiveProgressColor(progress.pct);
+  const color = objectiveProgressColor(progress.pct, objective.category);
   const title = objective.category === 'epargne_precaution' ? OBJECTIVE_CATEGORY_LABELS.epargne_precaution : objective.name || OBJECTIVE_CATEGORY_LABELS[objective.category];
 
   return (
