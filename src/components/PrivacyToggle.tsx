@@ -1,11 +1,11 @@
 /** Bouton œil (en-tête) : bascule le mode confidentialité — montants masqués, % visibles. */
-import React from 'react';
+import { C, useTheme } from '@/constants/theme';
+import { useStore } from '@/lib/store';
 import { Pressable } from 'react-native';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
-import { C } from '@/constants/theme';
-import { useStore } from '@/lib/store';
 
 export function PrivacyToggle() {
+  useTheme();
   const privacy = useStore((s) => s.privacyMode);
   const setPrivacyMode = useStore((s) => s.setPrivacyMode);
   const common = {

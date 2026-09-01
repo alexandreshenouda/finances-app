@@ -5,14 +5,25 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { LoanCard } from '@/components/LoanCard';
 import { Button, Card, Empty, SectionTitle } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { formatEur } from '@/lib/format';
 import { toEur } from '@/lib/fx';
 import { loanStats } from '@/lib/realestate';
 import { useStore } from '@/lib/store';
 import { type Loan } from '@/lib/types';
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    totalLabel: { color: C.textDim, fontSize: 14 },
+    totalValue: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 2 },
+    totalSub: { color: C.textFaint, fontSize: 12, marginTop: 4 },
+  });
+}
+
 export default function Loans() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const router = useRouter();
   const loans = useStore((s) => s.loans);
@@ -75,11 +86,3 @@ export default function Loans() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  totalLabel: { color: C.textDim, fontSize: 14 },
-  totalValue: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 2 },
-  totalSub: { color: C.textFaint, fontSize: 12, marginTop: 4 },
-});

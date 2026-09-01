@@ -1,12 +1,8 @@
 /** Détail d'un bien : valeur estimée, plus-value, courbe, crédits & amortissement. */
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { LineChart } from '@/components/LineChart';
 import { LoanCard } from '@/components/LoanCard';
 import { Button, Card, Empty, PeriodChips, SectionTitle } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { formatDate, formatEur, formatPct } from '@/lib/format';
 import { houseIndexSeries } from '@/lib/prices/houseIndex';
@@ -14,10 +10,41 @@ import { fetchLocalEstimate } from '@/lib/prices/localValuation';
 import { buildPropertyValueSeries, ownershipShare, propertyDebtEur, propertyGainEur } from '@/lib/realestate';
 import { useStore } from '@/lib/store';
 import { ACCOUNT_TYPE_COLORS, PROPERTY_KIND_LABELS, type Currency, type Period } from '@/lib/types';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-const IMMO = ACCOUNT_TYPE_COLORS.immobilier;
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    kind: { color: C.textDim, fontSize: 13, fontWeight: '600' },
+    value: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 6 },
+    gain: { fontSize: 14, fontWeight: '600', marginTop: 4 },
+    gainRef: { color: C.textFaint, fontWeight: '400' },
+    estimateNote: { color: C.textFaint, fontSize: 12, marginTop: 4, lineHeight: 16 },
+    refreshButton: { marginTop: 10 },
+    errorText: { color: C.negative },
+    row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
+    rowLabel: { color: C.textDim, fontSize: 14 },
+    rowValue: { color: C.text, fontSize: 14, fontWeight: '600' },
+    equityRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 8,
+      paddingTop: 10,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: C.border,
+    },
+    equityLabel: { color: C.text, fontSize: 15, fontWeight: '600' },
+    equityValue: { color: C.text, fontSize: 16, fontWeight: '700' },
+    notes: { color: C.textDim, fontSize: 14, lineHeight: 20 },
+  });
+}
 
 export default function PropertyDetail() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -99,7 +126,7 @@ export default function PropertyDetail() {
           </Text>
           <View style={{ height: 12 }} />
           <PeriodChips value={period} onChange={setPeriodOverride} />
-          <LineChart points={valueSeries} color={IMMO} />
+          <LineChart points={valueSeries} color={ACCOUNT_TYPE_COLORS.immobilier} />
           <Text style={styles.estimateNote}>
             {property.valuationMode === 'manual'
               ? t('propertyDetail.estimation_manuelle')
@@ -180,6 +207,7 @@ export default function PropertyDetail() {
 }
 
 function Row({ label, value }: { label: string; value: string }) {
+  const styles = useStyles(makeStyles);
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -187,29 +215,3 @@ function Row({ label, value }: { label: string; value: string }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  kind: { color: C.textDim, fontSize: 13, fontWeight: '600' },
-  value: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 6 },
-  gain: { fontSize: 14, fontWeight: '600', marginTop: 4 },
-  gainRef: { color: C.textFaint, fontWeight: '400' },
-  estimateNote: { color: C.textFaint, fontSize: 12, marginTop: 4, lineHeight: 16 },
-  refreshButton: { marginTop: 10 },
-  errorText: { color: C.negative },
-  row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  rowLabel: { color: C.textDim, fontSize: 14 },
-  rowValue: { color: C.text, fontSize: 14, fontWeight: '600' },
-  equityRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: C.border,
-  },
-  equityLabel: { color: C.text, fontSize: 15, fontWeight: '600' },
-  equityValue: { color: C.text, fontSize: 16, fontWeight: '700' },
-  notes: { color: C.textDim, fontSize: 14, lineHeight: 20 },
-});

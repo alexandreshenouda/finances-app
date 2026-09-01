@@ -2,7 +2,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { formatEur, formatPct } from '@/lib/format';
 import { ACCOUNT_TYPE_COLORS, ACCOUNT_TYPE_LABELS, ACCOUNT_TYPE_ORDER, type AccountType } from '@/lib/types';
 
@@ -25,7 +25,23 @@ function arcPath(start: number, end: number): string {
   return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${R} ${R} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
 }
 
+function makeStyles() {
+  return StyleSheet.create({
+    chartWrap: { height: SIZE, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+    center: { position: 'absolute', alignItems: 'center' },
+    centerLabel: { color: C.textFaint, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 },
+    centerValue: { color: C.text, fontSize: 17, fontWeight: '700', marginTop: 2 },
+    legend: { gap: 6 },
+    legendRow: { flexDirection: 'row', alignItems: 'center' },
+    swatch: { width: 10, height: 10, borderRadius: 3, marginRight: 8 },
+    legendLabel: { color: C.text, fontSize: 14, flex: 1 },
+    legendValue: { color: C.text, fontSize: 14, fontWeight: '600' },
+    legendPct: { color: C.textFaint, fontSize: 12, fontWeight: '400' },
+  });
+}
+
 export function PieChart({ byType }: { byType: Map<AccountType, number> }) {
+  const styles = useStyles(makeStyles);
   const entries = ACCOUNT_TYPE_ORDER.filter((t) => (byType.get(t) ?? 0) > 0).map(
     (t) => [t, byType.get(t)!] as const
   );
@@ -80,16 +96,3 @@ export function PieChart({ byType }: { byType: Map<AccountType, number> }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  chartWrap: { height: SIZE, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  center: { position: 'absolute', alignItems: 'center' },
-  centerLabel: { color: C.textFaint, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6 },
-  centerValue: { color: C.text, fontSize: 17, fontWeight: '700', marginTop: 2 },
-  legend: { gap: 6 },
-  legendRow: { flexDirection: 'row', alignItems: 'center' },
-  swatch: { width: 10, height: 10, borderRadius: 3, marginRight: 8 },
-  legendLabel: { color: C.text, fontSize: 14, flex: 1 },
-  legendValue: { color: C.text, fontSize: 14, fontWeight: '600' },
-  legendPct: { color: C.textFaint, fontSize: 12, fontWeight: '400' },
-});

@@ -1,22 +1,23 @@
 /** Store global persisté (AsyncStorage). Les secrets ne passent JAMAIS ici. */
+import { setTheme, type ThemeName } from '@/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { setMaskedMoney, setLocale, todayKey, uid } from './format';
+import { setLocale, setMaskedMoney, todayKey, uid } from './format';
 import i18next, { detectDeviceLanguage, type Language } from './i18n';
 import {
-  DEFAULT_FX_RATES,
-  type Account,
-  type Connection,
-  type FxRates,
-  type Holding,
-  type HousePricePoint,
-  type Loan,
-  type Objective,
-  type Period,
-  type Property,
-  type RiskProfile,
-  type Snapshot,
+    DEFAULT_FX_RATES,
+    type Account,
+    type Connection,
+    type FxRates,
+    type Holding,
+    type HousePricePoint,
+    type Loan,
+    type Objective,
+    type Period,
+    type Property,
+    type RiskProfile,
+    type Snapshot,
 } from './types';
 
 export interface AppData {
@@ -78,6 +79,10 @@ interface AppState extends AppData {
   /** Langue de l'application. */
   language: Language;
   setLanguage: (l: Language) => void;
+
+  /** Thème visuel de l'application ('classique' = bleu-ardoise, 'or' = noir/or). */
+  theme: ThemeName;
+  setThemePref: (t: ThemeName) => void;
 
   upsertAccount: (a: Partial<Account> & { name: string; type: Account['type'] }) => Account;
   deleteAccount: (id: string) => void;
@@ -156,6 +161,9 @@ export const useStore = create<AppState>()(
 
       language: detectDeviceLanguage(),
       setLanguage: (l) => set({ language: l }),
+
+      theme: 'or',
+      setThemePref: (t) => set({ theme: t }),
 
       upsertAccount: (a) => {
         const existing = a.id ? get().accounts.find((x) => x.id === a.id) : undefined;
@@ -294,6 +302,7 @@ export const useStore = create<AppState>()(
           defaultPeriod: '1A',
           privacyMode: false,
           language: detectDeviceLanguage(),
+          theme: 'or',
         }),
 
       upsertConnection: (c) => {
@@ -358,6 +367,7 @@ export const useStore = create<AppState>()(
         defaultPeriod: s.defaultPeriod,
         privacyMode: s.privacyMode,
         language: s.language,
+        theme: s.theme,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) state.hydrated = true;
@@ -376,6 +386,10 @@ useStore.subscribe((s) => {
   i18next.changeLanguage(s.language);
   setLocale(localeMap[s.language]);
 });
+
+// Tient la palette de couleurs (theme.ts) synchronisée avec le choix de thème,
+// réhydratation comprise.
+useStore.subscribe((s) => setTheme(s.theme));
 
 export function exportData(): AppData {
   const { accounts, holdings, snapshots, connections, properties, loans, objectives } = useStore.getState();

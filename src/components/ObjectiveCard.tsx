@@ -1,7 +1,7 @@
 /** Carte d'un objectif : catégorie, progression (%), barre tricolore, mensualité à épargner. */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Card, ProgressBar, objectiveProgressColor } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { formatDuration, formatMoney, formatPct } from '@/lib/format';
 import { objectiveProgress } from '@/lib/objectives';
 import {
@@ -12,6 +12,19 @@ import {
   type Objective,
   type Snapshot,
 } from '@/lib/types';
+
+function makeStyles() {
+  return StyleSheet.create({
+    head: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    name: { color: C.text, fontSize: 16, fontWeight: '600' },
+    sub: { color: C.textDim, fontSize: 12, marginTop: 2 },
+    chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
+    progressWrap: {},
+    progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+    progressLabel: { color: C.textFaint, fontSize: 12 },
+    hint: { color: C.textFaint, fontSize: 12, marginTop: 8 },
+  });
+}
 
 export function ObjectiveCard({
   objective,
@@ -31,6 +44,7 @@ export function ObjectiveCard({
   rates: FxRates;
   onPress: () => void;
 }) {
+  const styles = useStyles(makeStyles);
   const progress = objectiveProgress(objective, { accounts, holdings, snapshots, rates, objectives });
   const color = objectiveProgressColor(progress.pct, objective.category);
   const title = objective.category === 'epargne_precaution' ? OBJECTIVE_CATEGORY_LABELS.epargne_precaution : objective.name || OBJECTIVE_CATEGORY_LABELS[objective.category];
@@ -66,14 +80,3 @@ export function ObjectiveCard({
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  head: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  name: { color: C.text, fontSize: 16, fontWeight: '600' },
-  sub: { color: C.textDim, fontSize: 12, marginTop: 2 },
-  chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
-  progressWrap: {},
-  progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  progressLabel: { color: C.textFaint, fontSize: 12 },
-  hint: { color: C.textFaint, fontSize: 12, marginTop: 8 },
-});

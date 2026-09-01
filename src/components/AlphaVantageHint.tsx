@@ -3,9 +3,27 @@
  * renseigne/retire pas de clé, voir `store.dismissedAlphaVantageHint`). */
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
+
+function makeStyles() {
+  return StyleSheet.create({
+    wrap: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      backgroundColor: C.cardAlt,
+      borderRadius: 8,
+      padding: 12,
+      marginBottom: 16,
+    },
+    title: { color: C.text, fontSize: 13, fontWeight: '600', marginBottom: 4 },
+    text: { color: C.textDim, fontSize: 12, lineHeight: 17 },
+    close: { paddingHorizontal: 6, paddingVertical: 2, marginLeft: 8 },
+    closeText: { color: C.textFaint, fontSize: 18, lineHeight: 20 },
+  });
+}
 
 export function AlphaVantageHint({ onPress, onDismiss }: { onPress: () => void; onDismiss: () => void }) {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   return (
     <View style={styles.wrap}>
@@ -19,18 +37,3 @@ export function AlphaVantageHint({ onPress, onDismiss }: { onPress: () => void; 
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: C.cardAlt,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  title: { color: C.text, fontSize: 13, fontWeight: '600', marginBottom: 4 },
-  text: { color: C.textDim, fontSize: 12, lineHeight: 17 },
-  close: { paddingHorizontal: 6, paddingVertical: 2, marginLeft: 8 },
-  closeText: { color: C.textFaint, fontSize: 18, lineHeight: 20 },
-});

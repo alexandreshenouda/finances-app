@@ -4,14 +4,23 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Field } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { notify } from '@/lib/confirm';
 import { syncConnection } from '@/lib/connectors';
 import { connectionSecretKey, setSecret } from '@/lib/secure';
 import { useStore } from '@/lib/store';
 import { PROVIDER_LABELS } from '@/lib/types';
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    help: { color: C.textDim, fontSize: 13, marginBottom: 12, lineHeight: 18 },
+  });
+}
+
 export default function ConnectionForm() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const { provider } = useLocalSearchParams<{ provider: 'binance' | 'kraken' }>();
   const router = useRouter();
@@ -70,9 +79,3 @@ export default function ConnectionForm() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  help: { color: C.textDim, fontSize: 13, marginBottom: 12, lineHeight: 18 },
-});

@@ -8,7 +8,7 @@ import { LineChart } from '@/components/LineChart';
 import { ObjectiveCard } from '@/components/ObjectiveCard';
 import { PieChart } from '@/components/PieChart';
 import { Button, Card, Checkbox, Chips, Empty, PeriodChips, SectionTitle } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { syncAllConnections } from '@/lib/connectors';
 import { formatEur, formatPct } from '@/lib/format';
 import { accountCurrentValue, accountShare, seriesDelta } from '@/lib/portfolio';
@@ -21,7 +21,24 @@ import { type AccountType, type Period } from '@/lib/types';
 const WORTH_MODES = ['net', 'brut'] as const;
 const ALLOC_VIEWS = ['barre', 'camembert'] as const;
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    totalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    allocHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    reToggle: { marginTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border, paddingTop: 12 },
+    totalLabel: { color: C.textDim, fontSize: 14 },
+    worthNote: { color: C.textFaint, fontSize: 12, marginTop: 2 },
+    totalValue: { color: C.text, fontSize: 34, fontWeight: '700', marginTop: 2 },
+    delta: { fontSize: 14, fontWeight: '600', marginTop: 4 },
+    deltaPeriod: { color: C.textFaint, fontWeight: '400' },
+    message: { color: C.warning, fontSize: 13, marginBottom: 8, paddingHorizontal: 4 },
+  });
+}
+
 export default function Dashboard() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const WORTH_LABELS: Record<(typeof WORTH_MODES)[number], string> = {
     net: t('index.net'),
@@ -231,17 +248,3 @@ export default function Dashboard() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  totalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  allocHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  reToggle: { marginTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border, paddingTop: 12 },
-  totalLabel: { color: C.textDim, fontSize: 14 },
-  worthNote: { color: C.textFaint, fontSize: 12, marginTop: 2 },
-  totalValue: { color: C.text, fontSize: 34, fontWeight: '700', marginTop: 2 },
-  delta: { fontSize: 14, fontWeight: '600', marginTop: 4 },
-  deltaPeriod: { color: C.textFaint, fontWeight: '400' },
-  message: { color: C.warning, fontSize: 13, marginBottom: 8, paddingHorizontal: 4 },
-});

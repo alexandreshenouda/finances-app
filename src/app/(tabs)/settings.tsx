@@ -3,12 +3,26 @@ import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, SectionTitle } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
 import { connectionSecretKey, deleteSecret } from '@/lib/secure';
 import { useStore } from '@/lib/store';
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
+    rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
+    rowLabel: { color: C.text, fontSize: 15, fontWeight: '500' },
+    rowSub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
+    chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
+    note: { color: C.textFaint, fontSize: 12, marginTop: 8, lineHeight: 17 },
+  });
+}
+
 function MenuRow({ label, sub, onPress, last }: { label: string; sub?: string; onPress: () => void; last?: boolean }) {
+  const styles = useStyles(makeStyles);
   return (
     <Pressable onPress={onPress} style={[styles.row, !last && styles.rowBorder]}>
       <View style={{ flex: 1 }}>
@@ -21,6 +35,7 @@ function MenuRow({ label, sub, onPress, last }: { label: string; sub?: string; o
 }
 
 export default function Settings() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const router = useRouter();
   const connections = useStore((s) => s.connections);
@@ -95,14 +110,3 @@ export default function Settings() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
-  rowLabel: { color: C.text, fontSize: 15, fontWeight: '500' },
-  rowSub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
-  chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
-  note: { color: C.textFaint, fontSize: 12, marginTop: 8, lineHeight: 17 },
-});

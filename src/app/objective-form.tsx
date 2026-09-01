@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, Slider } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { formatDuration, formatMoney, formatPct } from '@/lib/format';
 import { objectiveProgress } from '@/lib/objectives';
@@ -33,7 +33,18 @@ function parseDate(s: string): string | undefined {
 
 const SECURITY_MONTHS_WARNING = 8;
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
+    warning: { color: C.negative, fontSize: 12, lineHeight: 17, marginTop: 4, marginBottom: 8 },
+    previewLine: { color: C.text, fontSize: 14, marginTop: 4 },
+  });
+}
+
 export default function ObjectiveForm() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const { objectiveId } = useLocalSearchParams<{ objectiveId?: string }>();
   const router = useRouter();
@@ -206,11 +217,3 @@ export default function ObjectiveForm() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
-  warning: { color: C.negative, fontSize: 12, lineHeight: 17, marginTop: 4, marginBottom: 8 },
-  previewLine: { color: C.text, fontSize: 14, marginTop: 4 },
-});

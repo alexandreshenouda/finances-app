@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Empty, Field, SectionTitle, SelectField } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { notify } from '@/lib/confirm';
 import { loadCredentials, syncConnection } from '@/lib/connectors';
 import {
@@ -27,7 +27,29 @@ import { formatDate, uid } from '@/lib/format';
 import { connectionSecretKey, setSecret } from '@/lib/secure';
 import { useStore } from '@/lib/store';
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    help: { color: C.textDim, fontSize: 13, lineHeight: 19, marginBottom: 12 },
+    sessionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+    rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
+    sessionName: { color: C.text, fontSize: 15, fontWeight: '500' },
+    sessionSub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
+    bankRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 11,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: C.border,
+    },
+    bankName: { color: C.text, fontSize: 14, flex: 1 },
+    chevron: { color: C.textFaint, fontSize: 18 },
+  });
+}
+
 export default function EbConnect() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const { connectionId } = useLocalSearchParams<{ connectionId?: string }>();
   const router = useRouter();
@@ -260,22 +282,3 @@ export default function EbConnect() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  help: { color: C.textDim, fontSize: 13, lineHeight: 19, marginBottom: 12 },
-  sessionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
-  sessionName: { color: C.text, fontSize: 15, fontWeight: '500' },
-  sessionSub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
-  bankRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 11,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: C.border,
-  },
-  bankName: { color: C.text, fontSize: 14, flex: 1 },
-  chevron: { color: C.textFaint, fontSize: 18 },
-});

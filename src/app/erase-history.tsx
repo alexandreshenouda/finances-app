@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, SectionTitle, SelectField } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
 import { formatDate } from '@/lib/format';
 import { useStore } from '@/lib/store';
@@ -18,7 +18,18 @@ function parseDay(s: string): string | undefined {
   return t;
 }
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    hint: { color: C.textDim, fontSize: 13, marginBottom: 12, lineHeight: 18 },
+    label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
+    preview: { color: C.textFaint, fontSize: 13, marginTop: 4, marginBottom: 8 },
+  });
+}
+
 export default function EraseHistory() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const MODE_LABELS: Record<(typeof MODES)[number], string> = {
     avant: t('eraseHistory.mode_avant'),
@@ -130,11 +141,3 @@ export default function EraseHistory() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  hint: { color: C.textDim, fontSize: 13, marginBottom: 12, lineHeight: 18 },
-  label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
-  preview: { color: C.textFaint, fontSize: 13, marginTop: 4, marginBottom: 8 },
-});

@@ -3,7 +3,7 @@ import { AlphaVantageHint } from '@/components/AlphaVantageHint';
 import { InsightCard } from '@/components/InsightCard';
 import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import { Button, Card, Chips, Empty, ProgressBar, SectionTitle } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { computeAllocationComparison, computeClassificationBreakdown, computeInsights } from '@/lib/diversification';
 import { formatEur, formatPct } from '@/lib/format';
 import { accountCurrentValue, accountShare } from '@/lib/portfolio';
@@ -32,7 +32,24 @@ function gapColor(actualPct: number, targetPct: number): string {
   return C.negative;
 }
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40, gap: 10 },
+    row: { paddingVertical: 10 },
+    rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
+    rowHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+    rowLabel: { color: C.text, fontSize: 14, fontWeight: '600' },
+    rowValues: { color: C.textDim, fontSize: 12 },
+    excluded: { color: C.textFaint, fontSize: 12, marginTop: 12, lineHeight: 16 },
+    cardTitle: { color: C.text, fontSize: 15, fontWeight: '700', marginBottom: 10 },
+    coverage: { color: C.textDim, fontSize: 12, marginBottom: 8 },
+    classifyMessage: { color: C.textFaint, fontSize: 12, marginTop: 10, lineHeight: 16 },
+  });
+}
+
 export default function Diversification() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const router = useRouter();
   const accounts = useStore((s) => s.accounts);
@@ -234,17 +251,3 @@ export default function Diversification() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40, gap: 10 },
-  row: { paddingVertical: 10 },
-  rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
-  rowHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  rowLabel: { color: C.text, fontSize: 14, fontWeight: '600' },
-  rowValues: { color: C.textDim, fontSize: 12 },
-  excluded: { color: C.textFaint, fontSize: 12, marginTop: 12, lineHeight: 16 },
-  cardTitle: { color: C.text, fontSize: 15, fontWeight: '700', marginBottom: 10 },
-  coverage: { color: C.textDim, fontSize: 12, marginBottom: 8 },
-  classifyMessage: { color: C.textFaint, fontSize: 12, marginTop: 10, lineHeight: 16 },
-});

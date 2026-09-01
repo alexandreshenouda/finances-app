@@ -1,27 +1,16 @@
+import { C } from '@/constants/theme';
+import i18next from '@/lib/i18n';
+import { useStore } from '@/lib/store';
 import { DarkTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef, useState } from 'react';
-import i18next from '@/lib/i18n';
-import { useStore } from '@/lib/store';
-import { C } from '@/constants/theme';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 SplashScreen.preventAutoHideAsync();
 
-const theme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    background: C.bg,
-    card: C.bg,
-    text: C.text,
-    border: C.border,
-    primary: C.accent,
-  },
-};
-
 export default function RootLayout() {
   const language = useStore((s) => s.language);
+  const currentTheme = useStore((s) => s.theme);
   const [refreshKey, setRefreshKey] = useState(0);
   const isFirstRender = useRef(true);
 
@@ -38,12 +27,27 @@ export default function RootLayout() {
       return;
     }
     setRefreshKey((x) => x + 1);
-  }, [language]);
+  }, [language, currentTheme]);
+
+  const navTheme = useMemo(
+    () => ({
+      ...DarkTheme,
+      colors: {
+        ...DarkTheme.colors,
+        background: C.bg,
+        card: C.bg,
+        text: C.text,
+        border: C.border,
+        primary: C.accent,
+      },
+    }),
+    [currentTheme]
+  );
 
   const t = (key: string) => i18next.t(key);
 
   return (
-    <ThemeProvider value={theme}>
+    <ThemeProvider value={navTheme}>
       <StatusBar style="light" />
       <Stack
         key={refreshKey}

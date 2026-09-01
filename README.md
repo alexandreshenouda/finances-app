@@ -109,7 +109,14 @@ pour le détail des contraintes.
   point par jour et par compte ; les courbes se construisent à partir de ces points (report de la
   dernière valeur connue pour les comptes non mis à jour).
 
-**Confidentialité & données**
+**Confidentialité & personnalisation**
+- **Thèmes** : choix entre le thème **Or** (sombre et or clair, par défaut) et le thème
+  **Classique** (bleu-ardoise historique) dans **Paramètres → Affichage**.
+- **Mode confidentialité** : icône œil dans l'en-tête de chaque onglet pour masquer
+  instantanément tous les montants (les pourcentages de répartition et de performance restent
+  visibles).
+- **Personnalisation de l'affichage** : choix de la période par défaut des graphiques et de
+  la variation, visibilité configurable des onglets (Immobilier, Emprunts, Diversification).
 - **Multi-devises** : comptes et lignes en EUR (défaut), USD ou CHF — saisie dans la devise
   d'origine, affichage et courbes convertis en € avec les taux BCE
   ([frankfurter.dev](https://frankfurter.dev), rafraîchis à chaque mise à jour, derniers taux

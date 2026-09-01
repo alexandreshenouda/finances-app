@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Dot, Empty } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { formatEur, formatPct } from '@/lib/format';
 import { accountCurrentValue, accountGain } from '@/lib/portfolio';
 import { useStore } from '@/lib/store';
@@ -15,7 +15,26 @@ import {
   type Account,
 } from '@/lib/types';
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    groupHeader: { flexDirection: 'row', alignItems: 'center', marginTop: 16, marginBottom: 8 },
+    groupTitle: { color: C.textDim, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8, flex: 1 },
+    groupTotal: { color: C.textDim, fontSize: 13, fontWeight: '600' },
+    row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
+    rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
+    rowName: { color: C.text, fontSize: 15, fontWeight: '500' },
+    rowSub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
+    rowRight: { alignItems: 'flex-end', marginLeft: 8 },
+    rowValue: { color: C.text, fontSize: 15, fontWeight: '600' },
+    rowPerf: { fontSize: 12, fontWeight: '600', marginTop: 2 },
+    chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
+  });
+}
+
 export default function Accounts() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const router = useRouter();
   const accounts = useStore((s) => s.accounts);
@@ -87,19 +106,3 @@ export default function Accounts() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  groupHeader: { flexDirection: 'row', alignItems: 'center', marginTop: 16, marginBottom: 8 },
-  groupTitle: { color: C.textDim, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8, flex: 1 },
-  groupTotal: { color: C.textDim, fontSize: 13, fontWeight: '600' },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
-  rowName: { color: C.text, fontSize: 15, fontWeight: '500' },
-  rowSub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
-  rowRight: { alignItems: 'flex-end', marginLeft: 8 },
-  rowValue: { color: C.text, fontSize: 15, fontWeight: '600' },
-  rowPerf: { fontSize: 12, fontWeight: '600', marginTop: 2 },
-  chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
-});

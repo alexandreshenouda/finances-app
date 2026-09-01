@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Field } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { notify } from '@/lib/confirm';
 import { loadCredentials, persistExternalAccounts } from '@/lib/connectors';
 import {
@@ -28,7 +28,17 @@ interface TrCredentials {
   pin: string;
 }
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    warn: { color: C.warning, fontSize: 13, lineHeight: 18 },
+    err: { color: C.negative, fontSize: 13, lineHeight: 18 },
+  });
+}
+
 export default function TrConnect() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const { connectionId } = useLocalSearchParams<{ connectionId?: string }>();
   const router = useRouter();
@@ -175,10 +185,3 @@ export default function TrConnect() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  warn: { color: C.warning, fontSize: 13, lineHeight: 18 },
-  err: { color: C.negative, fontSize: 13, lineHeight: 18 },
-});

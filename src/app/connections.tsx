@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Empty, Field, SectionTitle } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
 import { syncConnection } from '@/lib/connectors';
 import { formatDate } from '@/lib/format';
@@ -12,7 +12,22 @@ import { ALPHA_VANTAGE_SECRET_KEY, connectionSecretKey, deleteSecret, getSecret,
 import { useStore } from '@/lib/store';
 import { PROVIDER_LABELS } from '@/lib/types';
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    webWarn: { color: C.warning, fontSize: 13, lineHeight: 18 },
+    connLabel: { color: C.text, fontSize: 16, fontWeight: '600' },
+    connSub: { color: C.textDim, fontSize: 13, marginTop: 2 },
+    connError: { color: C.negative, fontSize: 12, marginTop: 6 },
+    connButtons: { flexDirection: 'row', gap: 8, marginTop: 12 },
+    addHint: { color: C.textDim, fontSize: 13, marginBottom: 10, lineHeight: 18 },
+    addNote: { color: C.textFaint, fontSize: 12, marginTop: 8, lineHeight: 17 },
+  });
+}
+
 export default function Connections() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const router = useRouter();
   const connections = useStore((s) => s.connections);
@@ -130,15 +145,3 @@ export default function Connections() {
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  webWarn: { color: C.warning, fontSize: 13, lineHeight: 18 },
-  connLabel: { color: C.text, fontSize: 16, fontWeight: '600' },
-  connSub: { color: C.textDim, fontSize: 13, marginTop: 2 },
-  connError: { color: C.negative, fontSize: 12, marginTop: 6 },
-  connButtons: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  addHint: { color: C.textDim, fontSize: 13, marginBottom: 10, lineHeight: 18 },
-  addNote: { color: C.textFaint, fontSize: 12, marginTop: 8, lineHeight: 17 },
-});

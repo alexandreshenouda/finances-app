@@ -2,6 +2,9 @@
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
 
+# Documentation update requirement (MANDATORY)
+**Always update `README.md` (and any related documentation / `AGENTS.md`) whenever you implement, extend or modify features, settings, architecture patterns, or configuration options.** Keep documentation accurate and synchronized with the codebase in the same commit / PR.
+
 # Architecture notes & constraints (read before touching related code)
 
 ## `experiments.reactCompiler` MUST stay `false` in app.json
@@ -22,6 +25,16 @@ masking is first rewritten to flow through props/context/store subscription.
 - **Any new screen that displays money must add `useStore((s) => s.privacyMode);`**
   (a bare subscription, value unused) so it re-renders when the toggle flips. Screens
   that only show quantities/percentages don't need it.
+
+## Theming & dynamic styles (`useStyles`)
+- The app supports two themes (`'or'` sombre/or by default, and `'classique'` bleu-ardoise),
+  selectable in **Paramètres → Affichage** and persisted in `store.theme`.
+- `C` in `src/constants/theme.ts` is mutable and updated by `setTheme(themeName)` via `useStore.subscribe`.
+- `ACCOUNT_TYPE_COLORS` in `src/lib/types.ts` is also updated by `setAccountTypeColors(themeName)`.
+- **Crucial React Native rule**: `StyleSheet.create` must NOT be called once at module scope with `C.*`
+  values (which would freeze colors at module initialization time). Always wrap styles in a `makeStyles`
+  factory function and call `const styles = useStyles(makeStyles);` inside each component. `useStyles`
+  memoizes the StyleSheet on the active theme and recalculates automatically upon theme switch.
 
 ## Ownership quote-part (SCI / indivision)
 Both `Property.ownershipPct` and `Account.ownershipPct` (optional, `undefined` = 100%)
@@ -59,7 +72,7 @@ Account types are centralized in `src/lib/types.ts`: adding one means extending
 (the two `Record<AccountType, …>` maps make `tsc` list exactly what's missing). Every
 screen derives from those three, so nothing else needs touching — only `immobilier`
 has type-specific behaviour (ownership %). New colors must clear ≥3:1 contrast on the
-`#0F172A` background and stay distinguishable from the existing hues.
+`#0F172A` / `#0A0A0A` background and stay distinguishable from the existing hues.
 
 ## Logo & icon assets
 Logo = the "Courbe" concept: a rising chart line (points 16,66 → 37,50 → 53,58 → 80,24,

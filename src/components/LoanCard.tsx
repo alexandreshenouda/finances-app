@@ -4,10 +4,37 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { LineChart } from '@/components/LineChart';
 import { Card, ProgressBar } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { formatDate, formatDuration, formatMoney, formatPct } from '@/lib/format';
 import { loanPhases, loanSchedule, loanStats } from '@/lib/realestate';
 import { ACCOUNT_TYPE_COLORS, type Currency, type Loan } from '@/lib/types';
+
+function makeStyles() {
+  return StyleSheet.create({
+    loanHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+    loanName: { color: C.text, fontSize: 16, fontWeight: '600' },
+    loanSub: { color: C.textDim, fontSize: 12, marginTop: 2 },
+    chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
+    progressWrap: { marginBottom: 12 },
+    progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+    progressLabel: { color: C.textFaint, fontSize: 12 },
+    loanStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
+    stat: { width: '50%', paddingVertical: 6 },
+    statLabel: { color: C.textFaint, fontSize: 12 },
+    statValue: { color: C.text, fontSize: 15, fontWeight: '600', marginTop: 2 },
+    statSub: { color: C.textFaint, fontSize: 11, marginTop: 1 },
+    scheduleNote: { color: C.textFaint, fontSize: 11, textAlign: 'center' },
+    phases: {
+      marginBottom: 12,
+      paddingTop: 8,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: C.border,
+    },
+    phaseRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
+    phaseLabel: { color: C.textDim, fontSize: 13 },
+    phaseValue: { color: C.text, fontSize: 13, fontWeight: '600' },
+  });
+}
 
 export function LoanCard({
   loan,
@@ -22,6 +49,7 @@ export function LoanCard({
   /** Ligne de contexte optionnelle (ex : nom du bien financé). */
   context?: string;
 }) {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const cur: Currency = loan.currency ?? 'EUR';
   const st = loanStats(loan);
@@ -84,6 +112,7 @@ export function LoanCard({
 }
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  const styles = useStyles(makeStyles);
   return (
     <View style={styles.stat}>
       <Text style={styles.statLabel}>{label}</Text>
@@ -92,28 +121,3 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  loanHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  loanName: { color: C.text, fontSize: 16, fontWeight: '600' },
-  loanSub: { color: C.textDim, fontSize: 12, marginTop: 2 },
-  chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
-  progressWrap: { marginBottom: 12 },
-  progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  progressLabel: { color: C.textFaint, fontSize: 12 },
-  loanStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
-  stat: { width: '50%', paddingVertical: 6 },
-  statLabel: { color: C.textFaint, fontSize: 12 },
-  statValue: { color: C.text, fontSize: 15, fontWeight: '600', marginTop: 2 },
-  statSub: { color: C.textFaint, fontSize: 11, marginTop: 1 },
-  scheduleNote: { color: C.textFaint, fontSize: 11, textAlign: 'center' },
-  phases: {
-    marginBottom: 12,
-    paddingTop: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: C.border,
-  },
-  phaseRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
-  phaseLabel: { color: C.textDim, fontSize: 13 },
-  phaseValue: { color: C.text, fontSize: 13, fontWeight: '600' },
-});

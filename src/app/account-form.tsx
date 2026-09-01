@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, SectionTitle, SelectField } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { toEur } from '@/lib/fx';
 import { todayKey } from '@/lib/format';
 import { useStore } from '@/lib/store';
@@ -23,7 +23,16 @@ function parseNum(s: string): number | undefined {
   return Number.isFinite(v) ? v : undefined;
 }
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
+  });
+}
+
 export default function AccountForm() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const { accountId } = useLocalSearchParams<{ accountId?: string }>();
   const router = useRouter();
@@ -123,9 +132,3 @@ export default function AccountForm() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
-});

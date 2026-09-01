@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, SelectField } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { formatDuration, formatMoney, todayKey } from '@/lib/format';
 import { loanMonthlyPayment, loanStepPayments } from '@/lib/realestate';
@@ -31,7 +31,30 @@ const MODES = ['constant', 'paliers'] as const;
 
 type StepInput = { months: string; payment: string };
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
+    hint: { color: C.textFaint, fontSize: 12, lineHeight: 17, marginBottom: 8 },
+    stepCard: {
+      backgroundColor: C.cardAlt,
+      borderRadius: 10,
+      padding: 12,
+      marginBottom: 10,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: C.border,
+    },
+    stepHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+    stepTitle: { color: C.textDim, fontSize: 13, fontWeight: '600' },
+    stepRemove: { color: C.negative, fontSize: 13 },
+    stepRow: { flexDirection: 'row' },
+    stepHint: { color: C.textFaint, fontSize: 12 },
+  });
+}
+
 export default function LoanForm() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const MODE_LABELS: Record<(typeof MODES)[number], string> = {
     constant: t('loanForm.mode_constant'),
@@ -268,23 +291,3 @@ export default function LoanForm() {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
-  hint: { color: C.textFaint, fontSize: 12, lineHeight: 17, marginBottom: 8 },
-  stepCard: {
-    backgroundColor: C.cardAlt,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: C.border,
-  },
-  stepHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  stepTitle: { color: C.textDim, fontSize: 13, fontWeight: '600' },
-  stepRemove: { color: C.negative, fontSize: 13 },
-  stepRow: { flexDirection: 'row' },
-  stepHint: { color: C.textFaint, fontSize: 12 },
-});

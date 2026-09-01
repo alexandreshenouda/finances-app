@@ -1,7 +1,7 @@
 /** Détail d'un compte : courbe, lignes, frais, mise à jour de valeur. */
 import { LineChart } from '@/components/LineChart';
 import { Button, Card, Dot, Empty, PeriodChips, SectionTitle } from '@/components/ui';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { formatDate, formatEur, formatMoney, formatPct, formatQuantity } from '@/lib/format';
 import { toEur } from '@/lib/fx';
@@ -22,7 +22,42 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+function makeStyles() {
+  return StyleSheet.create({
+    screen: { flex: 1, backgroundColor: C.bg },
+    content: { padding: 16, paddingBottom: 40 },
+    headerRow: { flexDirection: 'row', alignItems: 'center' },
+    typeLabel: { color: C.textDim, fontSize: 13, fontWeight: '600' },
+    institution: { color: C.textFaint, fontSize: 13 },
+    value: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 6 },
+    gain: { fontSize: 14, fontWeight: '600', marginTop: 4 },
+    gainLabel: { color: C.textFaint, fontSize: 12, fontWeight: '400' },
+    ownership: { color: C.textDim, fontSize: 13, fontWeight: '600', marginTop: 2 },
+    lastUpdate: { color: C.textFaint, fontSize: 12, marginTop: 2 },
+    holdingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
+    rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
+    holdingName: { color: C.text, fontSize: 15, fontWeight: '500' },
+    holdingSub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
+    holdingValue: { color: C.text, fontSize: 15, fontWeight: '600' },
+    syncNote: { color: C.textFaint, fontSize: 12, paddingHorizontal: 4, marginTop: 4 },
+    manualHint: { color: C.textDim, fontSize: 13, marginBottom: 10 },
+    manualInput: {
+      flex: 1,
+      backgroundColor: C.cardAlt,
+      borderRadius: 10,
+      paddingHorizontal: 12,
+      color: C.text,
+      fontSize: 15,
+    },
+    feeRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
+    feeLabel: { color: C.textDim, fontSize: 14 },
+    feeValue: { color: C.text, fontSize: 14, fontWeight: '600' },
+    feeNotes: { color: C.textFaint, fontSize: 13, marginTop: 8 },
+  });
+}
+
 export default function AccountDetail() {
+  const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -225,6 +260,7 @@ export default function AccountDetail() {
 }
 
 function FeeRow({ label, value }: { label: string; value: string }) {
+  const styles = useStyles(makeStyles);
   return (
     <View style={styles.feeRow}>
       <Text style={styles.feeLabel}>{label}</Text>
@@ -232,35 +268,3 @@ function FeeRow({ label, value }: { label: string; value: string }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
-  typeLabel: { color: C.textDim, fontSize: 13, fontWeight: '600' },
-  institution: { color: C.textFaint, fontSize: 13 },
-  value: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 6 },
-  gain: { fontSize: 14, fontWeight: '600', marginTop: 4 },
-  gainLabel: { color: C.textFaint, fontSize: 12, fontWeight: '400' },
-  ownership: { color: C.textDim, fontSize: 13, fontWeight: '600', marginTop: 2 },
-  lastUpdate: { color: C.textFaint, fontSize: 12, marginTop: 2 },
-  holdingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
-  holdingName: { color: C.text, fontSize: 15, fontWeight: '500' },
-  holdingSub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
-  holdingValue: { color: C.text, fontSize: 15, fontWeight: '600' },
-  syncNote: { color: C.textFaint, fontSize: 12, paddingHorizontal: 4, marginTop: 4 },
-  manualHint: { color: C.textDim, fontSize: 13, marginBottom: 10 },
-  manualInput: {
-    flex: 1,
-    backgroundColor: C.cardAlt,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    color: C.text,
-    fontSize: 15,
-  },
-  feeRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  feeLabel: { color: C.textDim, fontSize: 14 },
-  feeValue: { color: C.text, fontSize: 14, fontWeight: '600' },
-  feeNotes: { color: C.textFaint, fontSize: 13, marginTop: 8 },
-});

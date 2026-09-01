@@ -1,14 +1,15 @@
-import { Tabs } from 'expo-router';
-import { useEffect, useState } from 'react';
-import i18next from '@/lib/i18n';
 import { Logo } from '@/components/Logo';
 import { PrivacyToggle } from '@/components/PrivacyToggle';
 import { TabIcon } from '@/components/TabIcons';
 import { C } from '@/constants/theme';
+import i18next from '@/lib/i18n';
 import { useStore } from '@/lib/store';
+import { Tabs } from 'expo-router';
+import { useEffect, useState } from 'react';
 
 export default function TabsLayout() {
   const language = useStore((s) => s.language);
+  const theme = useStore((s) => s.theme);
   const showImmobilierTab = useStore((s) => s.showImmobilierTab);
   const showEmpruntsTab = useStore((s) => s.showEmpruntsTab);
   const showDiversificationTab = useStore((s) => s.showDiversificationTab);
@@ -16,7 +17,7 @@ export default function TabsLayout() {
 
   useEffect(() => {
     setRefreshKey((x) => x + 1);
-  }, [language]);
+  }, [language, theme]);
 
   const t = (key: string) => i18next.t(key);
 

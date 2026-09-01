@@ -12,7 +12,7 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
-import { C } from '@/constants/theme';
+import { C, useStyles } from '@/constants/theme';
 import { formatDate, formatEur } from '@/lib/format';
 import type { SeriesPoint } from '@/lib/portfolio';
 
@@ -20,7 +20,26 @@ const H = 200;
 const PAD_TOP = 12;
 const PAD_BOTTOM = 22;
 
+function makeStyles() {
+  return StyleSheet.create({
+    wrap: { width: '100%' },
+    emptyText: { color: C.textFaint, fontSize: 13, textAlign: 'center', paddingHorizontal: 16 },
+    tooltipRow: { height: 20, marginBottom: 2 },
+    tooltipText: { color: C.textDim, fontSize: 13, textAlign: 'center' },
+    axisRow: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    axisText: { color: C.textFaint, fontSize: 11 },
+  });
+}
+
 export function LineChart({ points, color = C.accent }: { points: SeriesPoint[]; color?: string }) {
+  const styles = useStyles(makeStyles);
   const [width, setWidth] = useState(0);
   const [touchIdx, setTouchIdx] = useState<number | null>(null);
   const nodeRef = useRef<HTMLElement | null>(null);
@@ -159,19 +178,3 @@ export function LineChart({ points, color = C.accent }: { points: SeriesPoint[];
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { width: '100%' },
-  emptyText: { color: C.textFaint, fontSize: 13, textAlign: 'center', paddingHorizontal: 16 },
-  tooltipRow: { height: 20, marginBottom: 2 },
-  tooltipText: { color: C.textDim, fontSize: 13, textAlign: 'center' },
-  axisRow: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  axisText: { color: C.textFaint, fontSize: 11 },
-});
