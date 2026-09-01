@@ -52,8 +52,8 @@
     "classer_ok_other": "{{count}} lignes classées.",
     "classer_partiel_one": "{{count}} ligne classée ({{issues}}).",
     "classer_partiel_other": "{{count}} lignes classées ({{issues}}).",
-    "av_hint_titre": "Données sectorielles limitées",
-    "av_hint_texte": "Sans clé Alpha Vantage, seules la géographie via l'ISIN et les catégories crypto sont disponibles. Ajoutez une clé gratuite dans Réglages → Connexions pour aussi classer le secteur de vos actions et ETF."
+    "av_hint_titre": "Données sectorielles et géographiques",
+    "av_hint_texte": "La composition détaillée de vos ETFs et actions est récupérée automatiquement via JustETF. Pour les valeurs cotées aux US non couvertes, vous pouvez ajouter une clé Alpha Vantage gratuite dans Réglages → Connexions."
   },
   "riskProfiles": {
     "prudent": "Prudent",
@@ -96,6 +96,14 @@
     "CA": "Canada",
     "JP": "Japon",
     "CN": "Chine",
+    "AU": "Australie",
+    "TW": "Taïwan",
+    "KR": "Corée du Sud",
+    "IN": "Inde",
+    "BR": "Brésil",
+    "SE": "Suède",
+    "DK": "Danemark",
+    "NO": "Norvège",
     "autre": "Autre"
   },
   "tabs": {

@@ -174,6 +174,20 @@ savings plans, PEA ceiling usage, etc.:
   yieldToMaturity
 ```
 
+## JustETF scraper & Diversification classification (`src/lib/prices/justetf.ts`, `src/lib/prices/classification.ts`)
+- **JustETF scraper** (`justetf.ts`) fetches and parses live public profile HTML for ETFs (`/en/etf-profile.html?isin=<ISIN>`) and single stocks (`/en/stock-profiles/<ISIN>`), with fallback to `/fr/...` endpoints.
+- **ETF look-through composition**: extracts real underlying countries (`countryWeights`), sectors (`sectorWeights`), top 10 holdings (`topHoldings`: ISIN, name, weight), ongoing charges (`ter` / `feesPct`), fund name and domicile.
+- **Single stock profile**: extracts country of domicile, industry/sector (FactSet RBICS / GICS), name, market cap, and dividend yield.
+- **Classification cascade** in `classification.ts`:
+  1. CoinGecko for crypto assets (`sector: 'crypto'`).
+  2. JustETF web-scraping by ISIN (first tries ETF profile, then Stock profile) → stores `countryWeights`, `sectorWeights`, `topHoldings`, `feesPct`, with `classificationSource: 'justetf'`.
+  3. Yahoo Finance search (`searchYahooSymbol`) by ISIN/symbol for stock sector.
+  4. Alpha Vantage (`OVERVIEW` / `ETF_PROFILE`) if API key provided.
+  5. Local fallback table (`referenceEtfs.ts`) for common ETFs offline.
+  6. ISIN country prefix fallback for legal domicile.
+- `CountryCode` in `src/lib/types.ts` covers major global markets (`FR`, `DE`, `IT`, `ES`, `NL`, `BE`, `LU`, `IE`, `GB`, `CH`, `US`, `CA`, `JP`, `CN`, `AU`, `TW`, `KR`, `IN`, `BR`, `SE`, `DK`, `NO`, `autre`).
+
+
 ## Verification workflow
 - `node_modules` is **not present by default** — run `npm install` first, before any
   typecheck or build (fresh clone / fresh session).

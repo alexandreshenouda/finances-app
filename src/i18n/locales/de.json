@@ -52,8 +52,8 @@
     "classer_ok_other": "{{count}} Positionen klassifiziert.",
     "classer_partiel_one": "{{count}} Position klassifiziert ({{issues}}).",
     "classer_partiel_other": "{{count}} Positionen klassifiziert ({{issues}}).",
-    "av_hint_titre": "Eingeschränkte Sektordaten",
-    "av_hint_texte": "Ohne Alpha-Vantage-Schlüssel sind nur die ISIN-basierte Region und Krypto-Kategorien verfügbar. Fügen Sie unter Einstellungen → Verbindungen einen kostenlosen Schlüssel hinzu, um auch den Sektor Ihrer Aktien und ETFs zu klassifizieren."
+    "av_hint_titre": "Sektor- und Geografiedaten",
+    "av_hint_texte": "Die detaillierte Aufteilung Ihrer ETFs und Aktien wird automatisch von JustETF abgerufen. Für nicht abgedeckte US-Werte können Sie unter Einstellungen → Verbindungen einen kostenlosen Alpha-Vantage-Schlüssel hinzufügen."
   },
   "riskProfiles": {
     "prudent": "Defensiv",
@@ -96,6 +96,14 @@
     "CA": "Kanada",
     "JP": "Japan",
     "CN": "China",
+    "AU": "Australien",
+    "TW": "Taiwan",
+    "KR": "Südkorea",
+    "IN": "Indien",
+    "BR": "Brasilien",
+    "SE": "Schweden",
+    "DK": "Dänemark",
+    "NO": "Norwegen",
     "autre": "Sonstige"
   },
   "tabs": {

@@ -52,8 +52,8 @@
     "classer_ok_other": "{{count}} holdings classified.",
     "classer_partiel_one": "{{count}} holding classified ({{issues}}).",
     "classer_partiel_other": "{{count}} holdings classified ({{issues}}).",
-    "av_hint_titre": "Limited sector data",
-    "av_hint_texte": "Without an Alpha Vantage key, only ISIN-based geography and crypto categories are available. Add a free key in Settings → Connections to also classify the sector of your stocks and ETFs."
+    "av_hint_titre": "Sector & Geographic Data",
+    "av_hint_texte": "Detailed breakdown of your ETFs and stocks is automatically scraped from JustETF. For uncovered US-listed assets, you can add a free Alpha Vantage key in Settings → Connections."
   },
   "riskProfiles": {
     "prudent": "Conservative",
@@ -96,6 +96,14 @@
     "CA": "Canada",
     "JP": "Japan",
     "CN": "China",
+    "AU": "Australia",
+    "TW": "Taiwan",
+    "KR": "South Korea",
+    "IN": "India",
+    "BR": "Brazil",
+    "SE": "Sweden",
+    "DK": "Denmark",
+    "NO": "Norway",
     "autre": "Other"
   },
   "tabs": {

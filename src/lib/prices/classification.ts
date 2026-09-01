@@ -1,37 +1,50 @@
 /**
  * Classification géographique/sectorielle des lignes pour les suggestions de diversification
- * (voir `diversification.ts`). Par ordre de préférence (gratuit avant payant/limité) :
- * 1. ISIN → pays de l'émetteur (préfixe à 2 lettres), local, instantané, sans réseau.
- * 2. CoinGecko → catégorie pour les lignes crypto (déjà utilisé pour les cours).
- * 3. Yahoo (recherche par ISIN si connu, sinon par ticker) → secteur d'une action individuelle,
- *    gratuit, sans clé, sans crumb (contrairement à `quoteSummary`, verrouillé par Yahoo en
- *    2024). Ne donne jamais de secteur pour un ETF/fonds (pas de composition exposée par cette
- *    recherche).
- * 4. Alpha Vantage (optionnel, clé utilisateur) → seulement quand Yahoo n'a rien donné
- *    (typiquement un ETF/fonds) — AV n'accepte pas les ISIN en entrée (uniquement un ticker),
- *    donc pas d'usage possible avant l'étape 3. Sa couverture gratuite s'est confirmée limitée
- *    aux bourses américaines (`LISTING_STATUS` ne liste que AMEX/BATS/NASDAQ/NYSE/NYSE
- *    ARCA/NYSE MKT) : pour un ETF européen, cette étape échoue systématiquement.
- * 5. Table locale (`referenceEtfs.ts`, aucun réseau) → dernier recours pour les ETF les plus
- *    courants chez un investisseur français/européen, quand les quatre étapes précédentes n'ont
- *    rien donné.
- * Chaque ligne traitée est marquée `classifiedAt` pour ne jamais refaire un appel Alpha Vantage
- * (25 requêtes/jour) sur une ligne déjà tentée — sauf si l'appel Alpha Vantage a dû être différé
- * faute de quota : dans ce cas la ligne reste éligible à un prochain passage plutôt que de se
- * figer sur un résultat partiel (ISIN/Yahoo/table locale déjà tentés, mais pas Alpha Vantage).
+ * (voir `diversification.ts`). Par ordre de préférence (gratuit/précis avant payant/limité) :
+ * 1. CoinGecko → catégorie pour les lignes crypto (déjà utilisé pour les cours).
+ * 2. JustETF (web-scraping par ISIN) → look-through géographique et sectoriel complet pour ETF
+ *    (pays, secteurs, top 10 positions, TER), et pays/secteur pour actions. Couvre l'ensemble
+ *    des ETFs UCITS européens et actions internationales, gratuit, sans clé.
+ * 3. Yahoo (recherche par ISIN ou ticker) → secteur d'une action individuelle, gratuit, sans clé.
+ * 4. Alpha Vantage (optionnel, clé utilisateur) → pour les actions/ETFs cotés US si JustETF/Yahoo
+ *    n'ont rien donné.
+ * 5. Table locale (`referenceEtfs.ts`, aucun réseau) → dernier recours hors-ligne pour les ETF
+ *    les plus courants.
+ * 6. Préfixe ISIN → pays juridique de repli si aucune autre source géographique n'a répondu.
  */
 import { ALPHA_VANTAGE_SECRET_KEY, getSecret } from '../secure';
 import { useStore } from '../store';
 import type { CountryCode, Holding } from '../types';
 import { fetchAlphaVantageEtfProfile, fetchAlphaVantageOverview } from './alphavantage';
 import { fetchCoinGeckoCategory } from './coingecko';
+import { fetchJustEtfClassification } from './justetf';
 import { referenceEtfForIsin } from './referenceEtfs';
 import { normalizeSector } from './sectors';
 import { searchYahooSymbol } from './yahoo';
 
 const ISIN_COUNTRY: Partial<Record<string, CountryCode>> = {
-  FR: 'FR', DE: 'DE', IT: 'IT', ES: 'ES', NL: 'NL', BE: 'BE', LU: 'LU', IE: 'IE',
-  GB: 'GB', US: 'US', CA: 'CA', JP: 'JP', CN: 'CN', CH: 'CH',
+  FR: 'FR',
+  DE: 'DE',
+  IT: 'IT',
+  ES: 'ES',
+  NL: 'NL',
+  BE: 'BE',
+  LU: 'LU',
+  IE: 'IE',
+  GB: 'GB',
+  US: 'US',
+  CA: 'CA',
+  JP: 'JP',
+  CN: 'CN',
+  CH: 'CH',
+  AU: 'AU',
+  TW: 'TW',
+  KR: 'KR',
+  IN: 'IN',
+  BR: 'BR',
+  SE: 'SE',
+  DK: 'DK',
+  NO: 'NO',
 };
 
 /** Pays depuis le préfixe ISIN. `undefined` si l'ISIN est absent/invalide (vraiment inconnu) ;
@@ -43,9 +56,29 @@ export function countryFromIsin(isin: string | undefined): CountryCode | undefin
 }
 
 const AV_COUNTRY_NAMES: Record<string, CountryCode> = {
-  FRANCE: 'FR', GERMANY: 'DE', ITALY: 'IT', SPAIN: 'ES', NETHERLANDS: 'NL', BELGIUM: 'BE',
-  LUXEMBOURG: 'LU', IRELAND: 'IE', 'UNITED KINGDOM': 'GB', SWITZERLAND: 'CH',
-  USA: 'US', 'UNITED STATES': 'US', CANADA: 'CA', JAPAN: 'JP', CHINA: 'CN',
+  FRANCE: 'FR',
+  GERMANY: 'DE',
+  ITALY: 'IT',
+  SPAIN: 'ES',
+  NETHERLANDS: 'NL',
+  BELGIUM: 'BE',
+  LUXEMBOURG: 'LU',
+  IRELAND: 'IE',
+  'UNITED KINGDOM': 'GB',
+  SWITZERLAND: 'CH',
+  USA: 'US',
+  'UNITED STATES': 'US',
+  CANADA: 'CA',
+  JAPAN: 'JP',
+  CHINA: 'CN',
+  AUSTRALIA: 'AU',
+  TAIWAN: 'TW',
+  'SOUTH KOREA': 'KR',
+  INDIA: 'IN',
+  BRAZIL: 'BR',
+  SWEDEN: 'SE',
+  DENMARK: 'DK',
+  NORWAY: 'NO',
 };
 
 function countryFromAvName(raw: string | undefined): CountryCode | undefined {
@@ -77,12 +110,14 @@ export interface ClassifyResult {
   errors: string[];
 }
 
-export async function classifyHoldings(): Promise<ClassifyResult> {
+export async function classifyHoldings(options?: { forceAll?: boolean }): Promise<ClassifyResult> {
   const errors: string[] = [];
   let classified = 0;
 
   const { holdings, upsertHolding } = useStore.getState();
-  const pending = holdings.filter((h) => !h.classifiedAt);
+  const pending = holdings.filter(
+    (h) => options?.forceAll || !h.classifiedAt || (!h.sectorWeights && !!h.isin?.trim()),
+  );
   if (pending.length === 0) return { classified: 0, errors: [] };
 
   const apiKey = (await getSecret(ALPHA_VANTAGE_SECRET_KEY))?.trim() || null;
@@ -115,11 +150,40 @@ export async function classifyHoldings(): Promise<ClassifyResult> {
     }
 
     let countryWeights: Holding['countryWeights'];
+    let topHoldings: Holding['topHoldings'];
+    let feesPct = h.feesPct;
+    let holdingError: string | undefined;
 
-    // Yahoo d'abord (gratuit, sans clé) : par ISIN si connu (le plus précis — désambiguïse
-    // la place de cotation), sinon par ticker existant.
+    // 1. JustETF : web-scraping en direct (look-through géographique et sectoriel réel pour ETF,
+    // secteur et pays pour actions). Nécessite un ISIN.
+    const isin = h.isin?.trim();
+    if (isin) {
+      try {
+        const justEtf = await fetchJustEtfClassification(isin);
+        if (justEtf) {
+          if (justEtf.kind === 'etf') {
+            if (justEtf.countryWeights.length > 0) countryWeights = justEtf.countryWeights;
+            if (justEtf.sectorWeights.length > 0) sectorWeights = justEtf.sectorWeights;
+            if (justEtf.topHoldings && justEtf.topHoldings.length > 0) topHoldings = justEtf.topHoldings;
+            if (justEtf.feesPct !== undefined && feesPct === undefined) feesPct = justEtf.feesPct;
+            if (justEtf.domicile) country = justEtf.domicile;
+            source = 'justetf';
+          } else if (justEtf.kind === 'stock') {
+            if (justEtf.sectorWeights && justEtf.sectorWeights.length > 0) {
+              sectorWeights = justEtf.sectorWeights;
+            }
+            if (justEtf.country) country = justEtf.country;
+            source = 'justetf';
+          }
+        }
+      } catch (e: any) {
+        holdingError = e?.message ?? String(e);
+      }
+    }
+
+    // 2. Yahoo (gratuit, sans clé) : si JustETF n'a pas trouvé de secteur.
     const yahooQuery = h.isin?.trim() || h.symbol?.trim();
-    if (yahooQuery) {
+    if (!sectorWeights && yahooQuery) {
       try {
         const best = (await searchYahooSymbol(yahooQuery))[0];
         if (best?.sector) {
@@ -127,16 +191,12 @@ export async function classifyHoldings(): Promise<ClassifyResult> {
           source = 'yahoo';
         }
       } catch (e: any) {
-        errors.push(`${h.name} : ${e?.message ?? e}`);
-        holdingHasError = true;
+        if (!holdingError) holdingError = e?.message ?? String(e);
       }
     }
 
-    // Alpha Vantage ensuite, seulement si Yahoo n'a rien donné (typiquement un ETF/fonds — Yahoo
-    // ne fournit jamais de secteur dans ce cas) et qu'une clé est configurée. Si le quota est
-    // épuisé pour ce passage, on ne fige pas la ligne : `deferred` la laisse éligible à un
-    // prochain appui plutôt que de perdre le travail déjà fait (ISIN/Yahoo) sur un résultat
-    // marqué définitif à tort.
+    // 3. Alpha Vantage ensuite, seulement si JustETF + Yahoo n'ont rien donné
+    // (et qu'une clé utilisateur est configurée).
     const wantsAv = !sectorWeights && !!apiKey && !!h.symbol?.trim();
     let deferred = false;
     if (wantsAv && avCallsUsed >= MAX_AV_CALLS) {
@@ -151,8 +211,6 @@ export async function classifyHoldings(): Promise<ClassifyResult> {
         country = countryFromAvName(overview.country) ?? country;
         source = 'alphavantage';
       } catch {
-        // OVERVIEW ne couvre que les actions individuelles : un échec est attendu pour un
-        // ETF, on retente alors via ETF_PROFILE avant d'abandonner.
         avCallsUsed++;
         await throttleAv();
         try {
@@ -162,14 +220,13 @@ export async function classifyHoldings(): Promise<ClassifyResult> {
             source = 'alphavantage';
           }
         } catch (e: any) {
-          errors.push(`${h.name} : ${e?.message ?? e}`);
-          holdingHasError = true;
+          if (!holdingError) holdingError = e?.message ?? String(e);
         }
       }
     }
 
-    // Dernier recours, sans réseau : table locale des ETF les plus courants (voir
-    // `referenceEtfs.ts`), seulement si toujours rien après Yahoo + Alpha Vantage.
+    // 4. Dernier recours, sans réseau : table locale des ETF les plus courants (voir
+    // `referenceEtfs.ts`), si toujours rien après JustETF + Yahoo + Alpha Vantage.
     if (!sectorWeights) {
       const ref = referenceEtfForIsin(h.isin);
       if (ref) {
@@ -180,19 +237,22 @@ export async function classifyHoldings(): Promise<ClassifyResult> {
       }
     }
 
-    // Un secteur trouvé par un autre moyen (Yahoo, table locale) rend le report Alpha Vantage
-    // sans objet : la ligne est traitée, pas besoin de la retenter juste pour un Alpha Vantage
-    // qui n'aurait de toute façon rien apporté de plus.
-    if (sectorWeights) deferred = false;
-    
-    // S'il n'y a pas eu de classification finale ET qu'une erreur s'est produite en chemin, on diffère
-    if (!sectorWeights && holdingHasError) deferred = true;
+    // Si on a trouvé un secteur ou des pays, la ligne est classée avec succès
+    if (sectorWeights || countryWeights) {
+      deferred = false;
+    } else if (holdingError) {
+      // Échec complet avec erreur réseau
+      errors.push(`${h.name} : ${holdingError}`);
+      deferred = true;
+    }
 
     upsertHolding({
       ...h,
       country,
       countryWeights,
       sectorWeights,
+      topHoldings,
+      feesPct,
       classificationSource: source,
       classifiedAt: deferred ? h.classifiedAt : new Date().toISOString(),
     });

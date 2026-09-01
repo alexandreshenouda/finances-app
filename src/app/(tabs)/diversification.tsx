@@ -68,9 +68,7 @@ export default function Diversification() {
   const setDismissedAlphaVantageHint = useStore((s) => s.setDismissedAlphaVantageHint);
   useStore((s) => s.privacyMode); // re-render au changement de mode confidentialité
 
-  // Le statut de la clé Alpha Vantage vit dans SecureStore (pas le store persisté), donc
-  // relu à chaque focus de l'onglet — sinon "clé ajoutée depuis Réglages → Connexions"
-  // n'efface pas le bandeau tant que l'app n'a pas été relancée.
+  // Statut de la clé Alpha Vantage + auto-classification des lignes non traitées
   const [hasAvKey, setHasAvKey] = useState<boolean | null>(null);
   useFocusEffect(
     useCallback(() => {
@@ -78,10 +76,39 @@ export default function Diversification() {
       getSecret(ALPHA_VANTAGE_SECRET_KEY).then((v) => {
         if (!cancelled) setHasAvKey(!!v?.trim());
       });
+
+      // Auto-classification en arrière-plan des lignes non classées ou sans secteurs
+      const state = useStore.getState();
+      const needsClassification = state.holdings.some(
+        (h) => !h.classifiedAt || (!h.sectorWeights && !!h.isin?.trim()),
+      );
+      if (needsClassification) {
+        setClassifying(true);
+        classifyHoldings()
+          .then((res) => {
+            if (!cancelled && res.classified > 0) {
+              setClassifyMessage(
+                res.errors.length > 0
+                  ? t('diversification.classer_partiel', {
+                      count: res.classified,
+                      issues: res.errors.slice(0, 3).join(' · '),
+                    })
+                  : t('diversification.classer_ok', { count: res.classified }),
+              );
+            }
+          })
+          .catch((e) => {
+            if (!cancelled) setClassifyMessage(String(e?.message ?? e));
+          })
+          .finally(() => {
+            if (!cancelled) setClassifying(false);
+          });
+      }
+
       return () => {
         cancelled = true;
       };
-    }, [])
+    }, [t])
   );
 
   const [classifying, setClassifying] = useState(false);
@@ -90,15 +117,17 @@ export default function Diversification() {
     setClassifying(true);
     setClassifyMessage(null);
     try {
-      const result = await classifyHoldings();
+      const result = await classifyHoldings({ forceAll: true });
       setClassifyMessage(
         result.errors.length > 0
           ? t('diversification.classer_partiel', {
               count: result.classified,
               issues: result.errors.slice(0, 3).join(' · '),
             })
-          : t('diversification.classer_ok', { count: result.classified })
+          : t('diversification.classer_ok', { count: result.classified }),
       );
+    } catch (e: any) {
+      setClassifyMessage(String(e?.message ?? e));
     } finally {
       setClassifying(false);
     }

@@ -2,10 +2,11 @@
  * Rafraîchissement : taux de change, puis cours de toutes les lignes valorisables
  * (dans la devise de chaque ligne), puis snapshot EUR du jour par compte impacté.
  */
-import { refreshFxRates } from '../fx';
 import { todayKey } from '../format';
+import { refreshFxRates } from '../fx';
 import { accountCurrentValue, holdingCurrency } from '../portfolio';
 import { useStore } from '../store';
+import { classifyHoldings } from './classification';
 import { fetchCoinGeckoPrices } from './coingecko';
 import { fetchYahooPrice, searchYahooSymbol } from './yahoo';
 
@@ -105,6 +106,13 @@ export async function refreshAllPrices(): Promise<RefreshResult> {
     if (!account) continue;
     const value = accountCurrentValue(account, state.holdings, state.snapshots, state.fxRates);
     state.recordSnapshot(accountId, value, 'auto', todayKey());
+  }
+
+  // Classification automatique des lignes non encore classées (JustETF, etc.)
+  try {
+    await classifyHoldings();
+  } catch (e: any) {
+    // Échec non bloquant pour le refresh des cours
   }
 
   return { updated, errors };

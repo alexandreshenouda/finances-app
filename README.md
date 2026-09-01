@@ -84,6 +84,16 @@ pour le détail des contraintes.
 - **Cours automatiques** pour valoriser les lignes manuelles : actions / ETF / fonds cotés via
   Yahoo Finance (ticker, ex. `WPEA.PA`, conversion en € automatique) ; crypto via CoinGecko
   (id, ex. `bitcoin`).
+- **Scraping JustETF automatique** : récupération en direct de la composition réelle des ETFs
+  (ventilation multi-pays look-through, ventilation sectorielle, top 10 des positions pondérées,
+  frais de gestion TER) et des actions individuelles (pays, secteur) par simple saisie de l'ISIN.
+
+**Diversification & Analyse**
+- **Diversification sectorielle & géographique** : onglet dédié comparant votre patrimoine à un
+  profil de référence (Prudent, Équilibré, Dynamique) et alertant sur les concentrations excessives.
+- **Classification multi-sources** : JustETF (scraping temps réel pour ETFs UCITS et actions) →
+  Yahoo Finance (secteur actions) → Alpha Vantage (clé gratuite optionnelle pour valeurs US) →
+  table locale de repli (`referenceEtfs.ts`).
 
 **Immobilier & crédits**
 - **Immobilier** : onglet dédié pour les biens physiques (appartement, maison, terrain…) —
@@ -214,7 +224,7 @@ src/
     secure.ts          secrets (expo-secure-store, repli localStorage sur web)
     portfolio.ts       valorisation comptes + construction des séries temporelles
     realestate.ts      estimation des biens, amortissement des crédits (constant/paliers)
-    prices/            Yahoo Finance, CoinGecko & indice immobilier INSEE (embarqué)
+    prices/            Yahoo Finance, CoinGecko, JustETF scraper (ETFs & actions), Alpha Vantage & indice INSEE
     connectors/        Binance, Kraken, Enable Banking (JWT RS256)
 ```
 

@@ -3,7 +3,7 @@
  * Tickers au format Yahoo : "WPEA.PA" (Euronext Paris), "AAPL", "CW8.PA"…
  * Bloqué par CORS dans un navigateur — fonctionne dans l'app Android.
  */
-import { logDebug, logDebugError } from '../debugLog';
+import { logDebug } from '../debugLog';
 
 const BASE = 'https://query1.finance.yahoo.com/v8/finance/chart';
 const TAG = 'yahoo';
@@ -77,16 +77,35 @@ export interface YahooSearchMatch {
  * pour une action individuelle (confirmé en test, aucun crumb requis contrairement
  * à `quoteSummary`).
  */
+import { Platform } from 'react-native';
+
 export async function searchYahooSymbol(query: string): Promise<YahooSearchMatch[]> {
   const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`;
   logDebug(TAG, `GET ${url}`);
-  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-  if (!res.ok) {
-    logDebugError(TAG, `GET ${url} → HTTP ${res.status}`);
-    throw new Error(`Yahoo HTTP ${res.status} pour la recherche « ${query} »`);
+
+  let json: any = null;
+  try {
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+  } catch (err: any) {
+    logDebug(TAG, `Direct Yahoo search fetch failed: ${err?.message ?? err}`);
   }
-  const json: any = await res.json();
-  logDebug(TAG, `GET ${url} → HTTP ${res.status}`, JSON.stringify(json));
+
+  // Si échec sur le web, tente via le proxy CORS
+  if (!json && Platform.OS === 'web') {
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    try {
+      logDebug(TAG, `GET (proxy) ${proxyUrl}`);
+      const res = await fetch(proxyUrl);
+      if (res.ok) {
+        json = await res.json();
+      }
+    } catch (proxyErr: any) {
+      logDebug(TAG, `Proxy Yahoo search failed: ${proxyErr?.message ?? proxyErr}`);
+    }
+  }
+
+  if (!json) return [];
+  logDebug(TAG, `Yahoo search response`, JSON.stringify(json));
   const quotes = Array.isArray(json?.quotes) ? json.quotes : [];
   return quotes
     .filter((q: any) => typeof q?.symbol === 'string')

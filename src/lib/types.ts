@@ -181,6 +181,14 @@ export type CountryCode =
   | 'CA'
   | 'JP'
   | 'CN'
+  | 'AU'
+  | 'TW'
+  | 'KR'
+  | 'IN'
+  | 'BR'
+  | 'SE'
+  | 'DK'
+  | 'NO'
   | 'autre';
 
 export const COUNTRY_LABELS: Record<CountryCode, string> = createLabelProxy('countries');
@@ -205,18 +213,18 @@ export interface Holding {
   /** Frais courants du fonds, en % */
   feesPct?: number;
   /** Répartition sectorielle (voir `diversification.ts`) : une action = une entrée à 100 %,
-   * un ETF/fonds = la ventilation Alpha Vantage. Poids sommant à 1. */
+   * un ETF/fonds = la ventilation JustETF / Alpha Vantage. Poids sommant à 1. */
   sectorWeights?: { sector: SectorKey; weight: number }[];
   /** Pays de l'émetteur (action) ou de domiciliation (fonds) — approximatif pour un fonds,
-   * seule info dispo hors `countryWeights` (aucune source gratuite ne donne le look-through
-   * géographique d'un ETF au cas par cas). */
+   * seule info dispo hors `countryWeights`. */
   country?: CountryCode;
-  /** Ventilation géographique réelle (voir `referenceEtfs.ts`) — repli local pour les ETF les
-   * plus courants, quand elle est connue. Prioritaire sur `country` si présente. */
+  /** Ventilation géographique réelle (look-through JustETF ou `referenceEtfs.ts`).
+   * Prioritaire sur `country` si présente. */
   countryWeights?: { country: CountryCode; weight: number }[];
-  classificationSource?: 'isin' | 'yahoo' | 'alphavantage' | 'coingecko' | 'reference';
-  /** Marque la ligne comme déjà traitée par `classifyHoldings` (succès ou non) pour ne pas
-   * re-consommer le quota Alpha Vantage sur une ligne déjà tentée. */
+  /** 10 principales positions du fonds extraites de JustETF */
+  topHoldings?: { isin?: string; name: string; weight: number }[];
+  classificationSource?: 'isin' | 'yahoo' | 'alphavantage' | 'coingecko' | 'reference' | 'justetf';
+  /** Marque la ligne comme déjà traitée par `classifyHoldings` (succès ou non). */
   classifiedAt?: string; // ISO
   notes?: string;
 }

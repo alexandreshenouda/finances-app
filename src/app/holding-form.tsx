@@ -4,9 +4,10 @@ import { C, useStyles } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
 import { todayKey } from '@/lib/format';
 import { accountCurrentValue } from '@/lib/portfolio';
+import { fetchJustEtfClassification } from '@/lib/prices/justetf';
 import { searchYahooSymbol } from '@/lib/prices/yahoo';
 import { useStore } from '@/lib/store';
-import { CURRENCIES, CURRENCY_LABELS, type Currency, type PriceSource } from '@/lib/types';
+import { CURRENCIES, CURRENCY_LABELS, type CountryCode, type Currency, type Holding, type PriceSource } from '@/lib/types';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -56,6 +57,11 @@ export default function HoldingForm() {
   const [unitPrice, setUnitPrice] = useState(existing?.unitPrice?.toString() ?? '');
   const [buyPrice, setBuyPrice] = useState(existing?.buyPrice?.toString() ?? '');
   const [feesPct, setFeesPct] = useState(existing?.feesPct?.toString() ?? '');
+  const [sectorWeights, setSectorWeights] = useState<Holding['sectorWeights']>(existing?.sectorWeights);
+  const [countryWeights, setCountryWeights] = useState<Holding['countryWeights']>(existing?.countryWeights);
+  const [topHoldings, setTopHoldings] = useState<Holding['topHoldings']>(existing?.topHoldings);
+  const [country, setCountry] = useState<CountryCode | undefined>(existing?.country);
+  const [classificationSource, setClassificationSource] = useState<Holding['classificationSource']>(existing?.classificationSource);
   const [resolvingIsin, setResolvingIsin] = useState(false);
 
   const resolveTickerFromIsin = async () => {
@@ -63,12 +69,39 @@ export default function HoldingForm() {
     if (!query) return;
     setResolvingIsin(true);
     try {
-      const matches = await searchYahooSymbol(query);
-      if (matches.length === 0) {
+      const [matches, justEtf] = await Promise.all([
+        searchYahooSymbol(query).catch(() => []),
+        fetchJustEtfClassification(query).catch(() => null),
+      ]);
+
+      if (matches.length > 0) {
+        setSymbol(matches[0].symbol);
+      }
+
+      let justEtfSummary = '';
+      if (justEtf) {
+        if (justEtf.name && !name.trim()) setName(justEtf.name);
+        if (justEtf.kind === 'etf') {
+          if (justEtf.feesPct !== undefined && !feesPct.trim()) setFeesPct(justEtf.feesPct.toString());
+          if (justEtf.sectorWeights.length > 0) setSectorWeights(justEtf.sectorWeights);
+          if (justEtf.countryWeights.length > 0) setCountryWeights(justEtf.countryWeights);
+          if (justEtf.topHoldings && justEtf.topHoldings.length > 0) setTopHoldings(justEtf.topHoldings);
+          if (justEtf.domicile) setCountry(justEtf.domicile);
+          setClassificationSource('justetf');
+          justEtfSummary = `\n\nDonnées JustETF synchronisées : composition sectorielle (${justEtf.sectorWeights.length} secteurs) et géographique (${justEtf.countryWeights.length} pays).`;
+        } else if (justEtf.kind === 'stock') {
+          if (justEtf.sectorWeights) setSectorWeights(justEtf.sectorWeights);
+          if (justEtf.country) setCountry(justEtf.country);
+          setClassificationSource('justetf');
+          justEtfSummary = '\n\nDonnées JustETF synchronisées : secteur et pays renseignés.';
+        }
+      }
+
+      if (matches.length === 0 && !justEtf) {
         notify(t('holdingForm.isin_resolve_titre'), t('holdingForm.isin_resolve_aucun', { isin: query }));
         return;
       }
-      setSymbol(matches[0].symbol);
+
       if (matches.length > 1) {
         const others = matches
           .slice(1, 5)
@@ -81,8 +114,15 @@ export default function HoldingForm() {
             name: matches[0].name,
             exchange: matches[0].exchange,
             others,
-          }),
+          }) + justEtfSummary,
         );
+      } else if (matches.length === 1) {
+        notify(
+          t('holdingForm.isin_resolve_titre'),
+          `Ticker retenu : ${matches[0].symbol} — ${matches[0].name} (${matches[0].exchange}).${justEtfSummary}`,
+        );
+      } else if (justEtf) {
+        notify(t('holdingForm.isin_resolve_titre'), `Informations trouvées sur JustETF.${justEtfSummary}`);
       }
     } catch (e: any) {
       notify(t('holdingForm.isin_resolve_titre'), e?.message ?? String(e));
@@ -115,6 +155,12 @@ export default function HoldingForm() {
       unitPriceDate: parseNum(unitPrice) !== undefined ? new Date().toISOString() : existing?.unitPriceDate,
       buyPrice: parseNum(buyPrice),
       feesPct: parseNum(feesPct),
+      sectorWeights,
+      countryWeights,
+      topHoldings,
+      country,
+      classificationSource,
+      classifiedAt: sectorWeights || country ? (existing?.classifiedAt ?? new Date().toISOString()) : undefined,
     });
     refreshAccountSnapshot();
     router.back();
