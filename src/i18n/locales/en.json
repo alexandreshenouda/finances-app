@@ -51,9 +51,7 @@
     "classer_ok_one": "{{count}} holding classified.",
     "classer_ok_other": "{{count}} holdings classified.",
     "classer_partiel_one": "{{count}} holding classified ({{issues}}).",
-    "classer_partiel_other": "{{count}} holdings classified ({{issues}}).",
-    "av_hint_titre": "Sector & Geographic Data",
-    "av_hint_texte": "Detailed breakdown of your ETFs and stocks is automatically scraped from JustETF. For uncovered US-listed assets, you can add a free Alpha Vantage key in Settings → Connections."
+    "classer_partiel_other": "{{count}} holdings classified ({{issues}})."
   },
   "riskProfiles": {
     "prudent": "Conservative",
@@ -308,14 +306,7 @@
     "kraken_bouton": "Kraken (read-only API key)",
     "tr_bouton": "Trade Republic (unofficial, 2FA)",
     "eb_bouton": "Banks via Enable Banking (Revolut, FR…)",
-    "ajouter_note": "Enable Banking (free, personal use) covers checking accounts via PSD2: French banks, and Revolut via Lithuania. PEA, brokerage, and life insurance accounts aren't covered by banking APIs: track them manually with automatic prices.\n\nTrade Republic uses an unofficial API (Android only, 2FA on every sync).",
-    "av_titre": "Sector classification (Alpha Vantage)",
-    "av_hint": "Optional: a free Alpha Vantage key (alphavantage.co) lets the Diversification tab classify the sector of your stocks and ETFs. Without a key, only geography (via ISIN) and crypto categories stay available.",
-    "av_cle": "Alpha Vantage API key",
-    "av_enregistree_titre": "Key saved",
-    "av_enregistree_texte": "Sector classification is now available on the Diversification tab.",
-    "av_supprimer_titre": "Remove the Alpha Vantage key?",
-    "av_supprimer_confirm": "Already-classified holdings keep their data; new ones won't get sector enrichment until a key is set again."
+    "ajouter_note": "Enable Banking (free, personal use) covers checking accounts via PSD2: French banks, and Revolut via Lithuania. PEA, brokerage, and life insurance accounts aren't covered by banking APIs: track them manually with automatic prices.\n\nTrade Republic uses an unofficial API (Android only, 2FA on every sync)."
   },
   "connectionForm": {
     "aide_kraken": "Create an API key on kraken.com → Settings → API with only the \"Query Funds\" permission.",

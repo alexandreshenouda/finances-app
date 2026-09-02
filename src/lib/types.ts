@@ -144,7 +144,7 @@ export type PriceSource = 'yahoo' | 'coingecko' | 'exchange' | 'manual';
 
 /** Secteur GICS simplifié, utilisé par les suggestions de diversification sectorielle
  * (voir `diversification.ts`) — ensemble fermé pour normaliser des libellés hétérogènes
- * venus de fournisseurs externes (Alpha Vantage, CoinGecko), même logique que
+ * venus de sources externes (JustETF, Yahoo, CoinGecko), même logique que
  * `AllocationBucket`. */
 export type SectorKey =
   | 'technology'
@@ -163,7 +163,7 @@ export type SectorKey =
 
 export const SECTOR_LABELS: Record<SectorKey, string> = createLabelProxy('sectors');
 
-/** Pays de l'émetteur (ISIN) ou du siège (Alpha Vantage), utilisé par les suggestions de
+/** Pays de l'émetteur (ISIN) ou de domiciliation (JustETF), utilisé par les suggestions de
  * diversification géographique. Ensemble volontairement restreint aux pays les plus
  * probables pour un investisseur français ; `autre` couvre le reste. */
 export type CountryCode =
@@ -213,7 +213,7 @@ export interface Holding {
   /** Frais courants du fonds, en % */
   feesPct?: number;
   /** Répartition sectorielle (voir `diversification.ts`) : une action = une entrée à 100 %,
-   * un ETF/fonds = la ventilation JustETF / Alpha Vantage. Poids sommant à 1. */
+   * un ETF/fonds = la ventilation JustETF. Poids sommant à 1. */
   sectorWeights?: { sector: SectorKey; weight: number }[];
   /** Pays de l'émetteur (action) ou de domiciliation (fonds) — approximatif pour un fonds,
    * seule info dispo hors `countryWeights`. */
@@ -223,7 +223,7 @@ export interface Holding {
   countryWeights?: { country: CountryCode; weight: number }[];
   /** 10 principales positions du fonds extraites de JustETF */
   topHoldings?: { isin?: string; name: string; weight: number }[];
-  classificationSource?: 'isin' | 'yahoo' | 'alphavantage' | 'coingecko' | 'reference' | 'justetf';
+  classificationSource?: 'isin' | 'yahoo' | 'coingecko' | 'reference' | 'justetf';
   /** Marque la ligne comme déjà traitée par `classifyHoldings` (succès ou non). */
   classifiedAt?: string; // ISO
   notes?: string;

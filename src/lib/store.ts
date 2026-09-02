@@ -63,11 +63,6 @@ interface AppState extends AppData {
   riskProfile: RiskProfile;
   setRiskProfile: (p: RiskProfile) => void;
 
-  /** L'utilisateur a fermé le bandeau "renseignez une clé Alpha Vantage" sur l'onglet
-   * Diversification — ne pas le réafficher tant qu'il n'a pas ajouté (ou retiré) la clé. */
-  dismissedAlphaVantageHint: boolean;
-  setDismissedAlphaVantageHint: (v: boolean) => void;
-
   /** Période affichée par défaut à l'ouverture (courbes et +/- value). */
   defaultPeriod: Period;
   setDefaultPeriod: (p: Period) => void;
@@ -149,9 +144,6 @@ export const useStore = create<AppState>()(
 
       riskProfile: 'equilibre',
       setRiskProfile: (p) => set({ riskProfile: p }),
-
-      dismissedAlphaVantageHint: false,
-      setDismissedAlphaVantageHint: (v) => set({ dismissedAlphaVantageHint: v }),
 
       defaultPeriod: '1A',
       setDefaultPeriod: (p) => set({ defaultPeriod: p }),
@@ -298,7 +290,6 @@ export const useStore = create<AppState>()(
           showEmpruntsTab: true,
           showDiversificationTab: true,
           riskProfile: 'equilibre',
-          dismissedAlphaVantageHint: false,
           defaultPeriod: '1A',
           privacyMode: false,
           language: detectDeviceLanguage(),
@@ -363,7 +354,6 @@ export const useStore = create<AppState>()(
         showEmpruntsTab: s.showEmpruntsTab,
         showDiversificationTab: s.showDiversificationTab,
         riskProfile: s.riskProfile,
-        dismissedAlphaVantageHint: s.dismissedAlphaVantageHint,
         defaultPeriod: s.defaultPeriod,
         privacyMode: s.privacyMode,
         language: s.language,

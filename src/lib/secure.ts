@@ -4,8 +4,8 @@
  * Web : localStorage en repli — les appels bancaires sont de toute façon
  * bloqués par CORS dans un navigateur, le web sert surtout au suivi manuel.
  */
-import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 const PREFIX = 'patrimoine.secret.';
 
@@ -36,7 +36,3 @@ export async function deleteSecret(key: string): Promise<void> {
 export function connectionSecretKey(connectionId: string): string {
   return `conn.${connectionId}`;
 }
-
-/** Clé API Alpha Vantage (classification sectorielle/géographique, voir `classification.ts`) —
- * un seul secret global, pas de connexion par compte. */
-export const ALPHA_VANTAGE_SECRET_KEY = 'alphavantage.apiKey';

@@ -51,9 +51,7 @@
     "classer_ok_one": "{{count}} Position klassifiziert.",
     "classer_ok_other": "{{count}} Positionen klassifiziert.",
     "classer_partiel_one": "{{count}} Position klassifiziert ({{issues}}).",
-    "classer_partiel_other": "{{count}} Positionen klassifiziert ({{issues}}).",
-    "av_hint_titre": "Sektor- und Geografiedaten",
-    "av_hint_texte": "Die detaillierte Aufteilung Ihrer ETFs und Aktien wird automatisch von JustETF abgerufen. Für nicht abgedeckte US-Werte können Sie unter Einstellungen → Verbindungen einen kostenlosen Alpha-Vantage-Schlüssel hinzufügen."
+    "classer_partiel_other": "{{count}} Positionen klassifiziert ({{issues}})."
   },
   "riskProfiles": {
     "prudent": "Defensiv",
@@ -308,14 +306,7 @@
     "kraken_bouton": "Kraken (schreibgeschützter API-Schlüssel)",
     "tr_bouton": "Trade Republic (inoffiziell, 2FA)",
     "eb_bouton": "Banken über Enable Banking (Revolut, FR…)",
-    "ajouter_note": "Enable Banking (kostenlos, private Nutzung) deckt Girokonten über PSD2 ab: französische Banken und Revolut über Litauen. PEA, Wertpapier- und Lebensversicherungskonten werden nicht von Banking-APIs abgedeckt: verfolgen Sie sie manuell mit automatischen Kursen.\n\nTrade Republic nutzt eine inoffizielle API (nur Android, 2FA bei jeder Synchronisierung).",
-    "av_titre": "Sektor-Klassifizierung (Alpha Vantage)",
-    "av_hint": "Optional: Ein kostenloser Alpha-Vantage-Schlüssel (alphavantage.co) ermöglicht die Sektor-Klassifizierung Ihrer Aktien und ETFs im Tab Diversifikation. Ohne Schlüssel bleiben nur die Region (via ISIN) und Krypto-Kategorien verfügbar.",
-    "av_cle": "Alpha Vantage API-Schlüssel",
-    "av_enregistree_titre": "Schlüssel gespeichert",
-    "av_enregistree_texte": "Die Sektor-Klassifizierung ist jetzt im Tab Diversifikation verfügbar.",
-    "av_supprimer_titre": "Alpha-Vantage-Schlüssel entfernen?",
-    "av_supprimer_confirm": "Bereits klassifizierte Positionen behalten ihre Daten; neue erhalten keine Sektor-Anreicherung mehr, bis erneut ein Schlüssel hinterlegt wird."
+    "ajouter_note": "Enable Banking (kostenlos, private Nutzung) deckt Girokonten über PSD2 ab: französische Banken und Revolut über Litauen. PEA, Wertpapier- und Lebensversicherungskonten werden nicht von Banking-APIs abgedeckt: verfolgen Sie sie manuell mit automatischen Kursen.\n\nTrade Republic nutzt eine inoffizielle API (nur Android, 2FA bei jeder Synchronisierung)."
   },
   "connectionForm": {
     "aide_kraken": "Erstellen Sie einen API-Schlüssel auf kraken.com → Settings → API nur mit der Berechtigung „Query Funds“.",

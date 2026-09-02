@@ -1,5 +1,4 @@
 /** Diversification : avertissement légal, comparaison à un profil de référence, suggestions. */
-import { AlphaVantageHint } from '@/components/AlphaVantageHint';
 import { InsightCard } from '@/components/InsightCard';
 import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import { Button, Card, Chips, Empty, ProgressBar, SectionTitle } from '@/components/ui';
@@ -10,7 +9,6 @@ import { accountCurrentValue, accountShare } from '@/lib/portfolio';
 import { classifyHoldings } from '@/lib/prices/classification';
 import { houseIndexSeries } from '@/lib/prices/houseIndex';
 import { realEstateTotals } from '@/lib/realestate';
-import { ALPHA_VANTAGE_SECRET_KEY, getSecret } from '@/lib/secure';
 import { useStore } from '@/lib/store';
 import {
     ALLOCATION_BUCKET_LABELS,
@@ -20,7 +18,7 @@ import {
     SECTOR_LABELS,
     type AccountType,
 } from '@/lib/types';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -51,7 +49,6 @@ function makeStyles() {
 export default function Diversification() {
   const styles = useStyles(makeStyles);
   const { t } = useTranslation();
-  const router = useRouter();
   const accounts = useStore((s) => s.accounts);
   const holdings = useStore((s) => s.holdings);
   const snapshots = useStore((s) => s.snapshots);
@@ -64,18 +61,12 @@ export default function Diversification() {
   const showRealEstate = useStore((s) => s.showRealEstate);
   const riskProfile = useStore((s) => s.riskProfile);
   const setRiskProfile = useStore((s) => s.setRiskProfile);
-  const dismissedAlphaVantageHint = useStore((s) => s.dismissedAlphaVantageHint);
-  const setDismissedAlphaVantageHint = useStore((s) => s.setDismissedAlphaVantageHint);
   useStore((s) => s.privacyMode); // re-render au changement de mode confidentialité
 
-  // Statut de la clé Alpha Vantage + auto-classification des lignes non traitées
-  const [hasAvKey, setHasAvKey] = useState<boolean | null>(null);
+  // Auto-classification en arrière-plan des lignes non classées ou sans secteurs
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      getSecret(ALPHA_VANTAGE_SECRET_KEY).then((v) => {
-        if (!cancelled) setHasAvKey(!!v?.trim());
-      });
 
       // Auto-classification en arrière-plan des lignes non classées ou sans secteurs
       const state = useStore.getState();
@@ -205,12 +196,6 @@ export default function Diversification() {
       )}
 
       <SectionTitle>{t('diversification.secteur_geo')}</SectionTitle>
-      {hasAvKey === false && !dismissedAlphaVantageHint && (
-        <AlphaVantageHint
-          onPress={() => router.push('/connections')}
-          onDismiss={() => setDismissedAlphaVantageHint(true)}
-        />
-      )}
 
       {/* ── Répartition sectorielle ── */}
       <Card>

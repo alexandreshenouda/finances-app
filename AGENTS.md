@@ -182,9 +182,8 @@ savings plans, PEA ceiling usage, etc.:
   1. CoinGecko for crypto assets (`sector: 'crypto'`).
   2. JustETF web-scraping by ISIN (first tries ETF profile, then Stock profile) → stores `countryWeights`, `sectorWeights`, `topHoldings`, `feesPct`, with `classificationSource: 'justetf'`.
   3. Yahoo Finance search (`searchYahooSymbol`) by ISIN/symbol for stock sector.
-  4. Alpha Vantage (`OVERVIEW` / `ETF_PROFILE`) if API key provided.
-  5. Local fallback table (`referenceEtfs.ts`) for common ETFs offline.
-  6. ISIN country prefix fallback for legal domicile.
+  4. Local fallback table (`referenceEtfs.ts`) for common ETFs offline.
+  5. ISIN country prefix fallback for legal domicile.
 - `CountryCode` in `src/lib/types.ts` covers major global markets (`FR`, `DE`, `IT`, `ES`, `NL`, `BE`, `LU`, `IE`, `GB`, `CH`, `US`, `CA`, `JP`, `CN`, `AU`, `TW`, `KR`, `IN`, `BR`, `SE`, `DK`, `NO`, `autre`).
 
 

@@ -1,9 +1,7 @@
 /**
  * Normalisation des libellés de secteur vers le `SectorKey` fermé de `types.ts`. Partagée
- * entre Yahoo (`sector` du résultat de recherche, ex : "Consumer Cyclical") et Alpha Vantage
- * (`Sector` de OVERVIEW, ex : "TECHNOLOGY" ; `sectors[].sector` de ETF_PROFILE, ex :
- * "INFORMATION TECHNOLOGY") — deux fournisseurs, deux casses, des taxonomies légèrement
- * différentes pour la même réalité, normalisées ici une seule fois.
+ * entre JustETF, Yahoo (`sector` du résultat de recherche, ex : "Consumer Cyclical") et CoinGecko
+ * — différentes sources et taxonomies normalisées ici une seule fois.
  */
 import type { SectorKey } from '../types';
 

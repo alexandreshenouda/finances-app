@@ -92,8 +92,7 @@ pour le détail des contraintes.
 - **Diversification sectorielle & géographique** : onglet dédié comparant votre patrimoine à un
   profil de référence (Prudent, Équilibré, Dynamique) et alertant sur les concentrations excessives.
 - **Classification multi-sources** : JustETF (scraping temps réel pour ETFs UCITS et actions) →
-  Yahoo Finance (secteur actions) → Alpha Vantage (clé gratuite optionnelle pour valeurs US) →
-  table locale de repli (`referenceEtfs.ts`).
+  Yahoo Finance (secteur actions) → table locale de repli (`referenceEtfs.ts`).
 
 **Immobilier & crédits**
 - **Immobilier** : onglet dédié pour les biens physiques (appartement, maison, terrain…) —
@@ -224,7 +223,7 @@ src/
     secure.ts          secrets (expo-secure-store, repli localStorage sur web)
     portfolio.ts       valorisation comptes + construction des séries temporelles
     realestate.ts      estimation des biens, amortissement des crédits (constant/paliers)
-    prices/            Yahoo Finance, CoinGecko, JustETF scraper (ETFs & actions), Alpha Vantage & indice INSEE
+    prices/            Yahoo Finance, CoinGecko, JustETF scraper (ETFs & actions) & indice INSEE
     connectors/        Binance, Kraken, Enable Banking (JWT RS256)
 ```
 

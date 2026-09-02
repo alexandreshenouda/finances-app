@@ -51,9 +51,7 @@
     "classer_ok_one": "{{count}} ligne classée.",
     "classer_ok_other": "{{count}} lignes classées.",
     "classer_partiel_one": "{{count}} ligne classée ({{issues}}).",
-    "classer_partiel_other": "{{count}} lignes classées ({{issues}}).",
-    "av_hint_titre": "Données sectorielles et géographiques",
-    "av_hint_texte": "La composition détaillée de vos ETFs et actions est récupérée automatiquement via JustETF. Pour les valeurs cotées aux US non couvertes, vous pouvez ajouter une clé Alpha Vantage gratuite dans Réglages → Connexions."
+    "classer_partiel_other": "{{count}} lignes classées ({{issues}})."
   },
   "riskProfiles": {
     "prudent": "Prudent",
@@ -308,14 +306,7 @@
     "kraken_bouton": "Kraken (clé API lecture seule)",
     "tr_bouton": "Trade Republic (non officiel, 2FA)",
     "eb_bouton": "Banques via Enable Banking (Revolut, FR…)",
-    "ajouter_note": "Enable Banking (gratuit, usage personnel) couvre les comptes courants via DSP2 : banques françaises, et Revolut via la Lituanie. Les PEA, CTO et assurances vie ne sont pas couverts par les API bancaires : suivez-les en manuel avec cours automatiques.\n\nTrade Republic utilise une API non officielle (Android uniquement, 2FA à chaque synchro).",
-    "av_titre": "Classification sectorielle (Alpha Vantage)",
-    "av_hint": "Optionnel : une clé gratuite Alpha Vantage (alphavantage.co) permet de classer le secteur de vos actions et ETF sur l'onglet Diversification. Sans clé, seules la géographie (via l'ISIN) et les catégories crypto restent disponibles.",
-    "av_cle": "Clé API Alpha Vantage",
-    "av_enregistree_titre": "Clé enregistrée",
-    "av_enregistree_texte": "La classification sectorielle est maintenant disponible sur l'onglet Diversification.",
-    "av_supprimer_titre": "Retirer la clé Alpha Vantage ?",
-    "av_supprimer_confirm": "Les lignes déjà classées gardent leurs données ; les nouvelles ne seront plus enrichies en secteur tant qu'aucune clé n'est renseignée."
+    "ajouter_note": "Enable Banking (gratuit, usage personnel) couvre les comptes courants via DSP2 : banques françaises, et Revolut via la Lituanie. Les PEA, CTO et assurances vie ne sont pas couverts par les API bancaires : suivez-les en manuel avec cours automatiques.\n\nTrade Republic utilise une API non officielle (Android uniquement, 2FA à chaque synchro)."
   },
   "connectionForm": {
     "aide_kraken": "Créez une clé API sur kraken.com → Settings → API avec la seule permission « Query Funds ».",

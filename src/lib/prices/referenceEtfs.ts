@@ -1,9 +1,7 @@
 /**
  * Repli local ("cold data", zéro réseau, zéro clé) pour les ETF les plus détenus par un
  * investisseur français/européen — utilisé en dernier recours par `classification.ts` quand
- * ni Yahoo (jamais de composition pour un fonds) ni Alpha Vantage (couverture confirmée
- * limitée aux six bourses américaines via `LISTING_STATUS` — aucune donnée européenne, quelle
- * que soit la clé) n'ont de secteur à proposer.
+ * ni JustETF ni Yahoo n'ont pu fournir de composition.
  *
  * Chiffres saisis à la main depuis les fiches officielles de l'indice/du gérant (pas un flux
  * temps réel) — une photo à une date donnée, largement suffisante pour un indicateur de

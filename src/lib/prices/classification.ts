@@ -6,16 +6,12 @@
  *    (pays, secteurs, top 10 positions, TER), et pays/secteur pour actions. Couvre l'ensemble
  *    des ETFs UCITS européens et actions internationales, gratuit, sans clé.
  * 3. Yahoo (recherche par ISIN ou ticker) → secteur d'une action individuelle, gratuit, sans clé.
- * 4. Alpha Vantage (optionnel, clé utilisateur) → pour les actions/ETFs cotés US si JustETF/Yahoo
- *    n'ont rien donné.
- * 5. Table locale (`referenceEtfs.ts`, aucun réseau) → dernier recours hors-ligne pour les ETF
+ * 4. Table locale (`referenceEtfs.ts`, aucun réseau) → dernier recours hors-ligne pour les ETF
  *    les plus courants.
- * 6. Préfixe ISIN → pays juridique de repli si aucune autre source géographique n'a répondu.
+ * 5. Préfixe ISIN → pays juridique de repli si aucune autre source géographique n'a répondu.
  */
-import { ALPHA_VANTAGE_SECRET_KEY, getSecret } from '../secure';
 import { useStore } from '../store';
 import type { CountryCode, Holding } from '../types';
-import { fetchAlphaVantageEtfProfile, fetchAlphaVantageOverview } from './alphavantage';
 import { fetchCoinGeckoCategory } from './coingecko';
 import { fetchJustEtfClassification } from './justetf';
 import { referenceEtfForIsin } from './referenceEtfs';
@@ -55,56 +51,6 @@ export function countryFromIsin(isin: string | undefined): CountryCode | undefin
   return ISIN_COUNTRY[prefix] ?? 'autre';
 }
 
-const AV_COUNTRY_NAMES: Record<string, CountryCode> = {
-  FRANCE: 'FR',
-  GERMANY: 'DE',
-  ITALY: 'IT',
-  SPAIN: 'ES',
-  NETHERLANDS: 'NL',
-  BELGIUM: 'BE',
-  LUXEMBOURG: 'LU',
-  IRELAND: 'IE',
-  'UNITED KINGDOM': 'GB',
-  SWITZERLAND: 'CH',
-  USA: 'US',
-  'UNITED STATES': 'US',
-  CANADA: 'CA',
-  JAPAN: 'JP',
-  CHINA: 'CN',
-  AUSTRALIA: 'AU',
-  TAIWAN: 'TW',
-  'SOUTH KOREA': 'KR',
-  INDIA: 'IN',
-  BRAZIL: 'BR',
-  SWEDEN: 'SE',
-  DENMARK: 'DK',
-  NORWAY: 'NO',
-};
-
-function countryFromAvName(raw: string | undefined): CountryCode | undefined {
-  if (!raw) return undefined;
-  return AV_COUNTRY_NAMES[raw.trim().toUpperCase()] ?? 'autre';
-}
-
-/** Nombre maximal d'appels Alpha Vantage par passage — garde une marge sous le quota
- * journalier gratuit (25/jour) même si l'utilisateur relance plusieurs fois dans la journée. */
-const MAX_AV_CALLS = 20;
-
-/** Alpha Vantage limite en plus à 1 requête/seconde (burst) — respecté ici en espaçant tout
- * appel réseau vers l'API, quel que soit le point d'appel (OVERVIEW ou ETF_PROFILE). */
-const AV_MIN_INTERVAL_MS = 1100;
-let lastAvCallAt = 0;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function throttleAv(): Promise<void> {
-  const wait = lastAvCallAt + AV_MIN_INTERVAL_MS - Date.now();
-  if (wait > 0) await sleep(wait);
-  lastAvCallAt = Date.now();
-}
-
 export interface ClassifyResult {
   classified: number;
   errors: string[];
@@ -119,9 +65,6 @@ export async function classifyHoldings(options?: { forceAll?: boolean }): Promis
     (h) => options?.forceAll || !h.classifiedAt || (!h.sectorWeights && !!h.isin?.trim()),
   );
   if (pending.length === 0) return { classified: 0, errors: [] };
-
-  const apiKey = (await getSecret(ALPHA_VANTAGE_SECRET_KEY))?.trim() || null;
-  let avCallsUsed = 0;
 
   for (const h of pending) {
     const isCrypto = h.priceSource === 'coingecko' && !!h.symbol?.trim();
@@ -195,38 +138,8 @@ export async function classifyHoldings(options?: { forceAll?: boolean }): Promis
       }
     }
 
-    // 3. Alpha Vantage ensuite, seulement si JustETF + Yahoo n'ont rien donné
-    // (et qu'une clé utilisateur est configurée).
-    const wantsAv = !sectorWeights && !!apiKey && !!h.symbol?.trim();
-    let deferred = false;
-    if (wantsAv && avCallsUsed >= MAX_AV_CALLS) {
-      deferred = true;
-    } else if (wantsAv) {
-      const symbol = h.symbol!.trim();
-      avCallsUsed++;
-      await throttleAv();
-      try {
-        const overview = await fetchAlphaVantageOverview(symbol, apiKey!);
-        sectorWeights = [{ sector: overview.sector, weight: 1 }];
-        country = countryFromAvName(overview.country) ?? country;
-        source = 'alphavantage';
-      } catch {
-        avCallsUsed++;
-        await throttleAv();
-        try {
-          const etf = await fetchAlphaVantageEtfProfile(symbol, apiKey!);
-          if (etf.sectorWeights.length > 0) {
-            sectorWeights = etf.sectorWeights;
-            source = 'alphavantage';
-          }
-        } catch (e: any) {
-          if (!holdingError) holdingError = e?.message ?? String(e);
-        }
-      }
-    }
-
-    // 4. Dernier recours, sans réseau : table locale des ETF les plus courants (voir
-    // `referenceEtfs.ts`), si toujours rien après JustETF + Yahoo + Alpha Vantage.
+    // 3. Dernier recours, sans réseau : table locale des ETF les plus courants (voir
+    // `referenceEtfs.ts`), si toujours rien après JustETF + Yahoo.
     if (!sectorWeights) {
       const ref = referenceEtfForIsin(h.isin);
       if (ref) {
@@ -238,6 +151,7 @@ export async function classifyHoldings(options?: { forceAll?: boolean }): Promis
     }
 
     // Si on a trouvé un secteur ou des pays, la ligne est classée avec succès
+    let deferred = false;
     if (sectorWeights || countryWeights) {
       deferred = false;
     } else if (holdingError) {
