@@ -53,6 +53,13 @@ function makeStyles() {
     feeLabel: { color: C.textDim, fontSize: 14 },
     feeValue: { color: C.text, fontSize: 14, fontWeight: '600' },
     feeNotes: { color: C.textFaint, fontSize: 13, marginTop: 8 },
+    viewBtn: {
+      backgroundColor: C.cardAlt,
+      borderRadius: 6,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+    },
+    viewBtnText: { color: C.accent, fontSize: 12, fontWeight: '600' },
   });
 }
 
@@ -174,6 +181,10 @@ export default function AccountDetail() {
           {holdings.map((h, i) => {
             const perf = holdingPerfPct(h);
             const hCur = holdingCurrency(h, account);
+            const hasClassification =
+              (h.sectorWeights && h.sectorWeights.length > 0) ||
+              (h.countryWeights && h.countryWeights.length > 0) ||
+              !!h.country;
             return (
               <Pressable
                 key={h.id}
@@ -189,12 +200,24 @@ export default function AccountDetail() {
                     {h.feesPct !== undefined ? `  ·  ${t('accountDetail.frais', { pct: formatPct(h.feesPct, false, 2) })}` : ''}
                   </Text>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
+                <View style={{ alignItems: 'flex-end', gap: 4 }}>
                   <Text style={styles.holdingValue}>{formatEur(holdingValueEur(h, account, rates))}</Text>
                   {perf !== undefined && (
                     <Text style={{ color: perf >= 0 ? C.positive : C.negative, fontSize: 12, fontWeight: '600' }}>
                       {formatPct(perf, true)}
                     </Text>
+                  )}
+                  {hasClassification && (
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        router.push({ pathname: '/holding-detail' as any, params: { holdingId: h.id } });
+                      }}
+                      hitSlop={8}
+                      style={({ pressed }) => [styles.viewBtn, { opacity: pressed ? 0.6 : 1 }]}
+                    >
+                      <Text style={styles.viewBtnText}>{t('accountDetail.voir_bouton')} →</Text>
+                    </Pressable>
                   )}
                 </View>
               </Pressable>

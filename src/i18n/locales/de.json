@@ -535,6 +535,25 @@
     "supprimer_titre": "Position löschen",
     "supprimer_confirm": "„{{name}}“ wird gelöscht."
   },
+  "holdingDetail": {
+    "titre": "Position – Details",
+    "introuvable": "Position nicht gefunden.",
+    "source_label": "Quelle: {{source}}",
+    "classe_le": "Klassifiziert am {{date}}",
+    "marche": "Marktdaten",
+    "quantite": "Anzahl",
+    "cours_unitaire": "Stückpreis",
+    "pru": "Einstandspreis (PRU)",
+    "valeur_totale": "Gesamtwert",
+    "frais_courants": "Laufende Kosten (TER)",
+    "plus_value": "Unrealisierter Gewinn/Verlust",
+    "secteurs": "Sektorverteilung",
+    "geographie": "Geografische Verteilung",
+    "top_positions": "Top-Positionen",
+    "aucune_donnee": "Keine Klassifizierungsdaten für diese Position verfügbar.",
+    "note_source": "Daten von JustETF, Yahoo Finance oder CoinGecko. Nur zur Information — überprüfen Sie die Daten direkt beim Emittenten.",
+    "voir_bouton": "Ansehen"
+  },
   "eraseHistory": {
     "mode_avant": "Vor einem Datum",
     "mode_entre": "Zwischen zwei Daten",
@@ -583,7 +602,8 @@
     "frais_titre": "Gebühren",
     "frais_garde_an": "Verwahrgebühren / Jahr",
     "modifier": "Konto bearbeiten",
-    "supprimer_bouton": "Konto löschen"
+    "supprimer_bouton": "Konto löschen",
+    "voir_bouton": "Ansehen"
   },
   "propertyDetail": {
     "introuvable": "Immobilie nicht gefunden.",

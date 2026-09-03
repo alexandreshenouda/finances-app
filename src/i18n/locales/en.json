@@ -535,6 +535,25 @@
     "supprimer_titre": "Delete holding",
     "supprimer_confirm": "\"{{name}}\" will be deleted."
   },
+  "holdingDetail": {
+    "titre": "Holding detail",
+    "introuvable": "Holding not found.",
+    "source_label": "Source: {{source}}",
+    "classe_le": "Classified on {{date}}",
+    "marche": "Market data",
+    "quantite": "Quantity",
+    "cours_unitaire": "Unit price",
+    "pru": "Cost basis (PRU)",
+    "valeur_totale": "Total value",
+    "frais_courants": "Ongoing charges (TER)",
+    "plus_value": "Unrealized gain/loss",
+    "secteurs": "Sector breakdown",
+    "geographie": "Geographic breakdown",
+    "top_positions": "Top holdings",
+    "aucune_donnee": "No classification data available for this holding.",
+    "note_source": "Data sourced from JustETF, Yahoo Finance, or CoinGecko. For reference only — verify directly with the fund issuer.",
+    "voir_bouton": "View"
+  },
   "eraseHistory": {
     "mode_avant": "Before a date",
     "mode_entre": "Between two dates",
@@ -583,7 +602,8 @@
     "frais_titre": "Fees",
     "frais_garde_an": "Custody fees / year",
     "modifier": "Edit account",
-    "supprimer_bouton": "Delete account"
+    "supprimer_bouton": "Delete account",
+    "voir_bouton": "View"
   },
   "propertyDetail": {
     "introuvable": "Property not found.",

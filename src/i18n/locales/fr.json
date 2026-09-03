@@ -535,6 +535,25 @@
     "supprimer_titre": "Supprimer la ligne",
     "supprimer_confirm": "« {{name}} » sera supprimée."
   },
+  "holdingDetail": {
+    "titre": "Détail de la ligne",
+    "introuvable": "Ligne introuvable.",
+    "source_label": "Source : {{source}}",
+    "classe_le": "Classé le {{date}}",
+    "marche": "Données de marché",
+    "quantite": "Quantité",
+    "cours_unitaire": "Cours unitaire",
+    "pru": "Prix de revient (PRU)",
+    "valeur_totale": "Valeur totale",
+    "frais_courants": "Frais courants (TER)",
+    "plus_value": "+/- value latente",
+    "secteurs": "Répartition sectorielle",
+    "geographie": "Répartition géographique",
+    "top_positions": "Principales positions",
+    "aucune_donnee": "Aucune donnée de classification disponible pour cette ligne.",
+    "note_source": "Données issues de JustETF, Yahoo Finance ou CoinGecko. À titre indicatif — vérifiez les données directement auprès de l'émetteur.",
+    "voir_bouton": "Voir"
+  },
   "eraseHistory": {
     "mode_avant": "Avant une date",
     "mode_entre": "Entre deux dates",
@@ -583,7 +602,8 @@
     "frais_titre": "Frais",
     "frais_garde_an": "Droits de garde / an",
     "modifier": "Modifier le compte",
-    "supprimer_bouton": "Supprimer le compte"
+    "supprimer_bouton": "Supprimer le compte",
+    "voir_bouton": "Voir"
   },
   "propertyDetail": {
     "introuvable": "Bien introuvable.",

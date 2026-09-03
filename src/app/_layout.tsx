@@ -74,6 +74,7 @@ export default function RootLayout() {
         <Stack.Screen name="connection-form" options={{ title: t('connections.nouvelle'), presentation: 'modal' }} />
         <Stack.Screen name="eb-connect" options={{ title: t('ebConnect.label_defaut') }} />
         <Stack.Screen name="tr-connect" options={{ title: 'Trade Republic' }} />
+        <Stack.Screen name="holding-detail" options={{ title: t('holdingDetail.titre'), presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
   );

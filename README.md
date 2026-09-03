@@ -215,7 +215,11 @@ src/
   app/                 écrans (expo-router) : onglets Synthèse / Comptes / Immobilier /
                        Emprunts / Paramètres (connexions, sauvegarde, affichage, entretien
                        de l'historique), détail de compte et de bien, formulaires (compte,
-                       ligne, bien, prêt), flux Enable Banking
+                       ligne, bien, prêt), flux Enable Banking.
+                       `holding-detail` : modal de détail d'une ligne classifiée — répartition
+                       sectorielle, géographique, top positions, TER, source de classification
+                       (JustETF / Yahoo / CoinGecko / référence locale). Accessible via le bouton
+                       « Voir » sur les lignes qui ont des données de classification.
   components/          LineChart (SVG), AllocationBar, PieChart, ProgressBar, primitives UI
   lib/
     types.ts           modèle : Account, Holding, Snapshot, Connection, Property, Loan
