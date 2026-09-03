@@ -1,3 +1,4 @@
+import { ThemedDialogContainer } from '@/components/ThemedDialog';
 import { C } from '@/constants/theme';
 import i18next from '@/lib/i18n';
 import { useStore } from '@/lib/store';
@@ -76,6 +77,7 @@ export default function RootLayout() {
         <Stack.Screen name="tr-connect" options={{ title: 'Trade Republic' }} />
         <Stack.Screen name="holding-detail" options={{ title: t('holdingDetail.titre'), presentation: 'modal' }} />
       </Stack>
+      <ThemedDialogContainer />
     </ThemeProvider>
   );
 }

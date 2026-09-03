@@ -1,21 +1,56 @@
-/** Confirmation destructive multiplateforme (Alert natif / confirm web). */
-import { Alert, Platform } from 'react-native';
+/**
+ * Boîtes de dialogue et alertes thématisées multiplateformes.
+ * Remplace Alert.alert et confirm/alert natifs par un composant Modal React Native
+ * qui respecte scrupuleusement la palette C de l'application (thème or / classique).
+ */
+import { create } from 'zustand';
 
-export function confirmAction(title: string, message: string, onConfirm: () => void): void {
-  if (Platform.OS === 'web') {
-    if (globalThis.confirm?.(`${title}\n\n${message}`)) onConfirm();
-    return;
-  }
-  Alert.alert(title, message, [
-    { text: 'Annuler', style: 'cancel' },
-    { text: 'Supprimer', style: 'destructive', onPress: onConfirm },
-  ]);
+export interface DialogOptions {
+  title: string;
+  message: string;
+  type?: 'alert' | 'confirm';
+  confirmText?: string;
+  cancelText?: string;
+  destructive?: boolean;
+  onConfirm?: () => void;
+  onCancel?: () => void;
 }
 
-export function notify(title: string, message: string): void {
-  if (Platform.OS === 'web') {
-    globalThis.alert?.(`${title}\n\n${message}`);
-    return;
-  }
-  Alert.alert(title, message);
+interface DialogStoreState {
+  current: DialogOptions | null;
+  showDialog: (opts: DialogOptions) => void;
+  hideDialog: () => void;
+}
+
+export const useDialogStore = create<DialogStoreState>((set) => ({
+  current: null,
+  showDialog: (opts) => set({ current: opts }),
+  hideDialog: () => set({ current: null }),
+}));
+
+export function confirmAction(
+  title: string,
+  message: string,
+  onConfirm: () => void,
+  options?: { confirmText?: string; cancelText?: string; destructive?: boolean }
+): void {
+  useDialogStore.getState().showDialog({
+    title,
+    message,
+    type: 'confirm',
+    confirmText: options?.confirmText ?? 'Supprimer',
+    cancelText: options?.cancelText ?? 'Annuler',
+    destructive: options?.destructive ?? true,
+    onConfirm,
+  });
+}
+
+export function notify(title: string, message: string, onDismiss?: () => void): void {
+  useDialogStore.getState().showDialog({
+    title,
+    message,
+    type: 'alert',
+    confirmText: 'OK',
+    onConfirm: onDismiss,
+  });
 }

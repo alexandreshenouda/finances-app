@@ -13,7 +13,7 @@
 import { useStore } from '../store';
 import type { CountryCode, Holding } from '../types';
 import { fetchCoinGeckoCategory } from './coingecko';
-import { fetchJustEtfClassification } from './justetf';
+import { clearJustEtfCache, fetchJustEtfClassification } from './justetf';
 import { referenceEtfForIsin } from './referenceEtfs';
 import { normalizeSector } from './sectors';
 import { searchYahooSymbol } from './yahoo';
@@ -89,6 +89,9 @@ export async function classifyHoldings(options?: { forceAll?: boolean }): Promis
 
   const { holdings, upsertHolding } = useStore.getState();
   const forceAll = options?.forceAll ?? false;
+  if (forceAll) {
+    clearJustEtfCache();
+  }
   const pending = holdings.filter((h) => needsClassification(h, forceAll));
   if (pending.length === 0) return { classified: 0, errors: [] };
 

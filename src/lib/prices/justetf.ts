@@ -291,6 +291,10 @@ export type JustEtfClassification =
 
 const classificationCache = new Map<string, JustEtfClassification | null>();
 
+export function clearJustEtfCache(): void {
+  classificationCache.clear();
+}
+
 async function fetchWithTimeout(
   url: string,
   options: RequestInit = {},

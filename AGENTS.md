@@ -35,6 +35,7 @@ masking is first rewritten to flow through props/context/store subscription.
   values (which would freeze colors at module initialization time). Always wrap styles in a `makeStyles`
   factory function and call `const styles = useStyles(makeStyles);` inside each component. `useStyles`
   memoizes the StyleSheet on the active theme and recalculates automatically upon theme switch.
+- **Themed dialogs & alerts**: `notify` and `confirmAction` in `src/lib/confirm.ts` do not use native OS/browser `Alert.alert` or `window.alert` (which break the dark/gold theme). They are backed by a zustand store and rendered by `<ThemedDialogContainer />` in `src/app/_layout.tsx`, using `Modal`, `C.card`, `C.border`, `C.text`, and `useStyles`.
 
 ## Ownership quote-part (SCI / indivision)
 Both `Property.ownershipPct` and `Account.ownershipPct` (optional, `undefined` = 100%)
@@ -94,7 +95,9 @@ in via resvg's font option loading Liberation Sans
 `src/app/(tabs)/settings.tsx` is a menu screen linking to sub-screens (not nested
 tabs): `connections.tsx`, `backup.tsx`, `display-settings.tsx` (default period for
 charts/+/- value, `store.defaultPeriod`), `erase-history.tsx` (delete snapshots before
-a date or between two dates, per-account or all — for fixing bad manual entries), and
+a date or between two dates, per-account or all — for fixing bad manual entries),
+`dev-tools.tsx` (connector debug log), a "reclassify all holdings" action
+(`classifyHoldings({ forceAll: true })` clearing the JustETF in-memory cache), and
 a "wipe all data" action with confirmation (`store.resetAll()`).
 
 ## Period chips
@@ -186,6 +189,7 @@ savings plans, PEA ceiling usage, etc.:
   5. ISIN country prefix fallback for legal domicile.
 - **Retry cooldown**: when all sources fail to find sector/country data for an ISIN, `Holding.classificationRetryAfter` (ISO timestamp) is set 7 days in the future. The `needsClassification(h)` helper (exported from `classification.ts`) checks this field before queuing a holding — preventing repeated HTTP scrapes on every Diversification screen focus. The same helper is used both by `classifyHoldings()` and by the `useFocusEffect` in `diversification.tsx` so the logic stays in one place.
 - Network errors (transient failures) are **not** cooled down — those holdings remain eligible for the next focus so they retry automatically when connectivity is restored.
+- **Force re-classification**: triggered via the "Classer mes lignes" button in the Diversification tab or "Reclassifier toutes les lignes" in Paramètres → Avancé (`classifyHoldings({ forceAll: true })`). This wipes the in-memory JustETF cache via `clearJustEtfCache()` and re-queries JustETF / Yahoo for all holdings regardless of existing classification.
 - `CountryCode` in `src/lib/types.ts` covers major global markets (`FR`, `DE`, `IT`, `ES`, `NL`, `BE`, `LU`, `IE`, `GB`, `CH`, `SE`, `DK`, `NO`, `FI`, `AT`, `PT`, `GR`, `IS` for Western Europe; `PL`, `CZ`, `HU`, `RO`, `TR` for Eastern Europe; `US`, `CA`, `MX`, `BR`, `CL`, `CO`, `PE`, `AR` for the Americas; `JP`, `AU`, `NZ`, `SG`, `HK` for developed Asia-Pacific; `CN`, `TW`, `KR`, `IN`, `TH`, `MY`, `ID`, `PH`, `VN`, `PK` for Emerging Asia; `SA`, `AE`, `QA`, `KW`, `BH`, `OM`, `IL`, `EG`, `MA` for Middle-East/North Africa; `ZA`, `NG`, `KE` for Sub-Saharan Africa; `autre` for everything else).
 
 
