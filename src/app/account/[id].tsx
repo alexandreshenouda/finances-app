@@ -21,6 +21,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 function makeStyles() {
   return StyleSheet.create({
@@ -53,13 +54,7 @@ function makeStyles() {
     feeLabel: { color: C.textDim, fontSize: 14 },
     feeValue: { color: C.text, fontSize: 14, fontWeight: '600' },
     feeNotes: { color: C.textFaint, fontSize: 13, marginTop: 8 },
-    viewBtn: {
-      backgroundColor: C.cardAlt,
-      borderRadius: 6,
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-    },
-    viewBtnText: { color: C.accent, fontSize: 12, fontWeight: '600' },
+    eyeBtn: { padding: 4, marginLeft: 6 },
   });
 }
 
@@ -200,24 +195,35 @@ export default function AccountDetail() {
                     {h.feesPct !== undefined ? `  ·  ${t('accountDetail.frais', { pct: formatPct(h.feesPct, false, 2) })}` : ''}
                   </Text>
                 </View>
-                <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={styles.holdingValue}>{formatEur(holdingValueEur(h, account, rates))}</Text>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.holdingValue}>{formatEur(holdingValueEur(h, account, rates))}</Text>
+                    {hasClassification && (
+                      <Pressable
+                        onPress={(e) => {
+                          e.stopPropagation?.();
+                          router.push({ pathname: '/holding-detail' as any, params: { holdingId: h.id } });
+                        }}
+                        hitSlop={8}
+                        style={({ pressed }) => [styles.eyeBtn, { opacity: pressed ? 0.5 : 1 }]}
+                      >
+                        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                          <Path
+                            d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
+                            stroke={C.accent}
+                            strokeWidth={2}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <Circle cx={12} cy={12} r={3} stroke={C.accent} strokeWidth={2} />
+                        </Svg>
+                      </Pressable>
+                    )}
+                  </View>
                   {perf !== undefined && (
                     <Text style={{ color: perf >= 0 ? C.positive : C.negative, fontSize: 12, fontWeight: '600' }}>
                       {formatPct(perf, true)}
                     </Text>
-                  )}
-                  {hasClassification && (
-                    <Pressable
-                      onPress={(e) => {
-                        e.stopPropagation?.();
-                        router.push({ pathname: '/holding-detail' as any, params: { holdingId: h.id } });
-                      }}
-                      hitSlop={8}
-                      style={({ pressed }) => [styles.viewBtn, { opacity: pressed ? 0.6 : 1 }]}
-                    >
-                      <Text style={styles.viewBtnText}>{t('accountDetail.voir_bouton')} →</Text>
-                    </Pressable>
                   )}
                 </View>
               </Pressable>

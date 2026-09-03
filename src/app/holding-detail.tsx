@@ -247,3 +247,4 @@ function ValueRow({ label, value, last }: { label: string; value: string; last: 
     </View>
   );
 }
+

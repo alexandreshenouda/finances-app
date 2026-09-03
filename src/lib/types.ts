@@ -164,9 +164,10 @@ export type SectorKey =
 export const SECTOR_LABELS: Record<SectorKey, string> = createLabelProxy('sectors');
 
 /** Pays de l'émetteur (ISIN) ou de domiciliation (JustETF), utilisé par les suggestions de
- * diversification géographique. Ensemble volontairement restreint aux pays les plus
- * probables pour un investisseur français ; `autre` couvre le reste. */
+ * diversification géographique. Couvre la quasi-totalité des marchés mondiaux présents dans
+ * les indices MSCI World, EM et Frontier ; `autre` couvre le reste. */
 export type CountryCode =
+  // Europe occidentale
   | 'FR'
   | 'DE'
   | 'IT'
@@ -177,18 +178,62 @@ export type CountryCode =
   | 'IE'
   | 'GB'
   | 'CH'
-  | 'US'
-  | 'CA'
-  | 'JP'
-  | 'CN'
-  | 'AU'
-  | 'TW'
-  | 'KR'
-  | 'IN'
-  | 'BR'
   | 'SE'
   | 'DK'
   | 'NO'
+  | 'FI' // Finlande
+  | 'AT' // Autriche
+  | 'PT' // Portugal
+  | 'GR' // Grèce
+  | 'IS' // Islande
+  // Europe de l'Est / Émergents Europe
+  | 'PL' // Pologne
+  | 'CZ' // République tchèque
+  | 'HU' // Hongrie
+  | 'RO' // Roumanie
+  | 'TR' // Turquie
+  // Amérique du Nord
+  | 'US'
+  | 'CA'
+  | 'MX' // Mexique
+  // Amérique latine
+  | 'BR'
+  | 'CL' // Chili
+  | 'CO' // Colombie
+  | 'PE' // Pérou
+  | 'AR' // Argentine
+  // Asie développée
+  | 'JP'
+  | 'AU'
+  | 'NZ' // Nouvelle-Zélande
+  | 'SG' // Singapour
+  | 'HK' // Hong Kong
+  // Asie émergente
+  | 'CN'
+  | 'TW'
+  | 'KR'
+  | 'IN'
+  | 'TH' // Thaïlande
+  | 'MY' // Malaisie
+  | 'ID' // Indonésie
+  | 'PH' // Philippines
+  | 'VN' // Vietnam
+  | 'PK' // Pakistan
+  // Moyen-Orient / Afrique du Nord
+  | 'SA' // Arabie saoudite
+  | 'AE' // Émirats arabes unis
+  | 'QA' // Qatar
+  | 'KW' // Koweït
+  | 'BH' // Bahreïn
+  | 'OM' // Oman
+  | 'IL' // Israël
+  | 'EG' // Égypte
+  | 'MA' // Maroc
+  // Afrique subsaharienne
+  | 'ZA' // Afrique du Sud
+  | 'NG' // Nigeria
+  | 'KE' // Kenya
+  // Autre
   | 'autre';
 
 export const COUNTRY_LABELS: Record<CountryCode, string> = createLabelProxy('countries');

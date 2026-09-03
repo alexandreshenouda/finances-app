@@ -186,7 +186,7 @@ savings plans, PEA ceiling usage, etc.:
   5. ISIN country prefix fallback for legal domicile.
 - **Retry cooldown**: when all sources fail to find sector/country data for an ISIN, `Holding.classificationRetryAfter` (ISO timestamp) is set 7 days in the future. The `needsClassification(h)` helper (exported from `classification.ts`) checks this field before queuing a holding — preventing repeated HTTP scrapes on every Diversification screen focus. The same helper is used both by `classifyHoldings()` and by the `useFocusEffect` in `diversification.tsx` so the logic stays in one place.
 - Network errors (transient failures) are **not** cooled down — those holdings remain eligible for the next focus so they retry automatically when connectivity is restored.
-- `CountryCode` in `src/lib/types.ts` covers major global markets (`FR`, `DE`, `IT`, `ES`, `NL`, `BE`, `LU`, `IE`, `GB`, `CH`, `US`, `CA`, `JP`, `CN`, `AU`, `TW`, `KR`, `IN`, `BR`, `SE`, `DK`, `NO`, `autre`).
+- `CountryCode` in `src/lib/types.ts` covers major global markets (`FR`, `DE`, `IT`, `ES`, `NL`, `BE`, `LU`, `IE`, `GB`, `CH`, `SE`, `DK`, `NO`, `FI`, `AT`, `PT`, `GR`, `IS` for Western Europe; `PL`, `CZ`, `HU`, `RO`, `TR` for Eastern Europe; `US`, `CA`, `MX`, `BR`, `CL`, `CO`, `PE`, `AR` for the Americas; `JP`, `AU`, `NZ`, `SG`, `HK` for developed Asia-Pacific; `CN`, `TW`, `KR`, `IN`, `TH`, `MY`, `ID`, `PH`, `VN`, `PK` for Emerging Asia; `SA`, `AE`, `QA`, `KW`, `BH`, `OM`, `IL`, `EG`, `MA` for Middle-East/North Africa; `ZA`, `NG`, `KE` for Sub-Saharan Africa; `autre` for everything else).
 
 
 ## Verification workflow

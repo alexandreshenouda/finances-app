@@ -19,7 +19,7 @@ const CORS_PROXIES = [
 ];
 
 const JUSTETF_COUNTRY_MAP: Record<string, CountryCode> = {
-  // English
+  // ── English ──────────────────────────────────────────────────────────────
   'UNITED STATES': 'US',
   USA: 'US',
   'UNITED KINGDOM': 'GB',
@@ -47,9 +47,47 @@ const JUSTETF_COUNTRY_MAP: Record<string, CountryCode> = {
   SWEDEN: 'SE',
   DENMARK: 'DK',
   NORWAY: 'NO',
+  FINLAND: 'FI',
+  AUSTRIA: 'AT',
+  PORTUGAL: 'PT',
+  GREECE: 'GR',
+  ICELAND: 'IS',
+  POLAND: 'PL',
+  'CZECH REPUBLIC': 'CZ',
+  CZECHIA: 'CZ',
+  HUNGARY: 'HU',
+  ROMANIA: 'RO',
+  TURKEY: 'TR',
+  MEXICO: 'MX',
+  CHILE: 'CL',
+  COLOMBIA: 'CO',
+  PERU: 'PE',
+  ARGENTINA: 'AR',
+  'NEW ZEALAND': 'NZ',
+  SINGAPORE: 'SG',
+  'HONG KONG': 'HK',
+  THAILAND: 'TH',
+  MALAYSIA: 'MY',
+  INDONESIA: 'ID',
+  PHILIPPINES: 'PH',
+  VIETNAM: 'VN',
+  PAKISTAN: 'PK',
+  'SAUDI ARABIA': 'SA',
+  'UNITED ARAB EMIRATES': 'AE',
+  UAE: 'AE',
+  QATAR: 'QA',
+  KUWAIT: 'KW',
+  BAHRAIN: 'BH',
+  OMAN: 'OM',
+  ISRAEL: 'IL',
+  EGYPT: 'EG',
+  MOROCCO: 'MA',
+  'SOUTH AFRICA': 'ZA',
+  NIGERIA: 'NG',
+  KENYA: 'KE',
   OTHER: 'autre',
 
-  // French
+  // ── French ───────────────────────────────────────────────────────────────
   'ÉTATS-UNIS': 'US',
   'ETATS-UNIS': 'US',
   'ROYAUME-UNI': 'GB',
@@ -75,13 +113,63 @@ const JUSTETF_COUNTRY_MAP: Record<string, CountryCode> = {
   DANEMARK: 'DK',
   NORVÈGE: 'NO',
   NORVEGE: 'NO',
+  FINLANDE: 'FI',
+  AUTRICHE: 'AT',
+  // PORTUGAL identical in FR → already covered by EN entry
+  GRÈCE: 'GR',
+  GRECE: 'GR',
+  ISLANDE: 'IS',
+  POLOGNE: 'PL',
+  'RÉPUBLIQUE TCHÈQUE': 'CZ',
+  'REPUBLIQUE TCHEQUE': 'CZ',
+  HONGRIE: 'HU',
+  ROUMANIE: 'RO',
+  TURQUIE: 'TR',
+  MEXIQUE: 'MX',
+  CHILI: 'CL',
+  COLOMBIE: 'CO',
+  PÉROU: 'PE',
+  PEROU: 'PE',
+  ARGENTINE: 'AR',
+  'NOUVELLE-ZÉLANDE': 'NZ',
+  'NOUVELLE-ZELANDE': 'NZ',
+  SINGAPOUR: 'SG',
+  // 'HONG KONG' identical in FR → EN entry covers it
+  THAÏLANDE: 'TH',
+  THAILANDE: 'TH',
+  MALAISIE: 'MY',
+  INDONÉSIE: 'ID',
+  INDONESIE: 'ID',
+  // PHILIPPINES identical in FR → EN entry covers it
+  'VIÊT NAM': 'VN',
+  // VIETNAM identical in FR/DE → EN entry covers it
+  // PAKISTAN identical in FR/DE → EN entry covers it
+  'ARABIE SAOUDITE': 'SA',
+  'ÉMIRATS ARABES UNIS': 'AE',
+  'EMIRATS ARABES UNIS': 'AE',
+  // QATAR identical in FR → EN entry covers it
+  KOWEÏT: 'KW',
+  KOWEIT: 'KW',
+  BAHREÏN: 'BH',
+  BAHREIN: 'BH',
+  // OMAN identical in FR/DE → EN entry covers it
+  ISRAËL: 'IL',
+  // ISRAEL identical in FR/DE → EN entry covers it
+  ÉGYPTE: 'EG',
+  EGYPTE: 'EG',
+  MAROC: 'MA',
+  'AFRIQUE DU SUD': 'ZA',
+  // NIGERIA identical in FR/DE → EN entry covers it
+  // KENYA identical in FR/DE → EN entry covers it
   AUTRE: 'autre',
 
-  // German
+  // ── German ───────────────────────────────────────────────────────────────
   DEUTSCHLAND: 'DE',
   SCHWEIZ: 'CH',
   VEREINIGTES_KÖNIGREICH: 'GB',
+  'VEREINIGTES KÖNIGREICH': 'GB',
   VEREINIGTE_STAATEN: 'US',
+  'VEREINIGTE STAATEN': 'US',
   SÜDKOREA: 'KR',
   NIEDERLANDE: 'NL',
   SPANIEN: 'ES',
@@ -92,6 +180,41 @@ const JUSTETF_COUNTRY_MAP: Record<string, CountryCode> = {
   SCHWEDEN: 'SE',
   DÄNEMARK: 'DK',
   NORWEGEN: 'NO',
+  FINNLAND: 'FI',
+  ÖSTERREICH: 'AT',
+  GRIECHENLAND: 'GR',
+  ISLAND: 'IS',
+  POLEN: 'PL',
+  'TSCHECHISCHE REPUBLIK': 'CZ',
+  TSCHECHIEN: 'CZ',
+  UNGARN: 'HU',
+  RUMÄNIEN: 'RO',
+  TÜRKEI: 'TR',
+  MEXIKO: 'MX',
+  // CHILE identical in EN → EN entry covers it
+  KOLUMBIEN: 'CO',
+  // PERU identical in EN → EN entry covers it
+  ARGENTINIEN: 'AR',
+  NEUSEELAND: 'NZ',
+  SINGAPUR: 'SG',
+  // THAILAND identical in EN → EN entry covers it
+  MALAYSIEN: 'MY',
+  INDONESIEN: 'ID',
+  PHILIPPINEN: 'PH',
+  // VIETNAM identical in EN → EN entry covers it
+  // PAKISTAN identical in EN → EN entry covers it
+  'SAUDI-ARABIEN': 'SA',
+  'VEREINIGTE ARABISCHE EMIRATE': 'AE',
+  KATAR: 'QA',
+  // KUWAIT identical in EN → EN entry covers it
+  // BAHRAIN identical in EN → EN entry covers it
+  // OMAN identical in EN → EN entry covers it
+  // ISRAEL identical in EN → EN entry covers it
+  ÄGYPTEN: 'EG',
+  MAROKKO: 'MA',
+  SÜDAFRIKA: 'ZA',
+  // NIGERIA identical in EN → EN entry covers it
+  KENIA: 'KE',
   SONSTIGE: 'autre',
 };
 
