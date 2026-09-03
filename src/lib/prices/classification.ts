@@ -18,6 +18,9 @@ import { referenceEtfForIsin } from './referenceEtfs';
 import { normalizeSector } from './sectors';
 import { searchYahooSymbol } from './yahoo';
 
+/** Durée de cooldown (en ms) avant de re-tenter une classification qui a échoué sur toutes sources. */
+const CLASSIFICATION_RETRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
+
 const ISIN_COUNTRY: Partial<Record<string, CountryCode>> = {
   FR: 'FR',
   DE: 'DE',
@@ -51,6 +54,30 @@ export function countryFromIsin(isin: string | undefined): CountryCode | undefin
   return ISIN_COUNTRY[prefix] ?? 'autre';
 }
 
+/**
+ * Renvoie `true` si la holding doit être (re-)classifiée.
+ * Exclut les holdings déjà traitées avec succès ou en période de cooldown.
+ */
+export function needsClassification(h: Holding, forceAll = false): boolean {
+  if (forceAll) return true;
+
+  // Jamais traitée → toujours à classer
+  if (!h.classifiedAt) return true;
+
+  // Cooldown actif après un échec total de toutes les sources → on attend
+  if (h.classificationRetryAfter && new Date(h.classificationRetryAfter) > new Date()) {
+    return false;
+  }
+
+  // Traitée avec succès (a déjà un secteur) → rien à faire
+  if (h.sectorWeights) return false;
+
+  // Traitée mais sans secteur et ISIN disponible → re-tenter (cooldown expiré ou absent)
+  if (h.isin?.trim()) return true;
+
+  return false;
+}
+
 export interface ClassifyResult {
   classified: number;
   errors: string[];
@@ -61,9 +88,8 @@ export async function classifyHoldings(options?: { forceAll?: boolean }): Promis
   let classified = 0;
 
   const { holdings, upsertHolding } = useStore.getState();
-  const pending = holdings.filter(
-    (h) => options?.forceAll || !h.classifiedAt || (!h.sectorWeights && !!h.isin?.trim()),
-  );
+  const forceAll = options?.forceAll ?? false;
+  const pending = holdings.filter((h) => needsClassification(h, forceAll));
   if (pending.length === 0) return { classified: 0, errors: [] };
 
   for (const h of pending) {
@@ -85,9 +111,25 @@ export async function classifyHoldings(options?: { forceAll?: boolean }): Promis
         errors.push(`${h.name} : ${e?.message ?? e}`);
         holdingHasError = true;
       }
-      
+
       const isDeferred = !sectorWeights && holdingHasError;
-      upsertHolding({ ...h, country, sectorWeights, classificationSource: source, classifiedAt: isDeferred ? h.classifiedAt : new Date().toISOString() });
+      // N'écrit dans le store que si quelque chose a changé
+      const nowIso = new Date().toISOString();
+      if (
+        sectorWeights !== h.sectorWeights ||
+        source !== h.classificationSource ||
+        (!isDeferred && !h.classifiedAt)
+      ) {
+        upsertHolding({
+          ...h,
+          country,
+          sectorWeights,
+          classificationSource: source,
+          classifiedAt: isDeferred ? h.classifiedAt : nowIso,
+          // Réinitialise le cooldown si on a trouvé quelque chose
+          classificationRetryAfter: sectorWeights ? undefined : h.classificationRetryAfter,
+        });
+      }
       if (!isDeferred) classified++;
       continue;
     }
@@ -150,27 +192,40 @@ export async function classifyHoldings(options?: { forceAll?: boolean }): Promis
       }
     }
 
-    // Si on a trouvé un secteur ou des pays, la ligne est classée avec succès
-    let deferred = false;
-    if (sectorWeights || countryWeights) {
-      deferred = false;
-    } else if (holdingError) {
-      // Échec complet avec erreur réseau
-      errors.push(`${h.name} : ${holdingError}`);
-      deferred = true;
-    }
+    // Succès si on a trouvé un secteur ou des pays
+    const hasData = !!(sectorWeights || countryWeights);
 
-    upsertHolding({
-      ...h,
-      country,
-      countryWeights,
-      sectorWeights,
-      topHoldings,
-      feesPct,
-      classificationSource: source,
-      classifiedAt: deferred ? h.classifiedAt : new Date().toISOString(),
-    });
-    if (!deferred) classified++;
+    if (hasData) {
+      // Trouvé — enregistre avec succès et réinitialise le cooldown
+      upsertHolding({
+        ...h,
+        country,
+        countryWeights,
+        sectorWeights,
+        topHoldings,
+        feesPct,
+        classificationSource: source,
+        classifiedAt: new Date().toISOString(),
+        classificationRetryAfter: undefined, // cooldown levé
+      });
+      classified++;
+    } else if (holdingError) {
+      // Erreur réseau — on reporte au prochain focus (pas de cooldown, l'erreur peut être transitoire)
+      errors.push(`${h.name} : ${holdingError}`);
+      // Ne pas écrire dans le store : laisse la holding inchangée pour re-tenter au prochain focus
+    } else {
+      // Aucune source n'a trouvé de données (ISIN inconnu de JustETF et Yahoo) : cooldown 7 jours
+      // pour éviter de re-scraper à chaque focus.
+      const retryAfter = new Date(Date.now() + CLASSIFICATION_RETRY_MS).toISOString();
+      upsertHolding({
+        ...h,
+        country,
+        classificationSource: source,
+        classifiedAt: new Date().toISOString(),
+        classificationRetryAfter: retryAfter,
+      });
+      // Ne compte pas comme "classifié" (pas de secteur trouvé)
+    }
   }
 
   return { classified, errors };

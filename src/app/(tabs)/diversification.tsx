@@ -6,7 +6,7 @@ import { C, useStyles } from '@/constants/theme';
 import { computeAllocationComparison, computeClassificationBreakdown, computeInsights } from '@/lib/diversification';
 import { formatEur, formatPct } from '@/lib/format';
 import { accountCurrentValue, accountShare } from '@/lib/portfolio';
-import { classifyHoldings } from '@/lib/prices/classification';
+import { classifyHoldings, needsClassification } from '@/lib/prices/classification';
 import { houseIndexSeries } from '@/lib/prices/houseIndex';
 import { realEstateTotals } from '@/lib/realestate';
 import { useStore } from '@/lib/store';
@@ -70,10 +70,8 @@ export default function Diversification() {
 
       // Auto-classification en arrière-plan des lignes non classées ou sans secteurs
       const state = useStore.getState();
-      const needsClassification = state.holdings.some(
-        (h) => !h.classifiedAt || (!h.sectorWeights && !!h.isin?.trim()),
-      );
-      if (needsClassification) {
+      const hasPending = state.holdings.some((h) => needsClassification(h));
+      if (hasPending) {
         setClassifying(true);
         classifyHoldings()
           .then((res) => {

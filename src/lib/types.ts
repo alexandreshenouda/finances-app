@@ -226,6 +226,9 @@ export interface Holding {
   classificationSource?: 'isin' | 'yahoo' | 'coingecko' | 'reference' | 'justetf';
   /** Marque la ligne comme déjà traitée par `classifyHoldings` (succès ou non). */
   classifiedAt?: string; // ISO
+  /** Si toutes les sources échouent à trouver secteur/pays, contient la date ISO avant
+   * laquelle il ne faut pas re-tenter la classification (cooldown de 7 jours par défaut). */
+  classificationRetryAfter?: string; // ISO
   notes?: string;
 }
 

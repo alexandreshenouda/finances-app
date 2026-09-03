@@ -184,6 +184,8 @@ savings plans, PEA ceiling usage, etc.:
   3. Yahoo Finance search (`searchYahooSymbol`) by ISIN/symbol for stock sector.
   4. Local fallback table (`referenceEtfs.ts`) for common ETFs offline.
   5. ISIN country prefix fallback for legal domicile.
+- **Retry cooldown**: when all sources fail to find sector/country data for an ISIN, `Holding.classificationRetryAfter` (ISO timestamp) is set 7 days in the future. The `needsClassification(h)` helper (exported from `classification.ts`) checks this field before queuing a holding — preventing repeated HTTP scrapes on every Diversification screen focus. The same helper is used both by `classifyHoldings()` and by the `useFocusEffect` in `diversification.tsx` so the logic stays in one place.
+- Network errors (transient failures) are **not** cooled down — those holdings remain eligible for the next focus so they retry automatically when connectivity is restored.
 - `CountryCode` in `src/lib/types.ts` covers major global markets (`FR`, `DE`, `IT`, `ES`, `NL`, `BE`, `LU`, `IE`, `GB`, `CH`, `US`, `CA`, `JP`, `CN`, `AU`, `TW`, `KR`, `IN`, `BR`, `SE`, `DK`, `NO`, `autre`).
 
 
