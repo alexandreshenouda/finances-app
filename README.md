@@ -74,6 +74,13 @@ pour le détail des contraintes.
   (Synthèse, comptes, biens immobiliers) et configurable dans **Paramètres → Affichage** entre
   la valeur absolue en devise et la performance relative en % sur la période choisie (avec ligne repère 0%).
 - **Répartition du patrimoine** par type de compte, en **barre empilée ou camembert**.
+- **Projection patrimoniale future** : section interactive en dessous des objectifs permettant de simuler l'évolution prévisionnelle du patrimoine à 3, 5, 10, 15, 20 ou 30 ans :
+  - **Visualisation Brute ou Nette** : prise en compte de l'**amortissement réel des crédits** mois par mois (les dettes diminuent selon leurs échéanciers jusqu'à extinction complète) ;
+  - **Inclusion / exclusion de l'immobilier** au choix ;
+  - **Rendement personnalisable ou historique** : choix d'un taux annuel libre (ex: 5 %) ou calcul automatique du taux de croissance géométrique annualisé (CAGR) sur votre historique réel (1M, 3M, 6M, 1A, MAX) ;
+  - **Options avancées** : épargne mensuelle programmée, frais annuels de gestion avec calcul de leur impact cumulé, et ajustement à l'inflation pour visualiser en euros constants ;
+  - **Décomposition à terme & Objectifs** : ventilation du capital projeté (apport initial, versements, gains générés, capital désendetté, frais) et estimation automatique de la date d'atteinte de vos objectifs d'épargne non encore atteints (calcul cohérent avec les poches financières, exclusion des biens physiques) ;
+  - **Scénarios sauvegardés multiples** : enregistrement de vos simulations personnalisées avec nom et description, rechargeables en un clic et incluses dans l'export JSON.
 
 **Comptes & placements**
 - **Comptes classés par type** : compte courant, livret, PEA, CTO, assurance vie, PER, crypto,
@@ -143,9 +150,11 @@ pour le détail des contraintes.
   d'origine, affichage et courbes convertis en € avec les taux BCE
   ([frankfurter.dev](https://frankfurter.dev), rafraîchis à chaque mise à jour, derniers taux
   conservés hors ligne).
-- **Export / import** JSON (sans les identifiants) : presse-papiers partout, et fichier
-  (partage / sélecteur de documents) sur Android. Les exports V1 sans devise restent importables
-  (traités en EUR).
+- **Export / import** JSON (sans les identifiants) : sauvegarde intégrale incluant comptes,
+  lignes (avec ventilations sectorielles, géographiques, top holdings et frais issus de JustETF),
+  historique des snapshots, biens immobiliers, crédits, objectifs d'épargne et scénarios de
+  projection sauvegardés. Presse-papiers partout, et fichier (partage / sélecteur de documents) sur
+  Android. Les exports antérieurs restent rétro-compatibles.
 
 ## Lancer l'app
 

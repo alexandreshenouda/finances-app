@@ -210,6 +210,16 @@ savings plans, PEA ceiling usage, etc.:
 - Fee audit combines `Holding.feesPct` and `Account.fees.managementPct` to calculate weighted annual costs and alert on expensive actively managed funds.
 - Cards in `InsightCard.tsx` support accordion expansion (`whyKey` and `actionKey`) and category filtering chips in `diversification.tsx`.
 
+## Wealth Projection Engine (`src/lib/projection.ts`, `src/components/ProjectionCard.tsx`)
+- Located under the objectives section on the Synthèse tab (`src/app/(tabs)/index.tsx`).
+- Simulates future wealth month-by-month over horizons (3, 5, 10, 15, 20, 30 years).
+- **True debt amortization**: in Net mode, outstanding loan balances are calculated at every future month via `loanBalanceAt(loan, futureDateKey)`, naturally reflecting real debt payoff and the resulting equity build-up.
+- **Historical CAGR or Custom rate**: users can input an annual return rate or calculate the geometric annualized growth rate (CAGR) on any historical timeframe (`1M`, `3M`, `6M`, `1A`, `MAX`) dynamically evaluated on their actual assets.
+- **Monthly contributions, fees & inflation**: includes monthly savings annuities, annual fee drag estimation (difference vs 0% fees), and inflation discounting to visualize in constant euros of purchasing power.
+- **Objectives reach detection**: strictly aligns with `src/lib/objectives.ts` — already reached objectives (`current >= target`) are excluded from display; calculations use dedicated financial / liquid pools and never include physical real estate (`reVal`), regardless of the real estate toggle.
+- **Saved scenarios**: multiple projection scenarios (`SavedProjection`: name, description, settings) can be saved, updated, and reloaded.
+- Persisted in `store.projectionSettings` and `store.savedProjections` across app sessions, and included in `exportData()` / `importData()`. All holding classifications (`sectorWeights`, `countryWeights`, `topHoldings`, `feesPct`) and `objectives` are also fully covered in export/import.
+
 ## Verification workflow
 - `node_modules` is **not present by default** — run `npm install` first, before any
   typecheck or build (fresh clone / fresh session).

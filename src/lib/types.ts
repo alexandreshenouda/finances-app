@@ -456,3 +456,53 @@ export interface Objective {
   bufferAmount?: number;
   deadline?: string; // YYYY-MM-DD
 }
+
+// ─── Projections ───────────────────────────────────────────────────────────
+
+export interface ProjectionSettings {
+  /** Horizon temporel en années (ex : 3, 5, 10, 15, 20, 30) */
+  horizonYears: number;
+  /** Mode de taux : 'custom' (saisie manuelle) ou 'historical' (basé sur le passé) */
+  rateMode: 'custom' | 'historical';
+  /** Taux de rendement annuel brut en % en mode custom (ex : 5.0 pour 5 %) */
+  customRatePct: number;
+  /** Période historique de référence pour le calcul du CAGR (ex : '1A') */
+  historicalPeriod: Period;
+  /** Épargne mensuelle additionnelle versée chaque mois en EUR */
+  monthlyContribution: number;
+  /** Frais annuels de gestion / enveloppe en % (ex : 0.5 pour 0.5 %) */
+  annualFeesPct: number;
+  /** Ajuster les valeurs selon l'inflation pour visualiser en euros constants */
+  adjustForInflation: boolean;
+  /** Taux annuel d'inflation estimé en % (ex : 2.0 pour 2 %) */
+  inflationRatePct: number;
+  /** Visualisation nette (déduction du capital restant dû) ou brute */
+  net: boolean;
+  /** Inclure les biens immobiliers et leurs crédits associés */
+  includeRealEstate: boolean;
+  /** Taux de croissance annuel estimé de l'immobilier en % (défaut 1.0 %) */
+  realEstateGrowthPct: number;
+}
+
+export interface SavedProjection {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string; // ISO
+  updatedAt?: string; // ISO
+  settings: ProjectionSettings;
+}
+
+export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
+  horizonYears: 10,
+  rateMode: 'custom',
+  customRatePct: 5.0,
+  historicalPeriod: '1A',
+  monthlyContribution: 0,
+  annualFeesPct: 0.0,
+  adjustForInflation: false,
+  inflationRatePct: 2.0,
+  net: true,
+  includeRealEstate: true,
+  realEstateGrowthPct: 1.0,
+};

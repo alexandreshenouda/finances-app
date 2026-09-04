@@ -7,6 +7,7 @@ import { AllocationBar } from '@/components/AllocationBar';
 import { LineChart } from '@/components/LineChart';
 import { ObjectiveCard } from '@/components/ObjectiveCard';
 import { PieChart } from '@/components/PieChart';
+import { ProjectionCard } from '@/components/ProjectionCard';
 import { Button, Card, Checkbox, Chips, Empty, PeriodChips, SectionTitle } from '@/components/ui';
 import { C, useStyles } from '@/constants/theme';
 import { syncAllConnections } from '@/lib/connectors';
@@ -272,6 +273,20 @@ export default function Dashboard() {
         ))
       )}
       <Button title={t('index.ajouter_objectif')} variant="secondary" onPress={() => router.push('/objective-form')} />
+
+      <View style={[styles.allocHeader, { marginTop: 12 }]}>
+        <SectionTitle>{t('projection.title')}</SectionTitle>
+      </View>
+      <ProjectionCard
+        accounts={active}
+        holdings={holdings}
+        snapshots={snapshots}
+        rates={rates}
+        properties={properties}
+        loans={loans}
+        houseSeries={series0}
+        objectives={objectives}
+      />
     </ScrollView>
   );
 }

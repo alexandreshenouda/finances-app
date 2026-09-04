@@ -6,19 +6,22 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { setLocale, setMaskedMoney, todayKey, uid } from './format';
 import i18next, { detectDeviceLanguage, type Language } from './i18n';
 import {
-    DEFAULT_FX_RATES,
-    type Account,
-    type ChartMode,
-    type Connection,
-    type FxRates,
-    type Holding,
-    type HousePricePoint,
-    type Loan,
-    type Objective,
-    type Period,
-    type Property,
-    type RiskProfile,
-    type Snapshot,
+  DEFAULT_FX_RATES,
+  DEFAULT_PROJECTION_SETTINGS,
+  type Account,
+  type ChartMode,
+  type Connection,
+  type FxRates,
+  type Holding,
+  type HousePricePoint,
+  type Loan,
+  type Objective,
+  type Period,
+  type ProjectionSettings,
+  type Property,
+  type RiskProfile,
+  type SavedProjection,
+  type Snapshot,
 } from './types';
 
 export interface AppData {
@@ -29,6 +32,7 @@ export interface AppData {
   properties: Property[];
   loans: Loan[];
   objectives: Objective[];
+  savedProjections?: SavedProjection[];
 }
 
 interface AppState extends AppData {
@@ -83,6 +87,15 @@ interface AppState extends AppData {
   /** Thème visuel de l'application ('classique' = bleu-ardoise, 'or' = noir/or). */
   theme: ThemeName;
   setThemePref: (t: ThemeName) => void;
+
+  /** Paramètres de projection patrimoniale future sur la Synthèse. */
+  projectionSettings: ProjectionSettings;
+  setProjectionSettings: (s: Partial<ProjectionSettings>) => void;
+
+  /** Scénarios de projection sauvegardés par l'utilisateur. */
+  savedProjections: SavedProjection[];
+  upsertSavedProjection: (p: { name: string; description?: string; settings: ProjectionSettings; id?: string }) => SavedProjection;
+  deleteSavedProjection: (id: string) => void;
 
   upsertAccount: (a: Partial<Account> & { name: string; type: Account['type'] }) => Account;
   deleteAccount: (id: string) => void;
@@ -164,6 +177,35 @@ export const useStore = create<AppState>()(
 
       theme: 'or',
       setThemePref: (t) => set({ theme: t }),
+
+      projectionSettings: DEFAULT_PROJECTION_SETTINGS,
+      setProjectionSettings: (s) =>
+        set((prev) => ({ projectionSettings: { ...prev.projectionSettings, ...s } })),
+
+      savedProjections: [],
+      upsertSavedProjection: (p) => {
+        const existing = p.id ? get().savedProjections.find((x) => x.id === p.id) : undefined;
+        const now = new Date().toISOString();
+        const saved: SavedProjection = {
+          id: existing?.id ?? p.id ?? uid(),
+          name: p.name.trim(),
+          description: p.description?.trim() ? p.description.trim() : undefined,
+          createdAt: existing?.createdAt ?? now,
+          updatedAt: now,
+          settings: p.settings,
+        };
+        set((s) => ({
+          savedProjections: existing
+            ? s.savedProjections.map((x) => (x.id === saved.id ? saved : x))
+            : [saved, ...s.savedProjections],
+        }));
+        return saved;
+      },
+
+      deleteSavedProjection: (id) =>
+        set((s) => ({
+          savedProjections: s.savedProjections.filter((x) => x.id !== id),
+        })),
 
       upsertAccount: (a) => {
         const existing = a.id ? get().accounts.find((x) => x.id === a.id) : undefined;
@@ -292,6 +334,7 @@ export const useStore = create<AppState>()(
           properties: [],
           loans: [],
           objectives: [],
+          savedProjections: [],
           patrimoineNet: true,
           showRealEstate: true,
           showImmobilierTab: true,
@@ -340,6 +383,7 @@ export const useStore = create<AppState>()(
           properties: data.properties ?? [],
           loans: data.loans ?? [],
           objectives: data.objectives ?? [],
+          savedProjections: data.savedProjections ?? [],
         }),
     }),
     {
@@ -367,6 +411,8 @@ export const useStore = create<AppState>()(
         privacyMode: s.privacyMode,
         language: s.language,
         theme: s.theme,
+        projectionSettings: s.projectionSettings,
+        savedProjections: s.savedProjections,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) state.hydrated = true;
@@ -391,6 +437,6 @@ useStore.subscribe((s) => {
 useStore.subscribe((s) => setTheme(s.theme));
 
 export function exportData(): AppData {
-  const { accounts, holdings, snapshots, connections, properties, loans, objectives } = useStore.getState();
-  return { accounts, holdings, snapshots, connections, properties, loans, objectives };
+  const { accounts, holdings, snapshots, connections, properties, loans, objectives, savedProjections } = useStore.getState();
+  return { accounts, holdings, snapshots, connections, properties, loans, objectives, savedProjections };
 }
