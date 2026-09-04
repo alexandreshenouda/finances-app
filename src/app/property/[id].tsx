@@ -1,15 +1,16 @@
 /** Détail d'un bien : valeur estimée, plus-value, courbe, crédits & amortissement. */
 import { LineChart } from '@/components/LineChart';
 import { LoanCard } from '@/components/LoanCard';
-import { Button, Card, Empty, PeriodChips, SectionTitle } from '@/components/ui';
+import { Button, Card, Chips, Empty, PeriodChips, SectionTitle } from '@/components/ui';
 import { C, useStyles } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { formatDate, formatEur, formatPct } from '@/lib/format';
+import { toPerformanceSeries } from '@/lib/portfolio';
 import { houseIndexSeries } from '@/lib/prices/houseIndex';
 import { fetchLocalEstimate } from '@/lib/prices/localValuation';
 import { buildPropertyValueSeries, ownershipShare, propertyDebtEur, propertyGainEur } from '@/lib/realestate';
 import { useStore } from '@/lib/store';
-import { ACCOUNT_TYPE_COLORS, PROPERTY_KIND_LABELS, type Currency, type Period } from '@/lib/types';
+import { ACCOUNT_TYPE_COLORS, CHART_MODES, PROPERTY_KIND_LABELS, type ChartMode, type Currency, type Period } from '@/lib/types';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +20,14 @@ function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
     content: { padding: 16, paddingBottom: 40 },
+    chartControls: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 8,
+    },
     kind: { color: C.textDim, fontSize: 13, fontWeight: '600' },
     value: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 6 },
     gain: { fontSize: 14, fontWeight: '600', marginTop: 4 },
@@ -57,6 +66,12 @@ export default function PropertyDetail() {
   const upsertProperty = useStore((s) => s.upsertProperty);
 
   const defaultPeriod = useStore((s) => s.defaultPeriod);
+  const chartMode = useStore((s) => s.chartMode);
+  const setChartMode = useStore((s) => s.setChartMode);
+  const CHART_MODE_LABELS: Record<ChartMode, string> = {
+    value: t('chart.mode_valeur'),
+    percent: t('chart.mode_performance'),
+  };
   const [periodOverride, setPeriodOverride] = useState<Period | null>(null);
   const period = periodOverride ?? defaultPeriod;
   const [localRefreshing, setLocalRefreshing] = useState(false);
@@ -67,6 +82,10 @@ export default function PropertyDetail() {
   const valueSeries = useMemo(
     () => (property ? buildPropertyValueSeries(property, series, rates, period) : []),
     [property, series, rates, period]
+  );
+  const displayPoints = useMemo(
+    () => (chartMode === 'percent' ? toPerformanceSeries(valueSeries) : valueSeries),
+    [chartMode, valueSeries]
   );
 
   if (!property) return <Empty text={t('propertyDetail.introuvable')} />;
@@ -125,8 +144,17 @@ export default function PropertyDetail() {
             <Text style={styles.gainRef}>  {t('propertyDetail.vs_prix_achat')}</Text>
           </Text>
           <View style={{ height: 12 }} />
-          <PeriodChips value={period} onChange={setPeriodOverride} />
-          <LineChart points={valueSeries} color={ACCOUNT_TYPE_COLORS.immobilier} />
+          <View style={styles.chartControls}>
+            <PeriodChips value={period} onChange={setPeriodOverride} style={{ marginBottom: 0 }} />
+            <Chips
+              options={CHART_MODES}
+              value={chartMode}
+              onChange={setChartMode}
+              labels={CHART_MODE_LABELS}
+              style={{ marginBottom: 0 }}
+            />
+          </View>
+          <LineChart points={displayPoints} color={ACCOUNT_TYPE_COLORS.immobilier} mode={chartMode} />
           <Text style={styles.estimateNote}>
             {property.valuationMode === 'manual'
               ? t('propertyDetail.estimation_manuelle')

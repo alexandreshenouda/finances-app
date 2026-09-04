@@ -186,6 +186,8 @@
     "reinitialiser": "Réinitialiser les données",
     "reinitialiser_confirm": "Êtes-vous sûr ? Toutes vos données seront supprimées.",
     "periode_description": "Période affichée à l'ouverture de l'application, pour les courbes et le calcul de la variation (+/- value) de la Synthèse et des écrans de détail.",
+    "mode_graphique": "Graphiques historiques",
+    "mode_graphique_description": "Choisir l'affichage par défaut des graphiques historiques : valeur en devise ou performance en pourcentage.",
     "langue_description": "Choisir la langue de l'application",
     "francais": "Français",
     "english": "English",
@@ -750,6 +752,10 @@
     "se_connecter": "Se connecter",
     "approuver_attente": "Ouvrez l'app Trade Republic (ou vérifiez vos SMS) et approuvez la connexion en cours…",
     "renvoyer_demande": "Renvoyer la demande"
+  },
+  "chart": {
+    "mode_valeur": "Valeur",
+    "mode_performance": "Performance (%)"
   },
   "currencies": {
     "EUR": "EUR — Euro",

@@ -308,6 +308,10 @@ export const PERIODS: Period[] = ['1J', '1S', '1M', '3M', '6M', '1A', 'YTD', 'MA
 export const PERIODS_PRIMARY: Period[] = ['1J', '1S', '1M', '1A', 'MAX'];
 export const PERIODS_SECONDARY: Period[] = ['3M', '6M', 'YTD'];
 
+/** Mode d'affichage des graphiques historiques : valeur en devise ou performance en %. */
+export type ChartMode = 'value' | 'percent';
+export const CHART_MODES: readonly ChartMode[] = ['value', 'percent'] as const;
+
 // ─── Immobilier ──────────────────────────────────────────────────────────────
 
 export type PropertyKind = 'appartement' | 'maison' | 'terrain' | 'immeuble' | 'parking' | 'autre';

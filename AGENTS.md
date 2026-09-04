@@ -94,11 +94,22 @@ in via resvg's font option loading Liberation Sans
 ## Settings tab structure
 `src/app/(tabs)/settings.tsx` is a menu screen linking to sub-screens (not nested
 tabs): `connections.tsx`, `backup.tsx`, `display-settings.tsx` (default period for
-charts/+/- value, `store.defaultPeriod`), `erase-history.tsx` (delete snapshots before
-a date or between two dates, per-account or all — for fixing bad manual entries),
-`dev-tools.tsx` (connector debug log), a "reclassify all holdings" action
-(`classifyHoldings({ forceAll: true })` clearing the JustETF in-memory cache), and
-a "wipe all data" action with confirmation (`store.resetAll()`).
+charts/+/- value, `store.defaultPeriod`, and default chart mode `store.chartMode`),
+`erase-history.tsx` (delete snapshots before a date or between two dates, per-account
+or all — for fixing bad manual entries), `dev-tools.tsx` (connector debug log), a
+"reclassify all holdings" action (`classifyHoldings({ forceAll: true })` clearing the
+JustETF in-memory cache), and a "wipe all data" action with confirmation (`store.resetAll()`).
+
+## Historical charts: Value vs Performance (%)
+All historical curves (`src/app/(tabs)/index.tsx`, `src/app/account/[id].tsx`,
+`src/app/property/[id].tsx`) support toggling between absolute value over time (currency)
+and relative performance over time (in %).
+- The mode (`'value' | 'percent'`) is stored in `store.chartMode` (persisted, default `'value'`).
+- In `'percent'` mode, points are transformed via `toPerformanceSeries` (`src/lib/portfolio.ts`),
+  starting at 0.0% at the beginning of the period.
+- `LineChart` (`src/components/LineChart.tsx`) displays a horizontal dashed baseline at `y(0)`
+  when in `'percent'` mode and formats the tooltip with `formatPct(touched.value, true)`.
+- Under privacy mode, percentages remain visible while currency amounts are masked.
 
 ## Period chips
 `PERIODS` includes `1J`/`1S` (day/week) in addition to the longer spans. Only

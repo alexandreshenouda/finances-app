@@ -97,6 +97,7 @@ export function lastSnapshot(accountId: string, snapshots: Snapshot[]): Snapshot
 export interface SeriesPoint {
   date: string; // YYYY-MM-DD
   value: number;
+  rawValue?: number;
 }
 
 export function periodStart(period: Period, today = todayKey()): string | undefined {
@@ -200,3 +201,33 @@ export function seriesDelta(points: SeriesPoint[]): { abs: number; pct?: number 
   const last = points[points.length - 1].value;
   return { abs: last - first, pct: first !== 0 ? ((last - first) / Math.abs(first)) * 100 : undefined };
 }
+
+/**
+ * Convertit une série de valeurs absolues en série de performance temporelle (en %).
+ * La courbe démarre à 0 % au début de la période choisie et suit l'évolution relative
+ * par rapport à la valeur de référence de départ (premier point non nul).
+ * `rawValue` préserve le montant brut en devise pour chaque point.
+ */
+export function toPerformanceSeries(points: SeriesPoint[]): SeriesPoint[] {
+  if (points.length < 2) return points;
+  const firstNonZero = points.find((p) => p.value !== 0);
+  if (!firstNonZero) {
+    return points.map((p) => ({ date: p.date, value: 0, rawValue: p.value }));
+  }
+  const base = firstNonZero.value;
+  const absBase = Math.abs(base);
+  const firstNonZeroIdx = points.indexOf(firstNonZero);
+
+  return points.map((p, idx) => {
+    if (idx < firstNonZeroIdx) {
+      return { date: p.date, value: 0, rawValue: p.value };
+    }
+    const pct = ((p.value - base) / absBase) * 100;
+    return {
+      date: p.date,
+      value: Number.isFinite(pct) ? pct : 0,
+      rawValue: p.value,
+    };
+  });
+}
+

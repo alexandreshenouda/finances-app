@@ -11,12 +11,12 @@ import { Button, Card, Checkbox, Chips, Empty, PeriodChips, SectionTitle } from 
 import { C, useStyles } from '@/constants/theme';
 import { syncAllConnections } from '@/lib/connectors';
 import { formatEur, formatPct } from '@/lib/format';
-import { accountCurrentValue, accountShare, seriesDelta } from '@/lib/portfolio';
+import { accountCurrentValue, accountShare, seriesDelta, toPerformanceSeries } from '@/lib/portfolio';
 import { refreshAllPrices } from '@/lib/prices';
 import { houseIndexSeries, refreshHouseIndex } from '@/lib/prices/houseIndex';
 import { buildPatrimoineSeries, consoDebtEur, realEstateTotals } from '@/lib/realestate';
 import { useStore } from '@/lib/store';
-import { type AccountType, type Period } from '@/lib/types';
+import { CHART_MODES, type AccountType, type ChartMode, type Period } from '@/lib/types';
 
 const WORTH_MODES = ['net', 'brut'] as const;
 const ALLOC_VIEWS = ['barre', 'camembert'] as const;
@@ -27,6 +27,14 @@ function makeStyles() {
     content: { padding: 16, paddingBottom: 40 },
     totalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     allocHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    chartControls: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 8,
+    },
     reToggle: { marginTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border, paddingTop: 12 },
     totalLabel: { color: C.textDim, fontSize: 14 },
     worthNote: { color: C.textFaint, fontSize: 12, marginTop: 2 },
@@ -63,6 +71,12 @@ export default function Dashboard() {
   const showRealEstate = useStore((s) => s.showRealEstate);
   const setShowRealEstate = useStore((s) => s.setShowRealEstate);
   const defaultPeriod = useStore((s) => s.defaultPeriod);
+  const chartMode = useStore((s) => s.chartMode);
+  const setChartMode = useStore((s) => s.setChartMode);
+  const CHART_MODE_LABELS: Record<ChartMode, string> = {
+    value: t('chart.mode_valeur'),
+    percent: t('chart.mode_performance'),
+  };
   // null = suivre le réglage « période par défaut » ; sinon choix manuel de session.
   const [periodOverride, setPeriodOverride] = useState<Period | null>(null);
   const period = periodOverride ?? defaultPeriod;
@@ -112,6 +126,10 @@ export default function Dashboard() {
   );
 
   const delta = useMemo(() => seriesDelta(series), [series]);
+  const displayPoints = useMemo(
+    () => (chartMode === 'percent' ? toPerformanceSeries(series) : series),
+    [chartMode, series]
+  );
 
   const byType = useMemo(() => {
     const m = new Map<AccountType, number>();
@@ -189,8 +207,17 @@ export default function Dashboard() {
           </Text>
         )}
         <View style={{ height: 12 }} />
-        <PeriodChips value={period} onChange={setPeriodOverride} />
-        <LineChart points={series} />
+        <View style={styles.chartControls}>
+          <PeriodChips value={period} onChange={setPeriodOverride} style={{ marginBottom: 0 }} />
+          <Chips
+            options={CHART_MODES}
+            value={chartMode}
+            onChange={setChartMode}
+            labels={CHART_MODE_LABELS}
+            style={{ marginBottom: 0 }}
+          />
+        </View>
+        <LineChart points={displayPoints} mode={chartMode} />
         {hasRealEstate && (
           <View style={styles.reToggle}>
             <Checkbox

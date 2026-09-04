@@ -209,15 +209,17 @@ export function Chips<T extends string>({
   value,
   onChange,
   labels,
+  style,
 }: {
   options: readonly T[];
   value: T;
   onChange: (v: T) => void;
   labels?: Partial<Record<T, string>>;
+  style?: StyleProp<ViewStyle>;
 }) {
   const styles = useStyles(makeStyles);
   return (
-    <View style={styles.chipsRow}>
+    <View style={[styles.chipsRow, style]}>
       {options.map((opt) => {
         const active = opt === value;
         return (
@@ -261,7 +263,15 @@ export function Checkbox({
  * Sélecteur de période : 5 échelles courantes en puces, les autres dans un
  * menu déroulant. La puce « ··· » reprend l'échelle secondaire active si besoin.
  */
-export function PeriodChips({ value, onChange }: { value: Period; onChange: (p: Period) => void }) {
+export function PeriodChips({
+  value,
+  onChange,
+  style,
+}: {
+  value: Period;
+  onChange: (p: Period) => void;
+  style?: StyleProp<ViewStyle>;
+}) {
   const styles = useStyles(makeStyles);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState({ x: 0, y: 0, w: 0, h: 0 });
@@ -280,7 +290,7 @@ export function PeriodChips({ value, onChange }: { value: Period; onChange: (p: 
   const screenW = Dimensions.get('window').width;
 
   return (
-    <View style={styles.chipsRow}>
+    <View style={[styles.chipsRow, style]}>
       {PERIODS_PRIMARY.map((opt) => {
         const active = opt === value;
         return (

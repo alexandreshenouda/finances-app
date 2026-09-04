@@ -70,6 +70,9 @@ pour le détail des contraintes.
 - **Courbes de suivi** du patrimoine total et de chaque compte sur 1J / 1S / 1M / 3M / 6M / 1A /
   YTD / Max — les 5 échelles courantes en puces, les autres dans un menu déroulant (inspection au
   doigt, variation absolue et en %).
+- **Mode Valeur ou Performance (%)** : basculement direct sur tous les graphiques historiques
+  (Synthèse, comptes, biens immobiliers) et configurable dans **Paramètres → Affichage** entre
+  la valeur absolue en devise et la performance relative en % sur la période choisie (avec ligne repère 0%).
 - **Répartition du patrimoine** par type de compte, en **barre empilée ou camembert**.
 
 **Comptes & placements**

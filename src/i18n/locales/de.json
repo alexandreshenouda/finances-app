@@ -186,6 +186,8 @@
     "reinitialiser": "Daten zurücksetzen",
     "reinitialiser_confirm": "Sind Sie sicher? Alle Ihre Daten werden gelöscht.",
     "periode_description": "Zeitraum, der beim Öffnen der App angezeigt wird, für Diagramme und Variationsberechnung (+/- Wert) auf der Übersicht und Detailseiten.",
+    "mode_graphique": "Historische Diagramme",
+    "mode_graphique_description": "Standardanzeige für historische Diagramme wählen: Währungswert oder prozentuale Performance.",
     "langue_description": "Wählen Sie die App-Sprache",
     "francais": "Français",
     "english": "English",
@@ -750,6 +752,10 @@
     "se_connecter": "Verbinden",
     "approuver_attente": "Öffnen Sie die Trade-Republic-App (oder prüfen Sie Ihre SMS) und genehmigen Sie die ausstehende Verbindung…",
     "renvoyer_demande": "Anfrage erneut senden"
+  },
+  "chart": {
+    "mode_valeur": "Wert",
+    "mode_performance": "Performance (%)"
   },
   "currencies": {
     "EUR": "EUR — Euro",

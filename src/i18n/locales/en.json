@@ -186,6 +186,8 @@
     "reinitialiser": "Reset data",
     "reinitialiser_confirm": "Are you sure? All your data will be deleted.",
     "periode_description": "Period displayed when opening the app, for charts and variation calculation (+/- value) on the Summary and detail screens.",
+    "mode_graphique": "Historical charts",
+    "mode_graphique_description": "Choose the default display for historical charts: currency value or percentage performance.",
     "langue_description": "Choose the app language",
     "francais": "Français",
     "english": "English",
@@ -750,6 +752,10 @@
     "se_connecter": "Connect",
     "approuver_attente": "Open the Trade Republic app (or check your SMS) and approve the pending connection…",
     "renvoyer_demande": "Resend request"
+  },
+  "chart": {
+    "mode_valeur": "Value",
+    "mode_performance": "Performance (%)"
   },
   "currencies": {
     "EUR": "EUR — Euro",

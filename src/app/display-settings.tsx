@@ -3,6 +3,7 @@ import { Card, Checkbox, Chips, PeriodChips, SectionTitle } from '@/components/u
 import type { ThemeName } from '@/constants/theme';
 import { C, useStyles } from '@/constants/theme';
 import { useStore } from '@/lib/store';
+import { CHART_MODES, type ChartMode } from '@/lib/types';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -22,6 +23,8 @@ export default function DisplaySettings() {
   const { t } = useTranslation();
   const defaultPeriod = useStore((s) => s.defaultPeriod);
   const setDefaultPeriod = useStore((s) => s.setDefaultPeriod);
+  const chartMode = useStore((s) => s.chartMode);
+  const setChartMode = useStore((s) => s.setChartMode);
   const showImmobilierTab = useStore((s) => s.showImmobilierTab);
   const setShowImmobilierTab = useStore((s) => s.setShowImmobilierTab);
   const showEmpruntsTab = useStore((s) => s.showEmpruntsTab);
@@ -34,6 +37,11 @@ export default function DisplaySettings() {
   const themeLabels: Record<ThemeName, string> = {
     or: t('settings.theme_or'),
     classique: t('settings.theme_classique'),
+  };
+
+  const chartModeLabels: Record<ChartMode, string> = {
+    value: t('chart.mode_valeur'),
+    percent: t('chart.mode_performance'),
   };
 
   return (
@@ -53,6 +61,17 @@ export default function DisplaySettings() {
       <Card>
         <Text style={styles.hint}>{t('settings.periode_description')}</Text>
         <PeriodChips value={defaultPeriod} onChange={setDefaultPeriod} />
+      </Card>
+
+      <SectionTitle>{t('settings.mode_graphique')}</SectionTitle>
+      <Card>
+        <Text style={styles.hint}>{t('settings.mode_graphique_description')}</Text>
+        <Chips<ChartMode>
+          options={CHART_MODES}
+          value={chartMode}
+          onChange={setChartMode}
+          labels={chartModeLabels}
+        />
       </Card>
 
       <SectionTitle>{t('settings.onglets')}</SectionTitle>

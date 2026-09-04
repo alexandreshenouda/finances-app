@@ -1,6 +1,6 @@
 /** Détail d'un compte : courbe, lignes, frais, mise à jour de valeur. */
 import { LineChart } from '@/components/LineChart';
-import { Button, Card, Dot, Empty, PeriodChips, SectionTitle } from '@/components/ui';
+import { Button, Card, Chips, Dot, Empty, PeriodChips, SectionTitle } from '@/components/ui';
 import { C, useStyles } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { formatDate, formatEur, formatMoney, formatPct, formatQuantity } from '@/lib/format';
@@ -13,10 +13,11 @@ import {
     holdingCurrency,
     holdingPerfPct,
     holdingValueEur,
-    lastSnapshot
+    lastSnapshot,
+    toPerformanceSeries
 } from '@/lib/portfolio';
 import { useStore } from '@/lib/store';
-import { ACCOUNT_TYPE_COLORS, ACCOUNT_TYPE_LABELS, type Period } from '@/lib/types';
+import { ACCOUNT_TYPE_COLORS, ACCOUNT_TYPE_LABELS, CHART_MODES, type ChartMode, type Period } from '@/lib/types';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +29,14 @@ function makeStyles() {
     screen: { flex: 1, backgroundColor: C.bg },
     content: { padding: 16, paddingBottom: 40 },
     headerRow: { flexDirection: 'row', alignItems: 'center' },
+    chartControls: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 8,
+    },
     typeLabel: { color: C.textDim, fontSize: 13, fontWeight: '600' },
     institution: { color: C.textFaint, fontSize: 13 },
     value: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 6 },
@@ -72,6 +81,12 @@ export default function AccountDetail() {
   const deleteAccount = useStore((s) => s.deleteAccount);
 
   const defaultPeriod = useStore((s) => s.defaultPeriod);
+  const chartMode = useStore((s) => s.chartMode);
+  const setChartMode = useStore((s) => s.setChartMode);
+  const CHART_MODE_LABELS: Record<ChartMode, string> = {
+    value: t('chart.mode_valeur'),
+    percent: t('chart.mode_performance'),
+  };
   const [periodOverride, setPeriodOverride] = useState<Period | null>(null);
   const period = periodOverride ?? defaultPeriod;
   const [manualValue, setManualValue] = useState('');
@@ -80,6 +95,10 @@ export default function AccountDetail() {
   const series = useMemo(
     () => (account ? buildSeries([account.id], snapshots, period) : []),
     [account, snapshots, period]
+  );
+  const displayPoints = useMemo(
+    () => (chartMode === 'percent' ? toPerformanceSeries(series) : series),
+    [chartMode, series]
   );
 
   if (!account) {
@@ -151,8 +170,17 @@ export default function AccountDetail() {
             </Text>
           )}
           <View style={{ height: 12 }} />
-          <PeriodChips value={period} onChange={setPeriodOverride} />
-          <LineChart points={series} color={ACCOUNT_TYPE_COLORS[account.type]} />
+          <View style={styles.chartControls}>
+            <PeriodChips value={period} onChange={setPeriodOverride} style={{ marginBottom: 0 }} />
+            <Chips
+              options={CHART_MODES}
+              value={chartMode}
+              onChange={setChartMode}
+              labels={CHART_MODE_LABELS}
+              style={{ marginBottom: 0 }}
+            />
+          </View>
+          <LineChart points={displayPoints} color={ACCOUNT_TYPE_COLORS[account.type]} mode={chartMode} />
         </Card>
 
         <SectionTitle>{t('accountDetail.lignes_titre')}</SectionTitle>

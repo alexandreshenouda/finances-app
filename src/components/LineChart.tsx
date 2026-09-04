@@ -13,8 +13,9 @@ import {
 } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 import { C, useStyles } from '@/constants/theme';
-import { formatDate, formatEur } from '@/lib/format';
+import { formatDate, formatEur, formatPct } from '@/lib/format';
 import type { SeriesPoint } from '@/lib/portfolio';
+import type { ChartMode } from '@/lib/types';
 
 const H = 200;
 const PAD_TOP = 12;
@@ -38,7 +39,15 @@ function makeStyles() {
   });
 }
 
-export function LineChart({ points, color = C.accent }: { points: SeriesPoint[]; color?: string }) {
+export function LineChart({
+  points,
+  color = C.accent,
+  mode = 'value',
+}: {
+  points: SeriesPoint[];
+  color?: string;
+  mode?: ChartMode;
+}) {
   const styles = useStyles(makeStyles);
   const [width, setWidth] = useState(0);
   const [touchIdx, setTouchIdx] = useState<number | null>(null);
@@ -85,7 +94,7 @@ export function LineChart({ points, color = C.accent }: { points: SeriesPoint[];
     const y = (v: number) => PAD_TOP + innerH - ((v - lo) / (hi - lo)) * innerH;
     const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
     const area = `${d} L${width},${H - PAD_BOTTOM} L0,${H - PAD_BOTTOM} Z`;
-    return { x, y, d, area, min, max };
+    return { x, y, d, area, min, max, lo, hi };
   }, [width, points]);
 
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
@@ -113,7 +122,10 @@ export function LineChart({ points, color = C.accent }: { points: SeriesPoint[];
       <View style={styles.tooltipRow}>
         {touched ? (
           <Text style={styles.tooltipText}>
-            {formatDate(touched.date)} · <Text style={{ color: C.text, fontWeight: '700' }}>{formatEur(touched.value)}</Text>
+            {formatDate(touched.date)} ·{' '}
+            <Text style={{ color: C.text, fontWeight: '700' }}>
+              {mode === 'percent' ? formatPct(touched.value, true) : formatEur(touched.value)}
+            </Text>
           </Text>
         ) : (
           <Text style={styles.tooltipText}> </Text>
@@ -145,6 +157,17 @@ export function LineChart({ points, color = C.accent }: { points: SeriesPoint[];
                 strokeWidth={StyleSheet.hairlineWidth}
               />
             ))}
+            {mode === 'percent' && geom.lo <= 0 && geom.hi >= 0 && (
+              <Line
+                x1={0}
+                x2={width}
+                y1={geom.y(0)}
+                y2={geom.y(0)}
+                stroke={C.textDim}
+                strokeWidth={1}
+                strokeDasharray="4,4"
+              />
+            )}
             <Path d={geom.area} fill="url(#area)" />
             <Path d={geom.d} stroke={color} strokeWidth={2} fill="none" strokeLinejoin="round" />
             {touchIdx !== null && (

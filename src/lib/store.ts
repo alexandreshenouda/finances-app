@@ -8,6 +8,7 @@ import i18next, { detectDeviceLanguage, type Language } from './i18n';
 import {
     DEFAULT_FX_RATES,
     type Account,
+    type ChartMode,
     type Connection,
     type FxRates,
     type Holding,
@@ -66,6 +67,10 @@ interface AppState extends AppData {
   /** Période affichée par défaut à l'ouverture (courbes et +/- value). */
   defaultPeriod: Period;
   setDefaultPeriod: (p: Period) => void;
+
+  /** Mode d'affichage des graphiques historiques ('value' = valeur, 'percent' = performance en %). */
+  chartMode: ChartMode;
+  setChartMode: (m: ChartMode) => void;
 
   /** Mode confidentialité : masque tous les montants (seuls les % restent visibles). */
   privacyMode: boolean;
@@ -147,6 +152,9 @@ export const useStore = create<AppState>()(
 
       defaultPeriod: '1A',
       setDefaultPeriod: (p) => set({ defaultPeriod: p }),
+
+      chartMode: 'value',
+      setChartMode: (chartMode) => set({ chartMode }),
 
       privacyMode: false,
       setPrivacyMode: (v) => set({ privacyMode: v }),
@@ -291,6 +299,7 @@ export const useStore = create<AppState>()(
           showDiversificationTab: true,
           riskProfile: 'equilibre',
           defaultPeriod: '1A',
+          chartMode: 'value',
           privacyMode: false,
           language: detectDeviceLanguage(),
           theme: 'or',
