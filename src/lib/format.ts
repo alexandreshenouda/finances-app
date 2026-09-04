@@ -86,6 +86,14 @@ export function addDays(dateKey: string, days: number): string {
   return todayKey(d);
 }
 
+/** Nombre de mois écoulés entre deux dates YYYY-MM-DD. */
+export function monthsBetween(startIso: string, endIso: string): number {
+  const s = new Date(`${startIso}T12:00:00`);
+  const e = new Date(`${endIso}T12:00:00`);
+  if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return 0;
+  return (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth()) + (e.getDate() >= s.getDate() ? 0 : -1);
+}
+
 export function uid(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }

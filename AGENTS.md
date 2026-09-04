@@ -203,6 +203,12 @@ savings plans, PEA ceiling usage, etc.:
 - **Force re-classification**: triggered via the "Classer mes lignes" button in the Diversification tab or "Reclassifier toutes les lignes" in Paramètres → Avancé (`classifyHoldings({ forceAll: true })`). This wipes the in-memory JustETF cache via `clearJustEtfCache()` and re-queries JustETF / Yahoo for all holdings regardless of existing classification.
 - `CountryCode` in `src/lib/types.ts` covers major global markets (`FR`, `DE`, `IT`, `ES`, `NL`, `BE`, `LU`, `IE`, `GB`, `CH`, `SE`, `DK`, `NO`, `FI`, `AT`, `PT`, `GR`, `IS` for Western Europe; `PL`, `CZ`, `HU`, `RO`, `TR` for Eastern Europe; `US`, `CA`, `MX`, `BR`, `CL`, `CO`, `PE`, `AR` for the Americas; `JP`, `AU`, `NZ`, `SG`, `HK` for developed Asia-Pacific; `CN`, `TW`, `KR`, `IN`, `TH`, `MY`, `ID`, `PH`, `VN`, `PK` for Emerging Asia; `SA`, `AE`, `QA`, `KW`, `BH`, `OM`, `IL`, `EG`, `MA` for Middle-East/North Africa; `ZA`, `NG`, `KE` for Sub-Saharan Africa; `autre` for everything else).
 
+## Diversification & Fiscal Advice Engine (`src/lib/diversification.ts`, `src/components/InsightCard.tsx`)
+- All advice adheres strictly to AMF / MiFID II non-CIF standards: objective mathematical diagnostics, pedagogical "why it matters", and general methodology action hints (no individual buy/sell product recommendations).
+- `Account.openingDate` (ISO `YYYY-MM-DD`) tracks tax wrapper opening date, enabling automated computation of seniority and tax milestones for PEA (5-year mark for capital gains tax exemption and partial withdrawals) and Assurance-Vie (8-year mark for annual capital gains tax allowances: 4,600 € / 9,200 €).
+- Look-through overlap detection crosses the `topHoldings` from JustETF and direct stocks to detect hidden mega-cap concentration across multiple funds.
+- Fee audit combines `Holding.feesPct` and `Account.fees.managementPct` to calculate weighted annual costs and alert on expensive actively managed funds.
+- Cards in `InsightCard.tsx` support accordion expansion (`whyKey` and `actionKey`) and category filtering chips in `diversification.tsx`.
 
 ## Verification workflow
 - `node_modules` is **not present by default** — run `npm install` first, before any

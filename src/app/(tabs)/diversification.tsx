@@ -153,6 +153,30 @@ export default function Diversification() {
     [active, holdings, snapshots, byType, totalValue, rates, objectives, riskProfile]
   );
 
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  const availableCategories = useMemo(() => {
+    const cats = new Set(insights.map((i) => i.category));
+    return ['all', ...Array.from(cats)];
+  }, [insights]);
+
+  const activeCategory = availableCategories.includes(selectedCategory) ? selectedCategory : 'all';
+
+  const categoryLabels = useMemo(() => {
+    const map: Record<string, string> = { all: t('diversification.category_all') };
+    for (const c of availableCategories) {
+      if (c !== 'all') {
+        map[c] = t(`diversification.category_${c}`);
+      }
+    }
+    return map;
+  }, [availableCategories, t]);
+
+  const filteredInsights = useMemo(() => {
+    if (activeCategory === 'all') return insights;
+    return insights.filter((i) => i.category === activeCategory);
+  }, [insights, activeCategory]);
+
   const breakdown = useMemo(
     () => computeClassificationBreakdown(holdings, active, rates, byType),
     [holdings, active, rates, byType]
@@ -253,12 +277,20 @@ export default function Diversification() {
       </Card>
 
       <SectionTitle>{t('diversification.section_title')}</SectionTitle>
-      {insights.length === 0 ? (
+      {availableCategories.length > 2 && (
+        <Chips
+          options={availableCategories}
+          value={activeCategory}
+          onChange={setSelectedCategory}
+          labels={categoryLabels}
+        />
+      )}
+      {filteredInsights.length === 0 ? (
         <Card>
           <Empty text={t('diversification.vide')} />
         </Card>
       ) : (
-        insights.map((insight) => <InsightCard key={insight.id} insight={insight} />)
+        filteredInsights.map((insight) => <InsightCard key={insight.id} insight={insight} />)
       )}
     </ScrollView>
   );

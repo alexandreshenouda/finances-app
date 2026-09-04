@@ -23,6 +23,13 @@ function parseNum(s: string): number | undefined {
   return Number.isFinite(v) ? v : undefined;
 }
 
+function parseDate(s: string): string | undefined {
+  const t = s.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) return undefined;
+  const d = new Date(`${t}T12:00:00`);
+  return Number.isNaN(d.getTime()) ? undefined : t;
+}
+
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
@@ -46,6 +53,7 @@ export default function AccountForm() {
   const [institution, setInstitution] = useState(existing?.institution ?? '');
   const [cash, setCash] = useState(existing?.cashBalance?.toString() ?? '');
   const [ownershipPct, setOwnershipPct] = useState(existing?.ownershipPct?.toString() ?? '');
+  const [openingDate, setOpeningDate] = useState(existing?.openingDate ?? '');
   const [entryPct, setEntryPct] = useState(existing?.fees?.entryPct?.toString() ?? '');
   const [managementPct, setManagementPct] = useState(existing?.fees?.managementPct?.toString() ?? '');
   const [custody, setCustody] = useState(existing?.fees?.custodyAnnual?.toString() ?? '');
@@ -53,9 +61,10 @@ export default function AccountForm() {
 
   const pct = parseNum(ownershipPct);
   const pctValid = type !== 'immobilier' || pct === undefined || (pct > 0 && pct <= 100);
+  const dateValid = !openingDate.trim() || parseDate(openingDate) !== undefined;
 
   const save = () => {
-    if (!name.trim() || !pctValid) return;
+    if (!name.trim() || !pctValid || !dateValid) return;
     const fees = {
       entryPct: parseNum(entryPct),
       managementPct: parseNum(managementPct),
@@ -70,6 +79,7 @@ export default function AccountForm() {
       currency: currency === 'EUR' ? undefined : currency,
       institution: institution.trim() || undefined,
       cashBalance: parseNum(cash),
+      openingDate: openingDate.trim() ? parseDate(openingDate) : undefined,
       // Quote-part réservée aux comptes immobiliers ; 100 % ou vide = détention pleine.
       ownershipPct: type === 'immobilier' && pct !== undefined && pct !== 100 ? pct : undefined,
       fees: hasFees ? fees : undefined,
@@ -106,6 +116,13 @@ export default function AccountForm() {
             placeholder={t('accountForm.liquidites_placeholder')}
             hint={t('accountForm.liquidites_hint')}
           />
+          <Field
+            label={t('accountForm.date_ouverture')}
+            value={openingDate}
+            onChangeText={setOpeningDate}
+            placeholder="YYYY-MM-DD (ex : 2021-04-15)"
+            hint={!dateValid ? t('accountForm.date_ouverture_erreur') : t('accountForm.date_ouverture_hint')}
+          />
           {type === 'immobilier' && (
             <Field
               label={t('accountForm.quote_part')}
@@ -126,7 +143,7 @@ export default function AccountForm() {
           <Field label={t('accountForm.frais_notes')} value={feeNotes} onChangeText={setFeeNotes} placeholder={t('accountForm.frais_notes_placeholder')} />
         </Card>
 
-        <Button title={t('common.save')} onPress={save} disabled={!name.trim() || !pctValid} />
+        <Button title={t('common.save')} onPress={save} disabled={!name.trim() || !pctValid || !dateValid} />
         <Button title={t('common.cancel')} variant="secondary" onPress={() => router.back()} />
       </ScrollView>
     </>

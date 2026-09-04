@@ -3,7 +3,7 @@ import { LineChart } from '@/components/LineChart';
 import { Button, Card, Chips, Dot, Empty, PeriodChips, SectionTitle } from '@/components/ui';
 import { C, useStyles } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
-import { formatDate, formatEur, formatMoney, formatPct, formatQuantity } from '@/lib/format';
+import { formatDate, formatDuration, formatEur, formatMoney, formatPct, formatQuantity, monthsBetween, todayKey } from '@/lib/format';
 import { toEur } from '@/lib/fx';
 import {
     accountCurrentValue,
@@ -159,6 +159,14 @@ export default function AccountDetail() {
           {share < 1 && (
             <Text style={styles.ownership}>
               {t('accountDetail.votre_part', { pct: formatPct(account.ownershipPct!), amount: formatEur(value * share) })}
+            </Text>
+          )}
+          {account.openingDate && (
+            <Text style={styles.lastUpdate}>
+              {t('accountDetail.ouvert_le', {
+                date: formatDate(account.openingDate),
+                duration: formatDuration(Math.max(0, monthsBetween(account.openingDate, todayKey()))),
+              })}
             </Text>
           )}
           {last && (

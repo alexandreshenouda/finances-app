@@ -132,6 +132,8 @@ export interface Account {
    *  Absent = 100 %. Pondère la contribution du compte au patrimoine (pas son solde affiché). */
   ownershipPct?: number;
   fees?: AccountFees;
+  /** Date d'ouverture fiscale du compte (YYYY-MM-DD), essentielle pour l'antériorité PEA / Assurance-Vie */
+  openingDate?: string;
   /** Id de la connexion si le compte est synchronisé automatiquement */
   connectionId?: string;
   /** Identifiant du compte chez le fournisseur externe */

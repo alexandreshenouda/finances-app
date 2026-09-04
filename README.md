@@ -91,11 +91,21 @@ pour le détail des contraintes.
   (ventilation multi-pays look-through, ventilation sectorielle, top 10 des positions pondérées,
   frais de gestion TER) et des actions individuelles (pays, secteur) par simple saisie de l'ISIN.
 
-**Diversification & Analyse**
-- **Diversification sectorielle & géographique** : onglet dédié comparant votre patrimoine à un
-  profil de référence (Prudent, Équilibré, Dynamique) et alertant sur les concentrations excessives.
-- **Classification multi-sources** : JustETF (scraping temps réel pour ETFs UCITS et actions) →
-  Yahoo Finance (secteur actions) → table locale de repli (`referenceEtfs.ts`).
+**Diversification & Conseils patrimoniaux**
+- **Suggestions interactives enrichies** : cartes au format triptyque conforme à la réglementation AMF (non-CIF) comprenant :
+  - **Constat factuel & chiffré** personnalisé sur vos données ;
+  - **Pourquoi c'est important** (explication pédagogique du risque, volatilité, corrélation, fiscalité ou frais) ;
+  - **Piste d'action recommandée** (méthodologie générale, rééquilibrage par les flux, prise de date).
+- **Date d'ouverture fiscale des comptes** : saisie de la date d'ouverture (`Account.openingDate`) et calcul dynamique de l'ancienneté (affichée dans le détail du compte).
+- **Suivi fiscal PEA & Assurance-Vie** :
+  - **PEA** : règle des 5 ans (compte à rebours avant exonération d'impôt sur le revenu, retraits partiels autorisés sans clôture après 5 ans, suivi de l'approche du plafond des versements de 150 000 €).
+  - **Assurance-Vie** : règle des 8 ans (compte à rebours avant déblocage de l'abattement annuel de 4 600 € / 9 200 € sur les plus-values, surveillance des frais d'enveloppe et de versement).
+- **Détection des faux doublons d'ETF (*Look-through overlap*)** : analyse croisée des 10 premières positions sous-jacentes extraites de JustETF pour détecter la concentration réelle et invisible sur les méga-capitalisations (ex: Apple, Microsoft, Nvidia présents dans plusieurs ETF indiciels).
+- **Audit des frais de gestion (*Fee drag*)** : calcul des frais annuels moyens pondérés (TER des fonds + frais de gestion des comptes) et alerte pédagogique sur l'impact de capitalisation négative des fonds onéreux (> 1,2 %).
+- **Trésorerie dormante & Adéquation aux objectifs** : détection des liquidités excédentaires sur compte courant à transférer vers des livrets garantis (Livret A, LDDS), et contrôle de l'adéquation entre l'échéance des projets court/long terme et la volatilité des actifs.
+- **Rééquilibrage par les flux entrants (*Cash-flow rebalancing*)** : recommandation de rééquilibrer par l'orientation des futurs versements réguliers (DCA) plutôt que par des arbitrages imposables.
+- **Diversification sectorielle & géographique** : onglet dédié comparant votre patrimoine à un profil de référence (Prudent, Équilibré, Dynamique) et alertant sur les concentrations excessives.
+- **Classification multi-sources** : JustETF (scraping temps réel pour ETFs UCITS et actions) → Yahoo Finance (secteur actions) → table locale de repli (`referenceEtfs.ts`).
 
 **Immobilier & crédits**
 - **Immobilier** : onglet dédié pour les biens physiques (appartement, maison, terrain…) —
