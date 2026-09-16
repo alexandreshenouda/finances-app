@@ -265,6 +265,22 @@ keytool -genkeypair -v -keystore release.keystore \
 base64 -w0 release.keystore    # macOS : base64 -i release.keystore
 ```
 
+**Le secret doit contenir un keystore Java (PKCS12 ou JKS) encodé en base64, pas
+un `.pem`.** Gradle ne sait pas signer depuis une clé/certificat PEM : il attend un
+conteneur de clés. Si vous partez d'un PEM, convertissez-le d'abord — c'est aussi
+là que se fixe l'alias :
+
+```bash
+openssl pkcs12 -export -inkey cle.pem -in certificat.pem \
+  -name finances -out release.keystore     # -name = ANDROID_KEY_ALIAS
+base64 -w0 release.keystore
+```
+
+Le workflow décode le secret puis contrôle le keystore avant de compiler, et
+distingue dans son message d'erreur les quatre cas : base64 invalide, fichier qui
+n'est pas un keystore (le cas du PEM), mot de passe erroné, alias introuvable — ce
+dernier listant les alias réellement présents.
+
 Pour le workflow **EAS** : un seul secret `EXPO_TOKEN`
 ([expo.dev](https://expo.dev) → *Account settings* → *Access tokens*). Le profil
 utilisé par défaut est `preview`, déclaré en `buildType: apk` dans `eas.json` —

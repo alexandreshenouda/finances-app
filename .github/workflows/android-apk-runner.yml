@@ -116,12 +116,40 @@ jobs:
       - name: Injecter la signature de release dans Gradle
         run: node .github/scripts/apply-release-signing.mjs
 
-      - name: Déchiffrer le keystore
+      # Décodage puis contrôle du keystore : sans ça, un secret mal formé (un PEM au
+      # lieu d'un PKCS12, un mauvais mot de passe, un alias erroné) ne se manifeste
+      # qu'au milieu de Gradle, avec un message peu parlant.
+      - name: Déchiffrer et contrôler le keystore
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
+          KS="$RUNNER_TEMP/keystore/release.keystore"
           mkdir -p "$RUNNER_TEMP/keystore"
-          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/keystore/release.keystore"
+          if ! printf '%s' "$KEYSTORE_B64" | base64 -d > "$KS" 2>/dev/null; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 n'est pas du base64 valide. Régénérez-le avec « base64 -w0 release.keystore » (macOS : « base64 -i release.keystore »)."
+            exit 1
+          fi
+
+          if ! err=$(keytool -list -keystore "$KS" -storepass "$KEYSTORE_PASSWORD" 2>&1); then
+            case "$err" in
+              *"Unrecognized keystore format"*|*"Invalid keystore format"*)
+                echo "::error::Le fichier décodé n'est pas un keystore Java. Un .pem (clé + certificat) doit d'abord être converti : openssl pkcs12 -export -inkey cle.pem -in cert.pem -name <alias> -out release.keystore" ;;
+              *"password was incorrect"*|*"Keystore was tampered"*)
+                echo "::error::ANDROID_KEYSTORE_PASSWORD ne correspond pas à ce keystore." ;;
+              *)
+                echo "::error::Keystore illisible : $err" ;;
+            esac
+            exit 1
+          fi
+
+          if ! keytool -list -keystore "$KS" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null 2>&1; then
+            echo "::error::Aucune entrée nommée « $KEY_ALIAS » dans le keystore. Alias présents :"
+            keytool -list -keystore "$KS" -storepass "$KEYSTORE_PASSWORD" 2>/dev/null | grep -i "Entry," || true
+            exit 1
+          fi
+          echo "Keystore valide, alias « $KEY_ALIAS » présent."
 
       - name: Compiler l'APK de release
         working-directory: android
