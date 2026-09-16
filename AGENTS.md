@@ -271,6 +271,43 @@ tag would clobber each other. Keep it that way if you add a third.
   typed routes and the Babel/Metro cache can go stale: run `expo start --clear` once
   to regenerate `.expo/types/router.d.ts` and clear the compiler cache before trusting
   a "TSC_OK" that still fails at runtime.
-- Pure calc logic (e.g. the loan amortization in `realestate.ts`) can be validated
-  with a standalone `node script.mjs` instead of the app — importing the zustand store
-  pulls in AsyncStorage/react-native, which only work inside the app runtime.
+- Unit tests: `node_modules/.bin/vitest run` (or `npm test`). This is the fastest
+  feedback loop for anything in `src/lib` — see the section below before touching or
+  adding tests.
+- Pure calc logic (e.g. the loan amortization in `realestate.ts`) can also be validated
+  ad hoc with a standalone `node script.mjs` instead of the app — importing the zustand
+  store pulls in AsyncStorage/react-native, which only work inside the app runtime. Prefer
+  adding a Vitest case in `test/` over a throwaway script: the stubs already make that
+  import graph work under Node.
+
+## Unit tests (Vitest) — `test/`
+Pure-calculation coverage only; **no UI tests** (deliberate user rule — don't add them
+unprompted). Everything financial in `src/lib` is covered: `format`, `fx`, `portfolio`, `realestate`,
+`prices/houseIndex`, `objectives`, `projection`, `diversification`, and the normalizers in
+`prices/{classification,sectors,justetf,referenceEtfs}`.
+
+- Runner: **Vitest** (`npm test`, `npm run test:watch`), config in `vitest.config.mts`.
+  It is `.mts` (not `.ts`) because `package.json` has no `"type": "module"` and Vite's
+  native config loader warns on ESM-in-CJS; `tsconfig.json` includes `**/*.mts` so the
+  config is still typechecked.
+- **Why aliases are needed**: `src/lib` is JSX-free TypeScript, but its import graph reaches
+  three modules Node cannot load — `expo-localization` (pulled in by `lib/i18n.ts`, itself
+  imported by `format.ts`), `@react-native-async-storage/async-storage` (zustand `persist`
+  in `store.ts`, reached from `fx.ts` → everything), and `react-native` itself (`Platform`
+  in `prices/{justetf,yahoo}.ts` — written in Flow, which rolldown refuses to parse). They
+  are aliased to in-memory stubs in `test/stubs/`. **Everything else is the real code**:
+  don't mock app modules, and if a new `src/lib` import breaks a test with a parse error
+  about Flow or a missing native module, add a stub rather than mocking the caller.
+- `@/…` path aliases are re-declared in the Vitest config (Vite doesn't read tsconfig
+  `paths`); `@/assets/…` must stay listed **before** the generic `@/…` rule, order matters.
+- Object factories live in `test/factories.ts` (`account`, `holding`, `snapshot`,
+  `property`, `loan`, `objective`, plus fixed `RATES`) — extend those rather than
+  hand-rolling entities in each test.
+- **Assert against an independent formula, not against the implementation.** The loan
+  tests recompute expected balances with the closed-form annuity
+  (`P·i/(1−(1+i)^−n)` and `P(1+i)^k − pay·((1+i)^k−1)/i`) while `realestate.ts` simulates
+  month by month — the point is that the two agree. Same spirit elsewhere: interpolation
+  expectations are written as `100 + 20 × 366/1461`, not as a copied magic number.
+- Anything that reads the real clock (`todayKey()` defaults: manual/local property
+  valuation, PEA/AV seniority) must be called with an explicit `today`/date argument, or
+  pinned relative to `new Date()` — never hardcode a date that will age out.
