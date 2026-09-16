@@ -1,0 +1,176 @@
+# Construit l'APK de bout en bout sur le runner GitHub (prebuild + Gradle), sans
+# passer par EAS : pas de compte Expo, pas de quota de build. En contrepartie, la
+# clé de signature doit être fournie via les secrets du dépôt (voir README).
+#
+# C'est ce workflow qui est branché sur les tags `v*` : le workflow EAS, lui, est
+# manuel uniquement, pour que les deux ne se disputent pas la même release.
+name: APK Android (runner GitHub)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag de la release (défaut : v<version de app.json>-<n° de run>)"
+        required: false
+        type: string
+      prerelease:
+        description: "Marquer la release comme pre-release"
+        required: false
+        type: boolean
+        default: true
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-runner-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Garde-fou en tout premier : inutile de compiler 15 minutes pour échouer
+      # au moment de signer.
+      - name: Vérifier les secrets de signature
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=""
+          [ -n "$KEYSTORE_B64" ]     || missing="$missing ANDROID_KEYSTORE_BASE64"
+          [ -n "$KEYSTORE_PASSWORD" ] || missing="$missing ANDROID_KEYSTORE_PASSWORD"
+          [ -n "$KEY_ALIAS" ]         || missing="$missing ANDROID_KEY_ALIAS"
+          [ -n "$KEY_PASSWORD" ]      || missing="$missing ANDROID_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::Secrets manquants :$missing — voir README, section « Build Android (CI) »."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # AGP 8 / React Native 0.86 → JDK 17.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('package-lock.json', 'app.json') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Calculer le tag et le nom de l'APK
+        id: meta
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            TAG="${GITHUB_REF_NAME}"
+            PRERELEASE="false"
+          elif [ -n "$INPUT_TAG" ]; then
+            TAG="$INPUT_TAG"
+            PRERELEASE="${{ inputs.prerelease }}"
+          else
+            TAG="v${VERSION}-${GITHUB_RUN_NUMBER}"
+            PRERELEASE="${{ inputs.prerelease }}"
+          fi
+          {
+            echo "version=$VERSION"
+            echo "tag=$TAG"
+            echo "prerelease=$PRERELEASE"
+            echo "apk_name=Finances-${TAG}.apk"
+          } >> "$GITHUB_OUTPUT"
+
+      # Les dossiers natifs ne sont pas versionnés (CNG) : on les régénère ici.
+      # `node_modules/.bin/expo` plutôt que `npx expo` — convention du dépôt (AGENTS.md).
+      - name: Générer le projet natif Android
+        run: node_modules/.bin/expo prebuild --platform android --no-install
+
+      - name: Injecter la signature de release dans Gradle
+        run: node .github/scripts/apply-release-signing.mjs
+
+      - name: Déchiffrer le keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/keystore"
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/keystore/release.keystore"
+
+      - name: Compiler l'APK de release
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/keystore/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      # Filet de sécurité : le template Expo signe `release` avec la clé de debug par
+      # défaut. Si le patch Gradle avait été contourné, on refuse de publier l'APK.
+      - name: Vérifier la signature
+        id: apk
+        run: |
+          APK_PATH=android/app/build/outputs/apk/release/app-release.apk
+          [ -f "$APK_PATH" ] || { echo "::error::APK introuvable à $APK_PATH"; exit 1; }
+          SDK="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          BUILD_TOOLS=$(ls -d "$SDK"/build-tools/* | sort -V | tail -1)
+          [ -x "$BUILD_TOOLS/apksigner" ] || { echo "::error::apksigner introuvable sous $SDK"; exit 1; }
+          "$BUILD_TOOLS/apksigner" verify --print-certs "$APK_PATH" | tee certs.txt
+          if grep -q "CN=Android Debug" certs.txt; then
+            echo "::error::APK signé avec la clé de debug — signature de release non appliquée."
+            exit 1
+          fi
+          mv "$APK_PATH" "${{ steps.meta.outputs.apk_name }}"
+          echo "path=${{ steps.meta.outputs.apk_name }}" >> "$GITHUB_OUTPUT"
+
+      - name: Nettoyer le keystore
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keystore"
+
+      # Doublon volontaire de la release : récupérable même si la publication échoue.
+      - name: Joindre l'APK au run
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.apk_name }}
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+
+      - name: Publier dans les releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          APK: ${{ steps.apk.outputs.path }}
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            FLAGS=""
+            if [ "${{ steps.meta.outputs.prerelease }}" = "true" ]; then FLAGS="--prerelease"; fi
+            # shellcheck disable=SC2086
+            gh release create "$TAG" \
+              --title "Finances ${{ steps.meta.outputs.version }} ($TAG)" \
+              --notes "APK Android construit sur le runner GitHub depuis \`${GITHUB_SHA:0:7}\`." \
+              $FLAGS
+          fi
+          gh release upload "$TAG" "$APK" --clobber
+          echo "### APK publié : [$APK](https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG})" >> "$GITHUB_STEP_SUMMARY"

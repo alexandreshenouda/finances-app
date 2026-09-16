@@ -1,0 +1,134 @@
+# Délègue la compilation à EAS Build (serveurs Expo) puis rapatrie l'APK produit
+# et le publie dans les releases du dépôt.
+#
+# Par rapport au workflow « runner GitHub » : pas de keystore à gérer (EAS gère les
+# credentials Android), mais il faut un compte Expo (secret EXPO_TOKEN) et cela
+# consomme le quota de builds EAS.
+#
+# Déclenchement manuel uniquement, volontairement : les tags `v*` sont pris en
+# charge par android-apk-runner.yml, et deux workflows publiant sur la même release
+# se marcheraient dessus.
+name: APK Android (EAS Build)
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Profil eas.json à construire (doit produire un APK)"
+        required: false
+        type: choice
+        default: preview
+        options: [preview, production, development]
+      tag:
+        description: "Tag de la release (défaut : v<version de app.json>-eas-<n° de run>)"
+        required: false
+        type: string
+      prerelease:
+        description: "Marquer la release comme pre-release"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-eas
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Un build EAS peut rester longtemps en file d'attente sur le plan gratuit.
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier le token Expo
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Secret EXPO_TOKEN absent — voir README, section « Build Android (CI) »."
+            exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Installer eas-cli
+        run: npm install -g eas-cli
+
+      - name: Calculer le tag
+        id: meta
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          if [ -n "$INPUT_TAG" ]; then TAG="$INPUT_TAG"; else TAG="v${VERSION}-eas-${GITHUB_RUN_NUMBER}"; fi
+          {
+            echo "version=$VERSION"
+            echo "tag=$TAG"
+            echo "apk_name=Finances-${TAG}.apk"
+          } >> "$GITHUB_OUTPUT"
+
+      # --wait : le job reste ouvert jusqu'à la fin du build côté Expo.
+      # --json : sortie exploitable (implique --non-interactive).
+      - name: Lancer le build EAS et récupérer l'APK
+        id: eas
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          PROFILE: ${{ inputs.profile }}
+          APK_NAME: ${{ steps.meta.outputs.apk_name }}
+        run: |
+          set -o pipefail
+          eas build --platform android --profile "$PROFILE" --non-interactive --wait --json > build.json
+          URL=$(jq -r '.[0].artifacts.buildUrl // .[0].artifacts.applicationArchiveUrl // empty' build.json)
+          if [ -z "$URL" ]; then
+            echo "::error::URL d'artefact introuvable dans la réponse EAS."
+            jq . build.json || cat build.json
+            exit 1
+          fi
+          echo "Téléchargement de $URL"
+          curl -fL --retry 3 --retry-delay 5 "$URL" -o "$APK_NAME"
+          # Le profil doit produire un APK : un AAB n'est pas installable depuis une release.
+          case "$(file -b "$APK_NAME")" in
+            *Zip*|*Android*|*Java\ archive*) ;;
+            *) echo "::error::Artefact inattendu : $(file -b "$APK_NAME")"; exit 1 ;;
+          esac
+          if unzip -l "$APK_NAME" | grep -q "BundleConfig.pb"; then
+            echo "::error::Le profil « $PROFILE » a produit un AAB, pas un APK. Ajoutez \"android\": { \"buildType\": \"apk\" } à ce profil dans eas.json."
+            exit 1
+          fi
+          echo "path=$APK_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Joindre l'APK au run
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.meta.outputs.apk_name }}
+          path: ${{ steps.eas.outputs.path }}
+          if-no-files-found: error
+
+      - name: Publier dans les releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          APK: ${{ steps.eas.outputs.path }}
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            FLAGS=""
+            if [ "${{ inputs.prerelease }}" = "true" ]; then FLAGS="--prerelease"; fi
+            # shellcheck disable=SC2086
+            gh release create "$TAG" \
+              --title "Finances ${{ steps.meta.outputs.version }} ($TAG)" \
+              --notes "APK Android construit par EAS (profil \`${{ inputs.profile }}\`) depuis \`${GITHUB_SHA:0:7}\`." \
+              $FLAGS
+          fi
+          gh release upload "$TAG" "$APK" --clobber
+          echo "### APK publié : [$APK](https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG})" >> "$GITHUB_STEP_SUMMARY"

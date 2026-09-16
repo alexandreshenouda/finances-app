@@ -56,6 +56,7 @@ pour le détail des contraintes.
 - [Fonctionnalités](#fonctionnalités)
 - [Lancer l'app](#lancer-lapp)
 - [Windows (application de bureau)](#windows-application-de-bureau)
+- [Build Android automatisé (GitHub Actions)](#build-android-automatisé-github-actions)
 - [Configurer les synchronisations](#configurer-les-synchronisations)
 - [Architecture](#architecture)
 - [Pourquoi certaines choses sont comme elles sont](#pourquoi-certaines-choses-sont-comme-elles-sont)
@@ -202,6 +203,73 @@ npm run windows:build   # génère un installeur .exe dans release/
 - Les secrets (clés API, identifiants) utilisent le repli `localStorage` d'`expo-secure-store`
   (pas de coffre-fort OS comme l'Android Keystore) : **moins protégés que sur Android**. À garder
   à l'esprit sur un poste partagé.
+
+## Build Android automatisé (GitHub Actions)
+
+Deux workflows produisent un **APK signé** et le publient dans les
+[releases](../../releases) du dépôt. Ils font le même travail par deux chemins
+différents — gardez celui qui vous arrange, ou les deux.
+
+| | `APK Android (runner GitHub)` | `APK Android (EAS Build)` |
+|---|---|---|
+| Où ça compile | Runner Ubuntu GitHub | Serveurs Expo (EAS) |
+| Compte Expo | non | oui (`EXPO_TOKEN`) |
+| Quota / file d'attente | aucun | quota EAS, file d'attente sur le plan gratuit |
+| Signature | votre keystore, via les secrets du dépôt | gérée par EAS |
+| Déclenchement | tag `v*` **et** manuel | manuel uniquement |
+| Durée typique | ~15 min | build + attente en file |
+
+Les tags `v*` ne déclenchent que le workflow *runner* : si les deux se lançaient,
+ils publieraient deux APK sur la même release.
+
+### Lancer un build
+
+- **Par un tag** : `git tag v1.1.0 && git push origin v1.1.0` → release `v1.1.0`
+  (release normale, pas pre-release).
+- **À la main** : onglet *Actions* → le workflow voulu → *Run workflow*. Sans tag
+  fourni, la release s'appelle `v<version de app.json>-<n° de run>` et est marquée
+  **pre-release**.
+
+Dans les deux cas l'APK est aussi joint au run lui-même (*artifact*), récupérable
+même si la publication de la release échoue.
+
+### Secrets à configurer
+
+*Settings → Secrets and variables → Actions.*
+
+Pour le workflow **runner GitHub** (signature) :
+
+| Secret | Contenu |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | le keystore, encodé en base64 |
+| `ANDROID_KEYSTORE_PASSWORD` | mot de passe du keystore |
+| `ANDROID_KEY_ALIAS` | alias de la clé |
+| `ANDROID_KEY_PASSWORD` | mot de passe de la clé |
+
+Générez le keystore **une fois** et conservez-le précieusement : Android refuse
+d'installer une mise à jour signée par une autre clé, donc le perdre signifie
+désinstaller/réinstaller l'app (et perdre ses données) à la prochaine version.
+
+```bash
+keytool -genkeypair -v -keystore release.keystore \
+  -alias finances -keyalg RSA -keysize 2048 -validity 10000
+base64 -w0 release.keystore    # macOS : base64 -i release.keystore
+```
+
+Pour le workflow **EAS** : un seul secret `EXPO_TOKEN`
+([expo.dev](https://expo.dev) → *Account settings* → *Access tokens*). Le profil
+utilisé par défaut est `preview`, déclaré en `buildType: apk` dans `eas.json` —
+`production` produit un **AAB** (dépôt Play Store), non installable directement,
+et le workflow s'arrête avec un message explicite si on le lui demande.
+
+### Signature : pourquoi un script de patch
+
+Les dossiers natifs ne sont pas versionnés (CNG) : le workflow runner les régénère
+avec `expo prebuild`, et le template Expo signe le buildType `release` avec la
+**clé de debug**. `.github/scripts/apply-release-signing.mjs` injecte la vraie
+signingConfig dans le Gradle généré, et le workflow vérifie ensuite avec
+`apksigner` que l'APK publié n'est pas signé en debug — au moindre doute, le job
+échoue plutôt que de publier.
 
 ## Configurer les synchronisations
 

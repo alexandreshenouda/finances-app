@@ -229,6 +229,29 @@ savings plans, PEA ceiling usage, etc.:
 - **Saved scenarios**: multiple projection scenarios (`SavedProjection`: name, description, settings) can be saved, updated, and reloaded.
 - Persisted in `store.projectionSettings` and `store.savedProjections` across app sessions, and included in `exportData()` / `importData()`. All holding classifications (`sectorWeights`, `countryWeights`, `topHoldings`, `feesPct`) and `objectives` are also fully covered in export/import.
 
+## CI : build APK Android (`.github/workflows/`)
+Two workflows publish a signed APK to the repo's GitHub Releases:
+`android-apk-runner.yml` (prebuild + Gradle on the runner, needs the
+`ANDROID_KEYSTORE_*` secrets, wired to `v*` tags **and** manual dispatch) and
+`android-apk-eas.yml` (delegates to EAS Build, needs `EXPO_TOKEN`, manual only).
+Only the runner one listens to tags — two workflows publishing to the same release
+tag would clobber each other. Keep it that way if you add a third.
+
+- Native dirs are **not** committed (CNG): `expo prebuild` runs in CI. The Expo
+  template signs the `release` buildType with the **debug** keystore, so
+  `.github/scripts/apply-release-signing.mjs` patches the generated
+  `android/app/build.gradle` (adds a `release` signingConfig reading
+  `ANDROID_KEYSTORE_*` from the env, switches the `release` buildType onto it).
+  It is deliberately **fail-loud**: if the template's anchors move on an Expo
+  bump, the job goes red instead of silently shipping a debug-signed APK. An
+  `apksigner verify` step re-checks this before publishing.
+- Workflow `run:` blocks execute under `bash -eo pipefail`. `[ test ] && assign`
+  as a top-level statement **kills the step** when the test is false — use
+  `if … then … fi`. This bit both workflows' prerelease flag once already.
+- `eas.json`'s `preview` profile carries `android.buildType: apk` because a
+  release asset must be directly installable; `production` still yields an AAB.
+- Use `node_modules/.bin/expo` in CI too, matching the local convention below.
+
 ## Verification workflow
 - `node_modules` is **not present by default** — run `npm install` first, before any
   typecheck or build (fresh clone / fresh session).
