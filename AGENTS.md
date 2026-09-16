@@ -248,6 +248,11 @@ tag would clobber each other. Keep it that way if you add a third.
 - Workflow `run:` blocks execute under `bash -eo pipefail`. `[ test ] && assign`
   as a top-level statement **kills the step** when the test is false — use
   `if … then … fi`. This bit both workflows' prerelease flag once already.
+- Of the signing secrets only `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`
+  and `ANDROID_KEY_ALIAS` are required. `ANDROID_KEY_PASSWORD` falls back to the store
+  password: keytool's default PKCS12 format rejects a distinct key password outright
+  ("Different store and key passwords not supported for PKCS12 KeyStores"), so only a
+  legacy JKS keystore ever needs it.
 - `eas.json`'s `preview` profile carries `android.buildType: apk` because a
   release asset must be directly installable; `production` still yields an AAB.
 - Use `node_modules/.bin/expo` in CI too, matching the local convention below.
