@@ -209,7 +209,9 @@ export function seriesDelta(points: SeriesPoint[]): { abs: number; pct?: number 
  * `rawValue` préserve le montant brut en devise pour chaque point.
  */
 export function toPerformanceSeries(points: SeriesPoint[]): SeriesPoint[] {
-  if (points.length < 2) return points;
+  // Même avec un point unique la valeur doit être exprimée en % (0 %), sinon un
+  // montant en euros serait affiché tel quel sur un axe en pourcentage.
+  if (points.length < 2) return points.map((p) => ({ date: p.date, value: 0, rawValue: p.value }));
   const firstNonZero = points.find((p) => p.value !== 0);
   if (!firstNonZero) {
     return points.map((p) => ({ date: p.date, value: 0, rawValue: p.value }));

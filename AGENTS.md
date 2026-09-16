@@ -107,8 +107,17 @@ and relative performance over time (in %).
 - The mode (`'value' | 'percent'`) is stored in `store.chartMode` (persisted, default `'value'`).
 - In `'percent'` mode, points are transformed via `toPerformanceSeries` (`src/lib/portfolio.ts`),
   starting at 0.0% at the beginning of the period.
-- `LineChart` (`src/components/LineChart.tsx`) displays a horizontal dashed baseline at `y(0)`
-  when in `'percent'` mode and formats the tooltip with `formatPct(touched.value, true)`.
+- **The % transform alone is not enough**: `(v - base) / |base|` is *affine*, so with a y-axis
+  auto-scaled to `[min, max]` of the plotted values the percent curve came out pixel-identical
+  to the value curve. `LineChart` (`src/components/LineChart.tsx`) therefore, in `'percent'` mode:
+  forces `0` into the y-domain (the 0 % reference is always on screen), anchors the area fill on
+  `y(0)` instead of the chart bottom, and paints stroke + area through a hard-stop gradient at
+  `y(0)` — the series `color` above 0 %, `C.negative` below. Same rule for the crosshair dot and
+  the tooltip text. Keep the 0 in the domain if you touch that scale, or the two modes look alike again.
+- SVG gradient ids are per-instance (`useId`) because several charts can share a page
+  (Synthèse + `ProjectionCard`) and ids are document-global on web.
+- The tooltip also shows `SeriesPoint.rawValue` (the currency amount behind the %), set by
+  `toPerformanceSeries`.
 - Under privacy mode, percentages remain visible while currency amounts are masked.
 
 ## Period chips

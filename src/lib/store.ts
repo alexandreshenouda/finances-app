@@ -408,6 +408,7 @@ export const useStore = create<AppState>()(
         showDiversificationTab: s.showDiversificationTab,
         riskProfile: s.riskProfile,
         defaultPeriod: s.defaultPeriod,
+        chartMode: s.chartMode,
         privacyMode: s.privacyMode,
         language: s.language,
         theme: s.theme,
