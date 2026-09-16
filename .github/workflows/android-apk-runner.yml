@@ -47,13 +47,18 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           missing=""
-          [ -n "$KEYSTORE_B64" ]     || missing="$missing ANDROID_KEYSTORE_BASE64"
+          [ -n "$KEYSTORE_B64" ]      || missing="$missing ANDROID_KEYSTORE_BASE64"
           [ -n "$KEYSTORE_PASSWORD" ] || missing="$missing ANDROID_KEYSTORE_PASSWORD"
           [ -n "$KEY_ALIAS" ]         || missing="$missing ANDROID_KEY_ALIAS"
-          [ -n "$KEY_PASSWORD" ]      || missing="$missing ANDROID_KEY_PASSWORD"
           if [ -n "$missing" ]; then
-            echo "::error::Secrets manquants :$missing — voir README, section « Build Android (CI) »."
+            echo "::error::Secrets manquants :$missing — voir README, section « Build Android automatisé »."
             exit 1
+          fi
+          # ANDROID_KEY_PASSWORD est facultatif : un keystore PKCS12 (format par défaut
+          # de keytool depuis JDK 9) refuse un mot de passe de clé distinct de celui du
+          # keystore. Seul un vieux keystore JKS peut en avoir un différent.
+          if [ -z "$KEY_PASSWORD" ]; then
+            echo "ANDROID_KEY_PASSWORD absent → repli sur ANDROID_KEYSTORE_PASSWORD."
           fi
 
       - uses: actions/setup-node@v4
@@ -124,7 +129,8 @@ jobs:
           ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/keystore/release.keystore
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # Repli sur le mot de passe du keystore : cf. étape « Vérifier les secrets ».
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       # Filet de sécurité : le template Expo signe `release` avec la clé de debug par

@@ -239,12 +239,21 @@ même si la publication de la release échoue.
 
 Pour le workflow **runner GitHub** (signature) :
 
-| Secret | Contenu |
-|---|---|
-| `ANDROID_KEYSTORE_BASE64` | le keystore, encodé en base64 |
-| `ANDROID_KEYSTORE_PASSWORD` | mot de passe du keystore |
-| `ANDROID_KEY_ALIAS` | alias de la clé |
-| `ANDROID_KEY_PASSWORD` | mot de passe de la clé |
+| Secret | Obligatoire | Contenu |
+|---|---|---|
+| `ANDROID_KEYSTORE_BASE64` | oui | le keystore, encodé en base64 |
+| `ANDROID_KEYSTORE_PASSWORD` | oui | mot de passe du **keystore** (le `-storepass`) |
+| `ANDROID_KEY_ALIAS` | oui | nom de l'entrée à utiliser dans le keystore (le `-alias`) |
+| `ANDROID_KEY_PASSWORD` | non | mot de passe de la **clé** ; à défaut, celui du keystore est réutilisé |
+
+Un keystore est un conteneur pouvant abriter plusieurs clés, chacune repérée par
+son **alias** — d'où `ANDROID_KEY_ALIAS`, obligatoire : Gradle doit savoir laquelle
+signer. Chaque clé peut en théorie avoir son propre mot de passe, mais le format
+**PKCS12** (celui de `keytool` par défaut depuis le JDK 9, donc celui de la commande
+ci-dessous) ne le permet pas : `keytool` répond
+*« Different store and key passwords not supported for PKCS12 KeyStores »* et ignore
+la valeur. `ANDROID_KEY_PASSWORD` n'est donc utile que pour un ancien keystore **JKS**
+dont la clé a un mot de passe distinct ; sinon, ne le déclarez pas.
 
 Générez le keystore **une fois** et conservez-le précieusement : Android refuse
 d'installer une mise à jour signée par une autre clé, donc le perdre signifie
