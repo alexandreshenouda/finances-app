@@ -1,8 +1,15 @@
 /**
  * Courbe de valorisation (série unique) : ligne 2px, aire dégradée,
  * grille discrète, inspection au doigt (crosshair + valeur).
+ *
+ * En mode `percent`, la courbe représente la performance relative depuis le
+ * début de la période (0 % au premier point) : la ligne de base 0 % est donc
+ * toujours incluse dans l'échelle verticale, l'aire est ancrée sur cette ligne
+ * (et non sur le bas du graphe), et la couleur bascule sur `C.negative` sous 0 %.
+ * Sans cela, la transformation valeur → % étant affine, l'auto-échelle
+ * redonnait exactement la même courbe qu'en mode valeur.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   Platform,
   StyleSheet,
@@ -27,6 +34,7 @@ function makeStyles() {
     emptyText: { color: C.textFaint, fontSize: 13, textAlign: 'center', paddingHorizontal: 16 },
     tooltipRow: { height: 20, marginBottom: 2 },
     tooltipText: { color: C.textDim, fontSize: 13, textAlign: 'center' },
+    tooltipRaw: { color: C.textFaint, fontSize: 12 },
     axisRow: {
       position: 'absolute',
       bottom: 0,
@@ -54,6 +62,12 @@ export function LineChart({
   const nodeRef = useRef<HTMLElement | null>(null);
   const roRef = useRef<ResizeObserver | null>(null);
   const winWidth = useWindowDimensions().width;
+  // Identifiants uniques : plusieurs LineChart peuvent coexister sur un même
+  // écran (Synthèse + Projection) et les ids SVG sont globaux au document web.
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const areaId = `area-${uid}`;
+  const strokeId = `stroke-${uid}`;
+  const isPct = mode === 'percent';
 
   // react-native-web ≥ 0.20 ne déclenche plus onLayout : mesure directe du DOM,
   // ResizeObserver pour les redimensionnements, ref callback car le nœud change
@@ -81,6 +95,12 @@ export function LineChart({
     const values = points.map((p) => p.value);
     let min = Math.min(...values);
     let max = Math.max(...values);
+    // Mode performance : le 0 % est la référence de la période, il doit rester
+    // à l'écran même si la courbe est entièrement en gain ou entièrement en perte.
+    if (isPct) {
+      min = Math.min(min, 0);
+      max = Math.max(max, 0);
+    }
     if (min === max) {
       min -= 1;
       max += 1;
@@ -93,9 +113,16 @@ export function LineChart({
     const x = (i: number) => (i / (points.length - 1)) * width;
     const y = (v: number) => PAD_TOP + innerH - ((v - lo) / (hi - lo)) * innerH;
     const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ');
-    const area = `${d} L${width},${H - PAD_BOTTOM} L0,${H - PAD_BOTTOM} Z`;
-    return { x, y, d, area, min, max, lo, hi };
-  }, [width, points]);
+    // L'aire part de la ligne de base : 0 % en mode performance, bas du graphe sinon.
+    const baseY = isPct ? y(0) : H - PAD_BOTTOM;
+    const area = `${d} L${width},${baseY.toFixed(1)} L0,${baseY.toFixed(1)} Z`;
+    // Bascule de couleur exprimée en fraction de la hauteur du SVG (gradient en userSpaceOnUse).
+    // Deux offsets quasi confondus plutôt qu'un seul dupliqué : certaines implémentations
+    // natives de dégradé exigent des positions strictement croissantes.
+    const zeroTop = Math.max(0, Math.min(1, baseY / H));
+    const zeroBottom = Math.min(1, zeroTop + 0.001);
+    return { x, y, d, area, min, max, lo, hi, baseY, zeroTop, zeroBottom };
+  }, [width, points, isPct]);
 
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
 
@@ -116,6 +143,9 @@ export function LineChart({
   }
 
   const touched = touchIdx !== null ? points[touchIdx] : null;
+  /** Couleur d'un point : thème au-dessus de 0 %, rouge en dessous (mode performance uniquement). */
+  const colorAt = (v: number) => (isPct && v < 0 ? C.negative : color);
+  const strokePaint = isPct ? `url(#${strokeId})` : color;
 
   return (
     <View ref={wrapRef} style={styles.wrap} onLayout={onLayout}>
@@ -123,9 +153,12 @@ export function LineChart({
         {touched ? (
           <Text style={styles.tooltipText}>
             {formatDate(touched.date)} ·{' '}
-            <Text style={{ color: C.text, fontWeight: '700' }}>
-              {mode === 'percent' ? formatPct(touched.value, true) : formatEur(touched.value)}
+            <Text style={{ color: isPct ? colorAt(touched.value) : C.text, fontWeight: '700' }}>
+              {isPct ? formatPct(touched.value, true) : formatEur(touched.value)}
             </Text>
+            {isPct && touched.rawValue !== undefined && (
+              <Text style={styles.tooltipRaw}>{`  ${formatEur(touched.rawValue)}`}</Text>
+            )}
           </Text>
         ) : (
           <Text style={styles.tooltipText}> </Text>
@@ -141,10 +174,28 @@ export function LineChart({
         >
           <Svg width={width} height={H}>
             <Defs>
-              <LinearGradient id="area" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={color} stopOpacity={0.25} />
-                <Stop offset="1" stopColor={color} stopOpacity={0.02} />
-              </LinearGradient>
+              {isPct ? (
+                <>
+                  {/* Dégradés coupés net sur la ligne 0 % : thème au-dessus, négatif en dessous. */}
+                  <LinearGradient id={areaId} x1="0" y1="0" x2="0" y2={H} gradientUnits="userSpaceOnUse">
+                    <Stop offset="0" stopColor={color} stopOpacity={0.25} />
+                    <Stop offset={geom.zeroTop} stopColor={color} stopOpacity={0.02} />
+                    <Stop offset={geom.zeroBottom} stopColor={C.negative} stopOpacity={0.02} />
+                    <Stop offset="1" stopColor={C.negative} stopOpacity={0.25} />
+                  </LinearGradient>
+                  <LinearGradient id={strokeId} x1="0" y1="0" x2="0" y2={H} gradientUnits="userSpaceOnUse">
+                    <Stop offset="0" stopColor={color} />
+                    <Stop offset={geom.zeroTop} stopColor={color} />
+                    <Stop offset={geom.zeroBottom} stopColor={C.negative} />
+                    <Stop offset="1" stopColor={C.negative} />
+                  </LinearGradient>
+                </>
+              ) : (
+                <LinearGradient id={areaId} x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor={color} stopOpacity={0.25} />
+                  <Stop offset="1" stopColor={color} stopOpacity={0.02} />
+                </LinearGradient>
+              )}
             </Defs>
             {[0.25, 0.5, 0.75].map((f) => (
               <Line
@@ -157,19 +208,19 @@ export function LineChart({
                 strokeWidth={StyleSheet.hairlineWidth}
               />
             ))}
-            {mode === 'percent' && geom.lo <= 0 && geom.hi >= 0 && (
+            <Path d={geom.area} fill={`url(#${areaId})`} />
+            {isPct && (
               <Line
                 x1={0}
                 x2={width}
-                y1={geom.y(0)}
-                y2={geom.y(0)}
+                y1={geom.baseY}
+                y2={geom.baseY}
                 stroke={C.textDim}
                 strokeWidth={1}
                 strokeDasharray="4,4"
               />
             )}
-            <Path d={geom.area} fill="url(#area)" />
-            <Path d={geom.d} stroke={color} strokeWidth={2} fill="none" strokeLinejoin="round" />
+            <Path d={geom.d} stroke={strokePaint} strokeWidth={2} fill="none" strokeLinejoin="round" />
             {touchIdx !== null && (
               <>
                 <Line
@@ -185,7 +236,7 @@ export function LineChart({
                   cx={geom.x(touchIdx)}
                   cy={geom.y(points[touchIdx].value)}
                   r={5}
-                  fill={color}
+                  fill={colorAt(points[touchIdx].value)}
                   stroke={C.bg}
                   strokeWidth={2}
                 />

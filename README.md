@@ -72,7 +72,11 @@ pour le détail des contraintes.
   doigt, variation absolue et en %).
 - **Mode Valeur ou Performance (%)** : basculement direct sur tous les graphiques historiques
   (Synthèse, comptes, biens immobiliers) et configurable dans **Paramètres → Affichage** entre
-  la valeur absolue en devise et la performance relative en % sur la période choisie (avec ligne repère 0%).
+  la valeur absolue en devise et la performance relative en % sur la période choisie. En mode
+  Performance, la courbe part de **0 % au premier jour de la période** et affiche l'écart relatif
+  à ce point de référence : la **ligne repère 0 % en pointillés est toujours visible**, l'aire
+  est ancrée dessus, et la courbe prend la **couleur du thème au-dessus de 0 %** et le **rouge
+  en dessous**. L'infobulle rappelle le montant en devise correspondant au point survolé.
 - **Répartition du patrimoine** par type de compte, en **barre empilée ou camembert**.
 - **Projection patrimoniale future** : section interactive en dessous des objectifs permettant de simuler l'évolution prévisionnelle du patrimoine à 3, 5, 10, 15, 20 ou 30 ans :
   - **Visualisation Brute ou Nette** : prise en compte de l'**amortissement réel des crédits** mois par mois (les dettes diminuent selon leurs échéanciers jusqu'à extinction complète) ;
