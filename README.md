@@ -55,6 +55,7 @@ pour le détail des contraintes.
 
 - [Fonctionnalités](#fonctionnalités)
 - [Lancer l'app](#lancer-lapp)
+- [Tests](#tests)
 - [Windows (application de bureau)](#windows-application-de-bureau)
 - [Build Android automatisé (GitHub Actions)](#build-android-automatisé-github-actions)
 - [Configurer les synchronisations](#configurer-les-synchronisations)
@@ -183,6 +184,41 @@ Le build iOS se fait sur le cloud EAS (pas besoin de macOS pour builder) ; EAS g
 provisioning (certificat + profil) au premier build via votre login Apple. L'app déclare
 `ios.bundleIdentifier` et `android.package` = `fr.perso.patrimoine`. Pour un build local,
 `npx expo run:android` (Android Studio) ou `npx expo run:ios` (macOS + Xcode).
+
+## Tests
+
+Les calculs financiers (valorisation, séries temporelles, amortissement des crédits,
+estimation immobilière, objectifs, projections, diagnostics de diversification) sont
+couverts par une suite de tests unitaires **[Vitest](https://vitest.dev)**.
+
+```bash
+npm test           # exécute toute la suite une fois
+npm run test:watch # relance à chaque modification
+```
+
+Périmètre : **uniquement de la logique pure** — aucun test d'interface. Les fichiers
+vivent dans `test/`, un par module de `src/lib` :
+
+| Fichier | Couvre |
+| --- | --- |
+| `test/format.test.ts` | formatage des montants / % / durées, masquage « confidentialité », arithmétique de dates |
+| `test/fx.test.ts` | conversion de devises (`toEur`, `convert`) |
+| `test/portfolio.test.ts` | valorisation des comptes, plus-values, quote-part, `buildSeries`, mode performance (%) |
+| `test/realestate.test.ts` | amortissement (mensualités constantes **et** paliers/différé), valorisation des biens, courbe patrimoniale |
+| `test/houseIndex.test.ts` | interpolation de l'indice des prix des logements |
+| `test/objectives.test.ts` | progression des objectifs, épargne de précaution, effort mensuel |
+| `test/projection.test.ts` | CAGR historique, capitalisation, frais, inflation, amortissement futur, atteinte des objectifs |
+| `test/diversification.test.ts` | répartition cible par profil, agrégations secteur/pays, seuils des conseils |
+| `test/classification.test.ts` | pays depuis l'ISIN, cooldown de re-classification, normalisation des secteurs/pays |
+
+Les valeurs de référence des crédits sont recalculées dans les tests par la **formule fermée
+de l'annuité**, indépendamment de la simulation mois par mois de `realestate.ts` : les deux
+doivent tomber d'accord.
+
+Les modules de `src/lib` sont du TypeScript sans JSX, mais leur graphe d'imports touche trois
+modules natifs Expo/React Native inutilisables sous Node (`expo-localization`, AsyncStorage, et
+`react-native` lui-même, écrit en Flow). `vitest.config.mts` les remplace par des bouchons en
+mémoire (`test/stubs/`) — le reste du code testé est le code réel de l'application, sans mock.
 
 ## Windows (application de bureau)
 
@@ -333,6 +369,9 @@ src/
     realestate.ts      estimation des biens, amortissement des crédits (constant/paliers)
     prices/            Yahoo Finance, CoinGecko, JustETF scraper (ETFs & actions) & indice INSEE
     connectors/        Binance, Kraken, Enable Banking (JWT RS256)
+
+test/                  tests unitaires Vitest des calculs (voir « Tests »), + bouchons
+                       des modules natifs dans test/stubs/
 ```
 
 Données locales : documents (comptes, lignes, snapshots, connexions, biens et crédits immobiliers)
