@@ -7,7 +7,7 @@
  */
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Field } from '@/components/ui';
 import { C, useStyles } from '@/constants/theme';
@@ -23,6 +23,9 @@ import {
 import { connectionSecretKey, setSecret } from '@/lib/secure';
 import { useStore } from '@/lib/store';
 
+/** Étape en cours, affichée avec un indicateur d'attente. */
+type Phase = 'login' | 'approval' | 'fetching';
+
 interface TrCredentials {
   phoneNumber: string;
   pin: string;
@@ -34,6 +37,8 @@ function makeStyles() {
     content: { padding: 16, paddingBottom: 40 },
     warn: { color: C.warning, fontSize: 13, lineHeight: 18 },
     err: { color: C.negative, fontSize: 13, lineHeight: 18 },
+    status: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    statusText: { flex: 1, color: C.text, fontSize: 14, lineHeight: 20 },
   });
 }
 
@@ -53,6 +58,7 @@ export default function TrConnect() {
   const [pin, setPin] = useState('');
   const [processId, setProcessId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<Phase | null>(null);
   const cancelledRef = useRef(false);
 
   useEffect(() => {
@@ -76,12 +82,16 @@ export default function TrConnect() {
   const startLogin = async () => {
     cancelledRef.current = false;
     setBusy(true);
+    setPhase('login');
     try {
       const handle = await trInitiateLogin(phone, pin);
+      if (cancelledRef.current) return;
       setProcessId(handle.processId);
+      setPhase('approval');
       await trAwaitApproval(handle.processId, { shouldAbort: () => cancelledRef.current });
       if (cancelledRef.current) return;
 
+      setPhase('fetching');
       const snapshot = await trFetchPortfolio();
 
       // Connexion créée après un login réussi seulement.
@@ -95,6 +105,7 @@ export default function TrConnect() {
       persistExternalAccounts(conn, { accounts, warnings: snapshot.warnings });
 
       setProcessId(null);
+      setPhase(null);
       const positionCount = accounts.reduce((n, a) => n + a.holdings.length, 0);
       const msg =
         snapshot.warnings.length > 0
@@ -107,6 +118,7 @@ export default function TrConnect() {
       setProcessId(null);
     } finally {
       setBusy(false);
+      setPhase(null);
     }
   };
 
@@ -125,6 +137,7 @@ export default function TrConnect() {
       cancelledRef.current = true;
       setProcessId(null);
       setBusy(false);
+      setPhase(null);
     } else {
       router.back();
     }
@@ -167,18 +180,33 @@ export default function TrConnect() {
           />
         </Card>
 
-        {!processId ? (
+        {phase ? (
+          <Card>
+            <View style={styles.status}>
+              <ActivityIndicator color={C.accent} size="small" />
+              <Text style={styles.statusText}>
+                {phase === 'login'
+                  ? t('trConnect.etape_login')
+                  : phase === 'approval'
+                    ? t('trConnect.approuver_attente')
+                    : t('trConnect.etape_recuperation')}
+              </Text>
+            </View>
+            {phase === 'approval' && processId && (
+              <Button
+                title={t('trConnect.renvoyer_demande')}
+                variant="secondary"
+                onPress={resendApproval}
+                style={{ marginTop: 12 }}
+              />
+            )}
+          </Card>
+        ) : (
           <Button
             title={t('trConnect.se_connecter')}
             onPress={startLogin}
-            loading={busy}
             disabled={!phone.trim() || !pin.trim()}
           />
-        ) : (
-          <Card>
-            <Text style={styles.warn}>{t('trConnect.approuver_attente')}</Text>
-            <Button title={t('trConnect.renvoyer_demande')} variant="secondary" onPress={resendApproval} />
-          </Card>
         )}
         <Button title={t('common.cancel')} variant="secondary" onPress={cancel} />
       </ScrollView>

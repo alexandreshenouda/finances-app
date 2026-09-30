@@ -139,6 +139,8 @@ pour le détail des contraintes.
   et **Revolut** via la Lituanie (sélecteur de pays).
 - **Trade Republic** : API *non officielle* (login téléphone/PIN + 2FA), liquidités + positions
   valorisées en EUR. Android uniquement, à utiliser en connaissance de cause (voir plus bas).
+  L'écran de connexion affiche un indicateur d'attente pour chaque étape (connexion, approbation
+  dans l'app TR, récupération du portefeuille) jusqu'au message de fin de synchro.
 - **Snapshots quotidiens** : chaque mise à jour (cours, synchro ou saisie) enregistre au plus un
   point par jour et par compte ; les courbes se construisent à partir de ces points (report de la
   dernière valeur connue pour les comptes non mis à jour).
