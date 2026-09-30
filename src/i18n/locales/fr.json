@@ -864,6 +864,8 @@
     "pin_hint": "Numéro et PIN stockés chiffrés sur l'appareil (Android Keystore).",
     "se_connecter": "Se connecter",
     "approuver_attente": "Ouvrez l'app Trade Republic (ou vérifiez vos SMS) et approuvez la connexion en cours…",
+    "etape_login": "Connexion à Trade Republic…",
+    "etape_recuperation": "Connexion approuvée — récupération du portefeuille (comptes, positions, cours)…",
     "renvoyer_demande": "Renvoyer la demande"
   },
   "chart": {
