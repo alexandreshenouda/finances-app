@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   addDays,
+  formatDate,
   formatDuration,
   formatEur,
   formatMoney,
@@ -144,6 +145,18 @@ describe('formatQuantity', () => {
   it('conserve jusqu’à 8 décimales (quantités crypto)', () => {
     expect(norm(formatQuantity(0.12345678))).toBe('0,12345678');
     expect(norm(formatQuantity(1500))).toBe('1 500');
+  });
+});
+
+describe('formatDate', () => {
+  it('affiche une date ISO selon la locale active', () => {
+    expect(formatDate('2024-03-05T12:00:00')).toBe('05/03/2024');
+    setLocale('en-US');
+    expect(formatDate('2024-03-05T12:00:00')).toBe('3/5/2024');
+  });
+
+  it('rend telle quelle une chaîne qui n’est pas une date', () => {
+    expect(formatDate('bientôt')).toBe('bientôt');
   });
 });
 

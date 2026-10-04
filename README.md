@@ -198,9 +198,11 @@ provisioning (certificat + profil) au premier build via votre login Apple. L'app
 
 ## Tests
 
-Les calculs financiers (valorisation, séries temporelles, amortissement des crédits,
-estimation immobilière, objectifs, projections, diagnostics de diversification) sont
-couverts par une suite de tests unitaires **[Vitest](https://vitest.dev)**.
+Toute la logique de `src/lib` — calculs financiers (valorisation, séries temporelles,
+amortissement des crédits, estimation immobilière, objectifs, projections, diagnostics de
+diversification), mais aussi le store persisté, les sources de cours, le scraper JustETF et
+les connecteurs bancaires / crypto — est couverte par une suite de tests unitaires
+**[Vitest](https://vitest.dev)** (≈ 98 % des instructions, 92 % des branches).
 
 ```bash
 npm test              # exécute toute la suite une fois
@@ -220,7 +222,8 @@ format [endpoint de shields.io](https://shields.io/badges/endpoint-badge)
 qui ne contient que ces deux fichiers. Aucun service tiers ni secret : shields.io lit les JSON
 via `raw.githubusercontent.com` (le dépôt doit rester public ; le cache shields/GitHub peut
 retarder la mise à jour de quelques minutes). La couverture est mesurée sur `src/lib` seulement,
-le périmètre des tests.
+le périmètre des tests, avec un **plancher de 90 %** (instructions, branches, fonctions, lignes) :
+`npm run test:coverage` — donc la CI — échoue en dessous.
 
 Périmètre : **uniquement de la logique pure** — aucun test d'interface. Les fichiers
 vivent dans `test/`, un par module de `src/lib` :
@@ -228,23 +231,37 @@ vivent dans `test/`, un par module de `src/lib` :
 | Fichier | Couvre |
 | --- | --- |
 | `test/format.test.ts` | formatage des montants / % / durées, masquage « confidentialité », arithmétique de dates |
-| `test/fx.test.ts` | conversion de devises (`toEur`, `convert`) |
+| `test/fx.test.ts` | conversion de devises (`toEur`, `convert`), rafraîchissement des taux BCE |
 | `test/portfolio.test.ts` | valorisation des comptes, plus-values, quote-part, `buildSeries`, mode performance (%) |
 | `test/realestate.test.ts` | amortissement (mensualités constantes **et** paliers/différé), valorisation des biens, courbe patrimoniale |
-| `test/houseIndex.test.ts` | interpolation de l'indice des prix des logements (indépendante du fuseau horaire / changement d'heure) |
+| `test/houseIndex.test.ts` | interpolation de l'indice des prix des logements (indépendante du fuseau horaire / changement d'heure), rafraîchissement FRED |
 | `test/objectives.test.ts` | progression des objectifs, épargne de précaution (suggestion, plan de constitution), effort mensuel |
 | `test/projection.test.ts` | CAGR historique, capitalisation, frais, inflation, amortissement futur, atteinte des objectifs |
 | `test/diversification.test.ts` | répartition cible par profil, agrégations secteur/pays, seuils des conseils |
 | `test/classification.test.ts` | pays depuis l'ISIN, cooldown de re-classification, normalisation des secteurs/pays |
+| `test/classifyHoldings.test.ts` | cascade de classification CoinGecko → JustETF → Yahoo → table locale → ISIN, cooldown 7 jours (jamais sur une panne réseau) |
+| `test/justetf.test.ts` | scraper JustETF (profils ETF et action, repli `/fr/`, proxies CORS web, délai, cache, « injoignable » ≠ « inconnu ») |
+| `test/yahoo.test.ts`, `test/coingecko.test.ts` | cours et conversions Yahoo (cache des taux, GBp), recherche ISIN → ticker, cours/catégories CoinGecko |
+| `test/refreshPrices.test.ts` | rafraîchissement global des cours et snapshots du jour |
+| `test/localValuation.test.ts` | géocodage et prix/m² DVF pondéré (commune, puis département) |
+| `test/store.test.ts` | store persisté : CRUD, suppressions en cascade, import/export, réhydratation, synchronisation masquage/langue/thème |
+| `test/connectors.test.ts` | orchestrateur de synchro (identifiants, comptes liés, lignes, snapshot) |
+| `test/binance.test.ts`, `test/kraken.test.ts`, `test/enablebanking.test.ts` | connecteurs : signatures HMAC / JWT RS256 revérifiées avec `node:crypto`, valorisation EUR, erreurs |
+| `test/traderepublic.test.ts` | login v2 à approbation push, protocole WebSocket (faux serveur), enveloppes CTO/PEA/Private Equity |
+| `test/debugLog.test.ts`, `test/confirm.test.ts`, `test/secure.test.ts`, `test/i18n.test.ts` | journal de debug, dialogues thématisés, stockage des secrets (natif / web), détection de langue |
 
 Les valeurs de référence des crédits sont recalculées dans les tests par la **formule fermée
 de l'annuité**, indépendamment de la simulation mois par mois de `realestate.ts` : les deux
 doivent tomber d'accord.
 
-Les modules de `src/lib` sont du TypeScript sans JSX, mais leur graphe d'imports touche trois
-modules natifs Expo/React Native inutilisables sous Node (`expo-localization`, AsyncStorage, et
-`react-native` lui-même, écrit en Flow). `vitest.config.mts` les remplace par des bouchons en
-mémoire (`test/stubs/`) — le reste du code testé est le code réel de l'application, sans mock.
+Les modules de `src/lib` sont du TypeScript sans JSX, mais leur graphe d'imports touche quatre
+modules natifs Expo/React Native inutilisables sous Node (`expo-localization`, `expo-secure-store`,
+AsyncStorage, et `react-native` lui-même, écrit en Flow). `vitest.config.mts` les remplace par
+des bouchons en mémoire (`test/stubs/`) — le reste du code testé est le code réel de
+l'application, sans mock.
+
+Aucun test ne fait de vraie requête réseau : `fetch` est remplacé par un routeur d'URL simulé
+(`test/http.ts`), et la WebSocket de Trade Republic par un faux serveur scripté.
 
 ## Windows (application de bureau)
 

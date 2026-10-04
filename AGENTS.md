@@ -208,7 +208,7 @@ savings plans, PEA ceiling usage, etc.:
   4. Local fallback table (`referenceEtfs.ts`) for common ETFs offline.
   5. ISIN country prefix fallback for legal domicile.
 - **Retry cooldown**: when all sources fail to find sector/country data for an ISIN, `Holding.classificationRetryAfter` (ISO timestamp) is set 7 days in the future. The `needsClassification(h)` helper (exported from `classification.ts`) checks this field before queuing a holding — preventing repeated HTTP scrapes on every Diversification screen focus. The same helper is used both by `classifyHoldings()` and by the `useFocusEffect` in `diversification.tsx` so the logic stays in one place.
-- Network errors (transient failures) are **not** cooled down — those holdings remain eligible for the next focus so they retry automatically when connectivity is restored.
+- Network errors (transient failures) are **not** cooled down — those holdings remain eligible for the next focus so they retry automatically when connectivity is restored. This relies on the scrapers telling "unreachable" apart from "not found": `fetchJustEtf*` return `null` only for a missing/non-profile page (HTTP 4xx, or a page a web proxy actually relayed) and **throw `JustEtfUnavailableError`** on fetch failure, timeout, HTTP 429/5xx or when no CORS proxy relayed anything — such failures are never stored in the JustETF session cache. `searchYahooSymbol` likewise returns `[]` for an unknown query but **throws** when the search is unreachable. Don't turn those throws back into `null`/`[]`: an offline Diversification visit would then put every unclassified holding on the 7-day cooldown (that regression existed until the scrapers were fixed).
 - **Force re-classification**: triggered via the "Classer mes lignes" button in the Diversification tab or "Reclassifier toutes les lignes" in Paramètres → Avancé (`classifyHoldings({ forceAll: true })`). This wipes the in-memory JustETF cache via `clearJustEtfCache()` and re-queries JustETF / Yahoo for all holdings regardless of existing classification.
 - `CountryCode` in `src/lib/types.ts` covers major global markets (`FR`, `DE`, `IT`, `ES`, `NL`, `BE`, `LU`, `IE`, `GB`, `CH`, `SE`, `DK`, `NO`, `FI`, `AT`, `PT`, `GR`, `IS` for Western Europe; `PL`, `CZ`, `HU`, `RO`, `TR` for Eastern Europe; `US`, `CA`, `MX`, `BR`, `CL`, `CO`, `PE`, `AR` for the Americas; `JP`, `AU`, `NZ`, `SG`, `HK` for developed Asia-Pacific; `CN`, `TW`, `KR`, `IN`, `TH`, `MY`, `ID`, `PH`, `VN`, `PK` for Emerging Asia; `SA`, `AE`, `QA`, `KW`, `BH`, `OM`, `IL`, `EG`, `MA` for Middle-East/North Africa; `ZA`, `NG`, `KE` for Sub-Saharan Africa; `autre` for everything else).
 
@@ -310,10 +310,11 @@ tag would clobber each other. Keep it that way if you add a third.
   import graph work under Node.
 
 ## Unit tests (Vitest) — `test/`
-Pure-calculation coverage only; **no UI tests** (deliberate user rule — don't add them
-unprompted). Everything financial in `src/lib` is covered: `format`, `fx`, `portfolio`, `realestate`,
-`prices/houseIndex`, `objectives`, `projection`, `diversification`, and the normalizers in
-`prices/{classification,sectors,justetf,referenceEtfs}`.
+Logic only; **no UI tests** (deliberate user rule — don't add them unprompted). All of
+`src/lib` is covered — the financial calculations, but also `store`, `debugLog`, `confirm`,
+`secure`, `i18n`, every price source in `prices/` and every connector in `connectors/`
+(≈ 98 % statements / 92 % branches). `coverage.thresholds` in `vitest.config.mts` fails
+`npm run test:coverage` (hence CI) below **90 %** on any metric — add tests with new code.
 
 - CI: `.github/workflows/tests.yml` runs `npm ci && npm run test:coverage` (Node 22) on every
   `pull_request` and on pushes to `main`. Keep the suite runnable under plain Node with
@@ -329,13 +330,30 @@ unprompted). Everything financial in `src/lib` is covered: `format`, `fx`, `port
   native config loader warns on ESM-in-CJS; `tsconfig.json` includes `**/*.mts` so the
   config is still typechecked.
 - **Why aliases are needed**: `src/lib` is JSX-free TypeScript, but its import graph reaches
-  three modules Node cannot load — `expo-localization` (pulled in by `lib/i18n.ts`, itself
-  imported by `format.ts`), `@react-native-async-storage/async-storage` (zustand `persist`
-  in `store.ts`, reached from `fx.ts` → everything), and `react-native` itself (`Platform`
-  in `prices/{justetf,yahoo}.ts` — written in Flow, which rolldown refuses to parse). They
+  four modules Node cannot load — `expo-localization` (pulled in by `lib/i18n.ts`, itself
+  imported by `format.ts`), `expo-secure-store` (`secure.ts`),
+  `@react-native-async-storage/async-storage` (zustand `persist` in `store.ts`, reached from
+  `fx.ts` → everything), and `react-native` itself (`Platform` in `secure.ts` and
+  `prices/{justetf,yahoo}.ts` — written in Flow, which rolldown refuses to parse). They
   are aliased to in-memory stubs in `test/stubs/`. **Everything else is the real code**:
   don't mock app modules, and if a new `src/lib` import breaks a test with a parse error
   about Flow or a missing native module, add a stub rather than mocking the caller.
+- **Stub test hooks**: the stubs expose test-only controls — `Platform.OS` is mutable (set
+  `'web'` to exercise CORS-proxy / localStorage branches, reset to `'android'` after),
+  `__setLocales` (`expo-localization`), `__secureMemory` (`expo-secure-store`). Import those
+  from `./stubs/…` directly, not from the package name: tests are typechecked by `tsc`
+  against the real package types, and the alias makes both paths the same module instance.
+  Exception: after `vi.resetModules()` (used by `yahoo.test.ts` to drop its module-level FX
+  cache) the app module gets a *fresh* stub — re-import `Platform` from the same registry.
+- **Network**: never let a test hit the network. `test/http.ts` `mockFetch([[pattern, reply]])`
+  stubs global `fetch` with an URL router (first match wins, unrouted URL = network error)
+  and records calls; clean up with `vi.unstubAllGlobals()`. Trade Republic's WebSocket is a
+  scripted `FakeWebSocket` in `traderepublic.test.ts`. Synthetic JustETF pages
+  (`test/justetfPages.ts`) mirror the real markup (`data-testid`, `data-overview` blocks) —
+  if JustETF changes its HTML, update those builders from a real page, not from the regexes.
+- **Store tests**: `useStore` is a singleton persisted on every `set` — reset with
+  `resetAll()` in `beforeEach`, and remember `setState` immediately overwrites the
+  AsyncStorage stub (seed storage *after* it when testing rehydration).
 - `@/…` path aliases are re-declared in the Vitest config (Vite doesn't read tsconfig
   `paths`); `@/assets/…` must stay listed **before** the generic `@/…` rule, order matters.
 - Object factories live in `test/factories.ts` (`account`, `holding`, `snapshot`,
