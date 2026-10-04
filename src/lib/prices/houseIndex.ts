@@ -69,9 +69,12 @@ export function houseIndexValueAt(series: HousePricePoint[], dateKey: string): n
     const b = series[i];
     if (dateKey <= b.date) {
       const a = series[i - 1];
-      const ta = new Date(`${a.date}T12:00:00`).getTime();
-      const tb = new Date(`${b.date}T12:00:00`).getTime();
-      const t = new Date(`${dateKey}T12:00:00`).getTime();
+      // En UTC (`Z`) : en heure locale, un changement d'heure entre deux points décale
+      // l'écart d'une heure et fausse le ratio (les autres calculs de dates arrondissent
+      // au jour ou passent par les champs calendaires, ils n'ont pas ce problème).
+      const ta = Date.parse(`${a.date}T00:00:00Z`);
+      const tb = Date.parse(`${b.date}T00:00:00Z`);
+      const t = Date.parse(`${dateKey}T00:00:00Z`);
       const f = tb === ta ? 0 : (t - ta) / (tb - ta);
       return a.value + (b.value - a.value) * f;
     }

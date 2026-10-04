@@ -22,6 +22,20 @@ describe('houseIndexValueAt', () => {
     expect(houseIndexValueAt(SERIES, '2021-07-02')).toBeCloseTo(110 + 10 * (182 / 365), 10);
   });
 
+  it('ne dépend pas du fuseau horaire de la machine (changement d’heure)', () => {
+    // La CI tourne en UTC, sans heure d'été : on force un fuseau qui en a une, sinon
+    // une régression (dates lues en heure locale) passerait inaperçue.
+    const tz = process.env.TZ;
+    try {
+      process.env.TZ = 'Europe/Paris';
+      // Le 29 mars 2020 (passage à l'heure d'été) tombe entre les deux points.
+      expect(houseIndexValueAt(SERIES, '2020-07-01')).toBeCloseTo(100 + 10 * (182 / 366), 10);
+    } finally {
+      if (tz === undefined) delete process.env.TZ;
+      else process.env.TZ = tz;
+    }
+  });
+
   it('clampe avant le premier et après le dernier point', () => {
     expect(houseIndexValueAt(SERIES, '1990-01-01')).toBe(100);
     expect(houseIndexValueAt(SERIES, '2099-01-01')).toBe(120);
