@@ -32,5 +32,16 @@ export default defineConfig({
     environment: 'node',
     include: ['test/**/*.test.ts'],
     globals: false,
+    // Couverture mesurée sur `src/lib` uniquement : c'est le périmètre des tests (logique
+    // pure, aucun test d'interface — cf. README « Tests »). `json-summary` alimente le
+    // badge du README (cf. `.github/workflows/tests.yml`).
+    coverage: {
+      provider: 'v8',
+      include: ['src/lib/**/*.ts'],
+      reporter: ['text-summary', 'json-summary'],
+      reportsDirectory: 'coverage',
+      // Le badge doit refléter aussi un run rouge, pas rester figé sur le dernier vert.
+      reportOnFailure: true,
+    },
   },
 });

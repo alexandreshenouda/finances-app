@@ -291,9 +291,15 @@ unprompted). Everything financial in `src/lib` is covered: `format`, `fx`, `port
 `prices/houseIndex`, `objectives`, `projection`, `diversification`, and the normalizers in
 `prices/{classification,sectors,justetf,referenceEtfs}`.
 
-- CI: `.github/workflows/tests.yml` runs `npm ci && npm test` (Node 22) on every
+- CI: `.github/workflows/tests.yml` runs `npm ci && npm run test:coverage` (Node 22) on every
   `pull_request` and on pushes to `main`. Keep the suite runnable under plain Node with
   no secrets and no live HTTP calls — that workflow provides no secrets.
+- README badges (tests pass % + `src/lib` line coverage): on `main` pushes only, a separate
+  `badges` job (the only one with `contents: write`, never runs the tested code) turns the
+  Vitest reports into shields.io endpoint JSON via `.github/scripts/make-badges.mjs` and
+  force-pushes them as a single commit to the orphan **`badges`** branch — don't merge or
+  base anything on that branch. `coverage.reportOnFailure` is on so a red run still updates
+  the badges instead of leaving the last green numbers up.
 - Runner: **Vitest** (`npm test`, `npm run test:watch`), config in `vitest.config.mts`.
   It is `.mts` (not `.ts`) because `package.json` has no `"type": "module"` and Vite's
   native config loader warns on ESM-in-CJS; `tsconfig.json` includes `**/*.mts` so the
@@ -319,3 +325,9 @@ unprompted). Everything financial in `src/lib` is covered: `format`, `fx`, `port
 - Anything that reads the real clock (`todayKey()` defaults: manual/local property
   valuation, PEA/AV seniority) must be called with an explicit `today`/date argument, or
   pinned relative to `new Date()` — never hardcode a date that will age out.
+- **Timezone**: CI runs in UTC (no DST), so local-time date bugs only show up on a dev
+  machine. Date keys are parsed as `${key}T12:00:00` (local) across `src/lib`; that is safe
+  for calendar fields and for day counts rounded with `Math.round(ms / 86_400_000)`, but
+  **not for raw millisecond ratios** — a DST change in between skews them by an hour.
+  Parse in UTC there (`Date.parse(`${key}T00:00:00Z`)`, cf. `houseIndexValueAt`), and pin
+  `process.env.TZ` to a DST zone (e.g. `Europe/Paris`) in the test, as `houseIndex.test.ts` does.

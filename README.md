@@ -13,6 +13,8 @@
   <img alt="Expo SDK" src="https://img.shields.io/badge/Expo%20SDK-57-000020?logo=expo&logoColor=white">
   <img alt="Licence" src="https://img.shields.io/badge/licence-MIT-34D399">
   <img alt="Backend" src="https://img.shields.io/badge/backend-aucun%2C%20100%25%20local-16233D">
+  <a href="https://github.com/alexandreshenouda/finances-app/actions/workflows/tests.yml?query=branch%3Amain"><img alt="Tests" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Falexandreshenouda%2Ffinances-app%2Fbadges%2Ftests.json"></a>
+  <a href="#tests"><img alt="Couverture" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Falexandreshenouda%2Ffinances-app%2Fbadges%2Fcoverage.json"></a>
 </p>
 
 Toutes les données et tous les identifiants restent sur l'appareil : pas de compte, pas de
@@ -194,12 +196,24 @@ estimation immobilière, objectifs, projections, diagnostics de diversification)
 couverts par une suite de tests unitaires **[Vitest](https://vitest.dev)**.
 
 ```bash
-npm test           # exécute toute la suite une fois
-npm run test:watch # relance à chaque modification
+npm test              # exécute toute la suite une fois
+npm run test:watch    # relance à chaque modification
+npm run test:coverage # suite + couverture de src/lib (résumé console, détail dans coverage/)
 ```
 
 La suite tourne aussi en **CI** (`.github/workflows/tests.yml`) : à chaque ouverture ou mise à
-jour d'une pull request, et à chaque merge / push sur `main` (Node 22, `npm ci` puis `npm test`).
+jour d'une pull request, et à chaque merge / push sur `main` (Node 22, `npm ci` puis
+`npm run test:coverage`).
+
+Les deux badges en tête de ce README (taux de tests réussis, couverture des lignes de
+`src/lib`) reflètent le **dernier run sur `main`**, y compris s'il est rouge. Après les tests,
+un second job (seul à avoir le droit d'écriture) transforme les rapports Vitest en JSON au
+format [endpoint de shields.io](https://shields.io/badges/endpoint-badge)
+(`.github/scripts/make-badges.mjs`) et les force-pushe sur la branche orpheline **`badges`**,
+qui ne contient que ces deux fichiers. Aucun service tiers ni secret : shields.io lit les JSON
+via `raw.githubusercontent.com` (le dépôt doit rester public ; le cache shields/GitHub peut
+retarder la mise à jour de quelques minutes). La couverture est mesurée sur `src/lib` seulement,
+le périmètre des tests.
 
 Périmètre : **uniquement de la logique pure** — aucun test d'interface. Les fichiers
 vivent dans `test/`, un par module de `src/lib` :
@@ -210,7 +224,7 @@ vivent dans `test/`, un par module de `src/lib` :
 | `test/fx.test.ts` | conversion de devises (`toEur`, `convert`) |
 | `test/portfolio.test.ts` | valorisation des comptes, plus-values, quote-part, `buildSeries`, mode performance (%) |
 | `test/realestate.test.ts` | amortissement (mensualités constantes **et** paliers/différé), valorisation des biens, courbe patrimoniale |
-| `test/houseIndex.test.ts` | interpolation de l'indice des prix des logements |
+| `test/houseIndex.test.ts` | interpolation de l'indice des prix des logements (indépendante du fuseau horaire / changement d'heure) |
 | `test/objectives.test.ts` | progression des objectifs, épargne de précaution, effort mensuel |
 | `test/projection.test.ts` | CAGR historique, capitalisation, frais, inflation, amortissement futur, atteinte des objectifs |
 | `test/diversification.test.ts` | répartition cible par profil, agrégations secteur/pays, seuils des conseils |
