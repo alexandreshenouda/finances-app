@@ -291,6 +291,33 @@ export type JustEtfClassification =
 
 const classificationCache = new Map<string, JustEtfClassification | null>();
 
+/**
+ * JustETF injoignable (hors-ligne, délai dépassé, HTTP 429/5xx, proxies CORS en panne) —
+ * à distinguer d'un ISIN simplement inconnu de JustETF (`null`) : l'appelant ne doit pas
+ * mettre la ligne en cooldown ni mémoriser l'échec pour une panne passagère.
+ */
+export class JustEtfUnavailableError extends Error {
+  constructor(message: string) {
+    super(`JustETF injoignable : ${message}`);
+    this.name = 'JustEtfUnavailableError';
+  }
+}
+
+/** Statut HTTP révélant une indisponibilité passagère plutôt qu'une page absente. */
+function isTransientStatus(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+function isProfileHtml(html: string | null | undefined): html is string {
+  return (
+    !!html &&
+    (html.includes('etf-holdings_') ||
+      html.includes('stock-title') ||
+      html.includes('data-overview') ||
+      html.includes('etf-basics_'))
+  );
+}
+
 export function clearJustEtfCache(): void {
   classificationCache.clear();
 }
@@ -312,12 +339,18 @@ async function fetchWithTimeout(
   }
 }
 
+/**
+ * Page de profil JustETF, `null` si la page n'existe pas / n'est pas un profil.
+ * Lève `JustEtfUnavailableError` si JustETF n'a pas pu être joint (cf. ci-dessus).
+ */
 async function fetchHtml(url: string, timeoutMs = 4500): Promise<string | null> {
   // 1. Sur environnement natif (iOS, Android, Electron Desktop) : appel direct sans CORS
   if (Platform.OS !== 'web') {
+    let res: Response;
+    let html: string;
     try {
       logDebug(TAG, `GET ${url}`);
-      const res = await fetchWithTimeout(
+      res = await fetchWithTimeout(
         url,
         {
           headers: {
@@ -328,27 +361,24 @@ async function fetchHtml(url: string, timeoutMs = 4500): Promise<string | null> 
         },
         timeoutMs,
       );
-      if (res.ok) {
-        const html = await res.text();
-        if (
-          html &&
-          (html.includes('etf-holdings_') ||
-            html.includes('stock-title') ||
-            html.includes('data-overview') ||
-            html.includes('etf-basics_'))
-        ) {
-          return html;
-        }
-      }
+      html = res.ok ? await res.text() : '';
     } catch (err: any) {
       logDebug(TAG, `Direct fetch ${url} failed or timed out: ${err?.message ?? err}`);
+      throw new JustEtfUnavailableError(err?.message ?? String(err));
     }
-    return null;
+    if (!res.ok) {
+      logDebug(TAG, `GET ${url} → HTTP ${res.status}`);
+      if (isTransientStatus(res.status)) throw new JustEtfUnavailableError(`HTTP ${res.status}`);
+      return null;
+    }
+    return isProfileHtml(html) ? html : null;
   }
 
-  // 2. Sur navigateur Web (CORS imposé par le navigateur) : proxies gratuits
+  // 2. Sur navigateur Web (CORS imposé par le navigateur) : proxies gratuits. Chaque proxy
+  // renvoie le contenu de la page, ou `null` s'il n'a rien pu relayer (une erreur du proxy
+  // ne dit rien de JustETF) — seul un contenu effectivement relayé permet de conclure.
   const webProxies = [
-    async (targetUrl: string) => {
+    async (targetUrl: string): Promise<string | null> => {
       const res = await fetchWithTimeout(
         `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
         {},
@@ -360,7 +390,7 @@ async function fetchHtml(url: string, timeoutMs = 4500): Promise<string | null> 
       }
       return null;
     },
-    async (targetUrl: string) => {
+    async (targetUrl: string): Promise<string | null> => {
       const res = await fetchWithTimeout(
         `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
         {},
@@ -373,28 +403,24 @@ async function fetchHtml(url: string, timeoutMs = 4500): Promise<string | null> 
     },
   ];
 
+  let relayed = false;
   for (const proxyFn of webProxies) {
     try {
       const html = await proxyFn(url);
-      if (
-        html &&
-        (html.includes('etf-holdings_') ||
-          html.includes('stock-title') ||
-          html.includes('data-overview') ||
-          html.includes('etf-basics_'))
-      ) {
-        return html;
-      }
+      if (isProfileHtml(html)) return html;
+      if (html !== null) relayed = true;
     } catch (proxyErr: any) {
       logDebug(TAG, `Web proxy fetch failed or timed out: ${proxyErr?.message ?? proxyErr}`);
     }
   }
 
+  if (!relayed) throw new JustEtfUnavailableError('aucun proxy CORS disponible');
   return null;
 }
 
 /**
- * Scrape le profil d'un ETF sur JustETF par ISIN.
+ * Scrape le profil d'un ETF sur JustETF par ISIN. Lève `JustEtfUnavailableError` si
+ * JustETF est injoignable.
  */
 export async function fetchJustEtfProfile(isin: string): Promise<JustEtfProfile | null> {
   const cleanIsin = isin.trim().toUpperCase();
@@ -425,7 +451,9 @@ export async function fetchJustEtfProfile(isin: string): Promise<JustEtfProfile 
 
   // Domicile
   const domicileMatch = html.match(/data-testid="tl_etf-basics_value_domicile-country"[^>]*>([\s\S]*?)<\/td>/i);
-  const domicile = domicileMatch ? normalizeJustEtfCountry(cleanHtmlText(domicileMatch[1])) : undefined;
+  // Cellule vide ⇒ domicile inconnu (pas « autre », qui écraserait le pays déduit de l'ISIN).
+  const domicileText = domicileMatch ? cleanHtmlText(domicileMatch[1]) : '';
+  const domicile = domicileText ? normalizeJustEtfCountry(domicileText) : undefined;
 
   // Pays (look-through)
   const countryMatches = [
@@ -496,7 +524,8 @@ export async function fetchJustEtfProfile(isin: string): Promise<JustEtfProfile 
 }
 
 /**
- * Scrape le profil d'une action individuelle sur JustETF par ISIN.
+ * Scrape le profil d'une action individuelle sur JustETF par ISIN. Lève
+ * `JustEtfUnavailableError` si JustETF est injoignable.
  */
 export async function fetchJustEtfStockProfile(isin: string): Promise<JustEtfStockProfile | null> {
   const cleanIsin = isin.trim().toUpperCase();
@@ -515,11 +544,15 @@ export async function fetchJustEtfStockProfile(isin: string): Promise<JustEtfSto
   const titleMatch = html.match(/<h1[^>]*id="stock-title"[^>]*>([\s\S]*?)<\/h1>/i);
   const name = titleMatch ? cleanHtmlText(titleMatch[1]) : undefined;
 
-  // Extraction de la section data-overview
-  const overviewMatch = html.match(/class="data-overview[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/i);
-  const overviewHtml = overviewMatch ? overviewMatch[1] : html;
+  // Section data-overview : une suite de blocs « libellé (+ infobulle) / valeur en gras ».
+  // On découpe à partir du début de la section et, pour chaque bloc, on ne lit que son
+  // libellé visible et sa première valeur : chercher la fin de la section par un nombre de
+  // `</div>` fermants perdait la valeur du dernier bloc, et tester tout le HTML restant
+  // du dernier bloc aurait pu y trouver d'autres mots-clés.
+  const overviewStart = html.search(/class="data-overview[\s"]/i);
+  const overviewHtml = overviewStart >= 0 ? html.slice(overviewStart) : html;
 
-  const blocks = overviewHtml.split(/<div class="d-flex d-flex-column">/i);
+  const blocks = overviewHtml.split(/<div class="d-flex d-flex-column">/i).slice(1);
   let country: CountryCode | undefined;
   let sector: SectorKey | undefined;
   let marketCap: string | undefined;
@@ -528,15 +561,16 @@ export async function fetchJustEtfStockProfile(isin: string): Promise<JustEtfSto
   for (const block of blocks) {
     const valMatch = block.match(/<div class="val bold">([\s\S]*?)<\/div>/i);
     const rawVal = valMatch ? cleanHtmlText(valMatch[1]) : null;
-    if (!rawVal) continue;
+    if (!valMatch || !rawVal) continue;
+    const label = cleanHtmlText(block.slice(0, valMatch.index));
 
-    if (/\b(?:Country|Pays)\b/i.test(block)) {
+    if (/\b(?:Country|Pays)\b/i.test(label)) {
       country = normalizeJustEtfCountry(rawVal);
-    } else if (/\b(?:Sector|Secteur)\b/i.test(block)) {
+    } else if (/\b(?:Sector|Secteur)\b/i.test(label)) {
       sector = normalizeSector(rawVal);
-    } else if (/\b(?:Market cap|Cap\. boursière)\b/i.test(block)) {
+    } else if (/Market cap|Cap\. boursi[eè]re|Capitalisation/i.test(label)) {
       marketCap = rawVal;
-    } else if (/(?:Dividend|Rendement|Dividendes)/i.test(block)) {
+    } else if (/(?:Dividend|Rendement|Dividendes)/i.test(label)) {
       dividendYield = parsePct(rawVal);
     }
   }
@@ -571,7 +605,9 @@ export async function fetchJustEtfStockProfile(isin: string): Promise<JustEtfSto
 }
 
 /**
- * Tente d'abord le scraping ETF JustETF, puis le scraping Action JustETF.
+ * Tente d'abord le scraping ETF JustETF, puis le scraping Action JustETF. `null` (mémorisé
+ * pour la session) si l'ISIN n'est connu ni comme ETF ni comme action ; lève
+ * `JustEtfUnavailableError` (sans rien mémoriser) si JustETF n'a pas pu être joint.
  */
 export async function fetchJustEtfClassification(isin: string): Promise<JustEtfClassification | null> {
   const cleanIsin = isin.trim().toUpperCase();
@@ -582,6 +618,8 @@ export async function fetchJustEtfClassification(isin: string): Promise<JustEtfC
   }
 
   let result: JustEtfClassification | null = null;
+  // Panne réseau rencontrée en route : sans résultat, elle est remontée au lieu d'un `null`.
+  let unavailable: JustEtfUnavailableError | undefined;
   try {
     const etf = await fetchJustEtfProfile(cleanIsin);
     if (etf && (etf.sectorWeights.length > 0 || etf.countryWeights.length > 0)) {
@@ -598,6 +636,7 @@ export async function fetchJustEtfClassification(isin: string): Promise<JustEtfC
     }
   } catch (err: any) {
     logDebug(TAG, `fetchJustEtfProfile(${cleanIsin}) failed: ${err?.message ?? err}`);
+    if (err instanceof JustEtfUnavailableError) unavailable = err;
   }
 
   if (!result) {
@@ -617,8 +656,13 @@ export async function fetchJustEtfClassification(isin: string): Promise<JustEtfC
       }
     } catch (err: any) {
       logDebug(TAG, `fetchJustEtfStockProfile(${cleanIsin}) failed: ${err?.message ?? err}`);
+      if (err instanceof JustEtfUnavailableError) unavailable = err;
     }
   }
+
+  // Ni mise en cache ni `null` sur une panne : l'ISIN n'est pas « inconnu », juste injoignable
+  // pour l'instant — l'appelant doit pouvoir réessayer au prochain passage.
+  if (!result && unavailable) throw unavailable;
 
   classificationCache.set(cleanIsin, result);
   return result;

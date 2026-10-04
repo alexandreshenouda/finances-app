@@ -1,6 +1,8 @@
 /** Tests de l'interpolation de l'indice des prix des logements (`src/lib/prices/houseIndex.ts`). */
-import { describe, expect, it } from 'vitest';
-import { HOUSE_INDEX_SEED, houseIndexValueAt } from '@/lib/prices/houseIndex';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { HOUSE_INDEX_SEED, houseIndexSeries, houseIndexValueAt, refreshHouseIndex } from '@/lib/prices/houseIndex';
+import { useStore } from '@/lib/store';
+import { mockFetch, networkError, text } from './http';
 
 const SERIES = [
   { date: '2020-01-01', value: 100 },
@@ -79,5 +81,70 @@ describe('HOUSE_INDEX_SEED', () => {
 
   it('est bien en base 100 en 2015', () => {
     expect(HOUSE_INDEX_SEED.find((p) => p.date.startsWith('2015'))?.value).toBe(100);
+  });
+});
+
+describe('houseIndexSeries', () => {
+  afterEach(() => useStore.setState({ houseIndex: undefined }));
+
+  it('utilise le seed tant qu’aucune série exploitable n’a été rafraîchie', () => {
+    expect(houseIndexSeries()).toBe(HOUSE_INDEX_SEED);
+    useStore.setState({ houseIndex: [{ date: '2020-01-01', value: 1 }] });
+    expect(houseIndexSeries()).toBe(HOUSE_INDEX_SEED);
+  });
+
+  it('préfère la série rafraîchie en ligne', () => {
+    const fresh = [
+      { date: '2020-01-01', value: 1 },
+      { date: '2021-01-01', value: 2 },
+    ];
+    useStore.setState({ houseIndex: fresh });
+    expect(houseIndexSeries()).toBe(fresh);
+  });
+});
+
+describe('refreshHouseIndex (FRED)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    useStore.setState({ houseIndex: undefined, houseIndexUpdatedAt: undefined });
+  });
+
+  it('parse le CSV, ignore les valeurs manquantes (« . ») et trie par date', async () => {
+    mockFetch([
+      [
+        'fredgraph.csv',
+        text(
+          [
+            'observation_date,QFRN628BIS',
+            '2021-01-01,110.5',
+            '2020-01-01,100',
+            '2020-04-01,.',
+            '2020-07-01,-3',
+            '2020-10-01,abc',
+            ',12',
+            '',
+          ].join('\n')
+        ),
+      ],
+    ]);
+    expect(await refreshHouseIndex()).toEqual({ ok: true });
+    expect(useStore.getState().houseIndex).toEqual([
+      { date: '2020-01-01', value: 100 },
+      { date: '2021-01-01', value: 110.5 },
+    ]);
+    expect(useStore.getState().houseIndexUpdatedAt).toBeTruthy();
+  });
+
+  it('échoue sans rien écraser si la série est trop courte', async () => {
+    mockFetch([['fredgraph.csv', text('observation_date,QFRN628BIS\n2020-01-01,100\n')]]);
+    expect(await refreshHouseIndex()).toEqual({ ok: false, error: 'Indice immobilier : série vide' });
+    expect(useStore.getState().houseIndex).toBeUndefined();
+  });
+
+  it('remonte une erreur HTTP ou réseau sans lever', async () => {
+    mockFetch([['fredgraph.csv', text('', 500)]]);
+    expect(await refreshHouseIndex()).toEqual({ ok: false, error: 'Indice immobilier : HTTP 500' });
+    mockFetch([['fredgraph.csv', networkError('offline')]]);
+    expect(await refreshHouseIndex()).toEqual({ ok: false, error: 'Indice immobilier : offline' });
   });
 });

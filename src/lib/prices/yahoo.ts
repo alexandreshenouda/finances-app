@@ -76,6 +76,10 @@ export interface YahooSearchMatch {
  * place de cotation principale en premier résultat, avec secteur/industrie inclus
  * pour une action individuelle (confirmé en test, aucun crumb requis contrairement
  * à `quoteSummary`).
+ *
+ * Une requête inconnue renvoie `[]` ; une recherche injoignable (hors-ligne, HTTP en
+ * erreur, proxy CORS en panne sur le web) LÈVE, pour que l'appelant ne la confonde pas
+ * avec « aucun ticker » (cooldown de classification, ticker mémorisé…).
  */
 import { Platform } from 'react-native';
 
@@ -83,28 +87,30 @@ export async function searchYahooSymbol(query: string): Promise<YahooSearchMatch
   const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`;
   logDebug(TAG, `GET ${url}`);
 
-  let json: any = null;
+  /** Corps JSON de la recherche, ou erreur explicite si elle n'a pas abouti. */
+  const getJson = async (target: string, init?: RequestInit): Promise<any> => {
+    const res = await fetch(target, init);
+    if (!res.ok) throw new Error(`Yahoo HTTP ${res.status} pour la recherche « ${query} »`);
+    return res.json();
+  };
+
+  let json: any;
   try {
-    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    json = await getJson(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
   } catch (err: any) {
     logDebug(TAG, `Direct Yahoo search fetch failed: ${err?.message ?? err}`);
-  }
-
-  // Si échec sur le web, tente via le proxy CORS
-  if (!json && Platform.OS === 'web') {
+    // Sur le web l'appel direct est bloqué par CORS : on retente via un proxy.
+    if (Platform.OS !== 'web') throw err;
     const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+    logDebug(TAG, `GET (proxy) ${proxyUrl}`);
     try {
-      logDebug(TAG, `GET (proxy) ${proxyUrl}`);
-      const res = await fetch(proxyUrl);
-      if (res.ok) {
-        json = await res.json();
-      }
+      json = await getJson(proxyUrl);
     } catch (proxyErr: any) {
       logDebug(TAG, `Proxy Yahoo search failed: ${proxyErr?.message ?? proxyErr}`);
+      throw proxyErr;
     }
   }
 
-  if (!json) return [];
   logDebug(TAG, `Yahoo search response`, JSON.stringify(json));
   const quotes = Array.isArray(json?.quotes) ? json.quotes : [];
   return quotes
