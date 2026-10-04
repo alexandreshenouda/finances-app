@@ -286,6 +286,9 @@ unprompted). Everything financial in `src/lib` is covered: `format`, `fx`, `port
 `prices/houseIndex`, `objectives`, `projection`, `diversification`, and the normalizers in
 `prices/{classification,sectors,justetf,referenceEtfs}`.
 
+- CI: `.github/workflows/tests.yml` runs `npm ci && npm test` (Node 22) on every
+  `pull_request` and on pushes to `main`. Keep the suite runnable under plain Node with
+  no secrets and no live HTTP calls — that workflow provides no secrets.
 - Runner: **Vitest** (`npm test`, `npm run test:watch`), config in `vitest.config.mts`.
   It is `.mts` (not `.ts`) because `package.json` has no `"type": "module"` and Vite's
   native config loader warns on ESM-in-CJS; `tsconfig.json` includes `**/*.mts` so the

@@ -196,6 +196,9 @@ npm test           # exécute toute la suite une fois
 npm run test:watch # relance à chaque modification
 ```
 
+La suite tourne aussi en **CI** (`.github/workflows/tests.yml`) : à chaque ouverture ou mise à
+jour d'une pull request, et à chaque merge / push sur `main` (Node 22, `npm ci` puis `npm test`).
+
 Périmètre : **uniquement de la logique pure** — aucun test d'interface. Les fichiers
 vivent dans `test/`, un par module de `src/lib` :
 

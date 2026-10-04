@@ -1,0 +1,36 @@
+# Lance la suite de tests unitaires Vitest (`npm test`, cf. `test/`) à l'ouverture ou
+# à la mise à jour d'une PR, et après chaque merge / push sur `main`.
+name: Tests unitaires
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# Un nouveau push sur la même PR / branche annule le run devenu obsolète.
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  vitest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Tests unitaires (Vitest)
+        run: npm test
