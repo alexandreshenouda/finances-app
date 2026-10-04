@@ -253,6 +253,11 @@ tag would clobber each other. Keep it that way if you add a third.
   password: keytool's default PKCS12 format rejects a distinct key password outright
   ("Different store and key passwords not supported for PKCS12 KeyStores"), so only a
   legacy JKS keystore ever needs it.
+- `ANDROID_KEYSTORE_BASE64` must decode to a **Java keystore** (PKCS12/JKS), not a
+  PEM — Gradle signs from a key container, not a bare key/cert pair. A dedicated step
+  decodes and probes the keystore with `keytool` before the build so the four common
+  mistakes (bad base64, PEM instead of keystore, wrong store password, missing alias)
+  each get their own message instead of surfacing mid-Gradle.
 - `eas.json`'s `preview` profile carries `android.buildType: apk` because a
   release asset must be directly installable; `production` still yields an AAB.
 - Use `node_modules/.bin/expo` in CI too, matching the local convention below.
