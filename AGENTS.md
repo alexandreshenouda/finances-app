@@ -219,6 +219,30 @@ savings plans, PEA ceiling usage, etc.:
 - Fee audit combines `Holding.feesPct` and `Account.fees.managementPct` to calculate weighted annual costs and alert on expensive actively managed funds.
 - Cards in `InsightCard.tsx` support accordion expansion (`whyKey` and `actionKey`) and category filtering chips in `diversification.tsx`.
 
+## Épargne de précaution : suggestion & conseils (`src/lib/objectives.ts`, `src/lib/diversification.ts`)
+- The `epargne_precaution` objective stores `securityMonths`, `monthlyExpenses` and optional
+  `monthlyIncome`. **`monthlyExpenses` now means *dépenses vitales*** (essential expenses) — the
+  field name was kept so existing backups/imports stay valid; the target is still
+  `securityMonths × monthlyExpenses` (`epargnePrecautionTarget`), so projection/objective
+  progress are unchanged.
+- `suggestPrecaution(vital, income?)` is the single source of the suggestion: months by
+  vital/income ratio tiers (`PRECAUTION_MONTHS_TIERS`: <50 % → 3, 50–70 % → 4, 70–85 % → 5,
+  ≥85 % → 6; `PRECAUTION_DEFAULT_MONTHS` = 3 without income), a `budget` status
+  (`unknown`/`comfortable`/`tight`/`deficit`) and the monthly margin. `precautionBuildPlan`
+  turns a shortfall into a monthly effort (`PRECAUTION_MARGIN_SHARE` = half the margin) and a
+  duration. Reuse these in UI and insights — don't re-derive thresholds.
+- `objective-form.tsx` shows the suggestion live with an "Appliquer la suggestion" button that
+  only sets `securityMonths` (the amount is always months × vital expenses).
+- `precautionAdvice` in `diversification.ts` emits: `precaution-missing`,
+  `precaution-budget-deficit`, `precaution-income-missing`, `precaution-target-low` /
+  `-high` (vs suggestion; high = more than suggestion + 3 months), and the cushion level
+  `cash-cushion-low` (<50 %) / `cash-cushion-building` (50–100 %) / `cash-cushion-high` (>200 %),
+  whose action becomes `cash_cushion_plan_action` when the margin is known. `idleCashAudit`'s
+  threshold also accepts one month of income on the current account.
+- Insight params are pre-formatted with `formatEur` at compute time, so the `useMemo` of
+  `computeInsights` in `diversification.tsx` lists `privacyMode` as a dependency — keep it,
+  or toggling the eye leaves amounts unmasked in the cards.
+
 ## Wealth Projection Engine (`src/lib/projection.ts`, `src/components/ProjectionCard.tsx`)
 - Located under the objectives section on the Synthèse tab (`src/app/(tabs)/index.tsx`).
 - Simulates future wealth month-by-month over horizons (3, 5, 10, 15, 20, 30 years).

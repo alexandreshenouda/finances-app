@@ -3,7 +3,7 @@
  * puis par catégorie. Chaque `Insight` porte un triptyque complet (constat, pourquoi c'est
  * important, piste d'action conforme AMF). */
 import { formatDate, formatDuration, formatEur, formatPct, monthsBetween, todayKey } from './format';
-import { cashAndLivretTotal, epargnePrecautionTarget } from './objectives';
+import { cashAndLivretTotal, epargnePrecautionTarget, precautionBuildPlan, suggestPrecaution } from './objectives';
 import { accountCurrentValue, accountShare, holdingCurrency, holdingValueEur } from './portfolio';
 import {
   ACCOUNT_TYPE_LABELS,
@@ -458,7 +458,8 @@ function idleCashAudit(
 
   const epargnePrecaution = objectives.find((o) => o.category === 'epargne_precaution');
   const monthlyExpenses = epargnePrecaution?.monthlyExpenses ?? 1500;
-  const reasonableThreshold = Math.max(3000, monthlyExpenses * 2);
+  // Le salaire transite par le compte courant : un mois de revenus y est normal.
+  const reasonableThreshold = Math.max(3000, monthlyExpenses * 2, epargnePrecaution?.monthlyIncome ?? 0);
 
   if (totalCourant <= reasonableThreshold) return null;
 
@@ -598,31 +599,130 @@ function currencyExposure(
   };
 }
 
-function cashCushion(
+/** Seuil au-delà duquel une durée de précaution est jugée trop prudente vs la suggestion. */
+const PRECAUTION_EXCESS_MONTHS = 3;
+
+/** Épargne de précaution : objectif absent, budget déficitaire, cible vs suggestion
+ * (dépenses vitales × durée selon le poids des dépenses vitales dans les revenus, voir
+ * `suggestPrecaution`), et niveau du matelas réel (livrets + comptes courants) vs cible. */
+function precautionAdvice(
   accounts: Account[],
   holdings: Holding[],
   snapshots: Snapshot[],
   rates: FxRates,
   objectives: Objective[]
-): Insight | null {
+): Insight[] {
+  const obj = objectives.find((o) => o.category === 'epargne_precaution');
+  if (!obj) {
+    return [
+      {
+        id: 'precaution-missing',
+        severity: 'info',
+        category: 'liquidity',
+        titleKey: 'diversification.precaution_missing_title',
+        observationKey: 'diversification.precaution_missing',
+        whyKey: 'diversification.precaution_missing_why',
+        actionKey: 'diversification.precaution_missing_action',
+      },
+    ];
+  }
+
+  const insights: Insight[] = [];
+  const suggestion = suggestPrecaution(obj.monthlyExpenses, obj.monthlyIncome);
+  const months = obj.securityMonths ?? 0;
+
+  if (suggestion?.budget === 'deficit') {
+    insights.push({
+      id: 'precaution-budget-deficit',
+      severity: 'warning',
+      category: 'liquidity',
+      titleKey: 'diversification.precaution_deficit_title',
+      observationKey: 'diversification.precaution_deficit',
+      whyKey: 'diversification.precaution_deficit_why',
+      actionKey: 'diversification.precaution_deficit_action',
+      params: {
+        vital: formatEur(obj.monthlyExpenses ?? 0),
+        income: formatEur(obj.monthlyIncome ?? 0),
+        gap: formatEur(-(suggestion.monthlyMargin ?? 0)),
+      },
+    });
+  }
+
+  if (suggestion?.budget === 'unknown') {
+    insights.push({
+      id: 'precaution-income-missing',
+      severity: 'info',
+      category: 'liquidity',
+      titleKey: 'diversification.precaution_income_missing_title',
+      observationKey: 'diversification.precaution_income_missing',
+      whyKey: 'diversification.precaution_income_missing_why',
+      actionKey: 'diversification.precaution_income_missing_action',
+    });
+  } else if (suggestion) {
+    const ratioParams = {
+      months,
+      suggested: suggestion.months,
+      amount: formatEur(suggestion.amount),
+      ratio: formatPct((suggestion.vitalRatio ?? 0) * 100),
+    };
+    if (months < suggestion.months) {
+      insights.push({
+        id: 'precaution-target-low',
+        severity: suggestion.months - months >= 2 ? 'warning' : 'info',
+        category: 'liquidity',
+        titleKey: 'diversification.precaution_target_low_title',
+        observationKey: 'diversification.precaution_target_low',
+        whyKey: 'diversification.precaution_target_low_why',
+        actionKey: 'diversification.precaution_target_low_action',
+        params: ratioParams,
+      });
+    } else if (months > suggestion.months + PRECAUTION_EXCESS_MONTHS) {
+      insights.push({
+        id: 'precaution-target-high',
+        severity: 'info',
+        category: 'liquidity',
+        titleKey: 'diversification.precaution_target_high_title',
+        observationKey: 'diversification.precaution_target_high',
+        whyKey: 'diversification.precaution_target_high_why',
+        actionKey: 'diversification.precaution_target_high_action',
+        params: ratioParams,
+      });
+    }
+  }
+
   const target = epargnePrecautionTarget(objectives);
-  if (target <= 0) return null;
+  if (target <= 0) return insights;
   const current = cashAndLivretTotal(accounts, holdings, snapshots, rates);
   const ratio = current / target;
+  const plan = precautionBuildPlan(target - current, suggestion?.monthlyMargin);
+  const planParams: Record<string, string> = plan
+    ? { monthly: formatEur(plan.monthly), duration: formatDuration(plan.months) }
+    : {};
+
   if (ratio < 0.5) {
-    return {
+    insights.push({
       id: 'cash-cushion-low',
       severity: 'warning',
       category: 'liquidity',
       titleKey: 'diversification.cash_cushion_low_title',
       observationKey: 'diversification.cash_cushion_low',
       whyKey: 'diversification.cash_cushion_low_why',
-      actionKey: 'diversification.cash_cushion_low_action',
-      params: { pct: formatPct(ratio * 100) },
-    };
-  }
-  if (ratio > 2) {
-    return {
+      actionKey: plan ? 'diversification.cash_cushion_plan_action' : 'diversification.cash_cushion_low_action',
+      params: { pct: formatPct(ratio * 100), shortfall: formatEur(target - current), ...planParams },
+    });
+  } else if (ratio < 1) {
+    insights.push({
+      id: 'cash-cushion-building',
+      severity: 'info',
+      category: 'liquidity',
+      titleKey: 'diversification.cash_cushion_building_title',
+      observationKey: 'diversification.cash_cushion_building',
+      whyKey: 'diversification.cash_cushion_building_why',
+      actionKey: plan ? 'diversification.cash_cushion_plan_action' : 'diversification.cash_cushion_building_action',
+      params: { pct: formatPct(ratio * 100), shortfall: formatEur(target - current), ...planParams },
+    });
+  } else if (ratio > 2) {
+    insights.push({
       id: 'cash-cushion-high',
       severity: 'info',
       category: 'liquidity',
@@ -630,10 +730,10 @@ function cashCushion(
       observationKey: 'diversification.cash_cushion_high',
       whyKey: 'diversification.cash_cushion_high_why',
       actionKey: 'diversification.cash_cushion_high_action',
-      params: { pct: formatPct(ratio * 100) },
-    };
+      params: { pct: formatPct(ratio * 100), excess: formatEur(current - target) },
+    });
   }
-  return null;
+  return insights;
 }
 
 // ─── 9. Répartition de référence & Rééquilibrage par les flux ─────────────────────────
@@ -910,7 +1010,6 @@ export function computeInsights(input: {
     cryptoExposure(byType, totalValue),
     illiquidExposure(byType, totalValue),
     currencyExposure(holdings, accountsById, rates, totalValue),
-    cashCushion(accounts, holdings, snapshots, rates, objectives),
     allocationGap(byType, riskProfile),
     sectorConcentration(holdings, accountsById, rates, byType),
     geoConcentration(holdings, accountsById, rates, byType),
@@ -920,6 +1019,7 @@ export function computeInsights(input: {
     ...peaFiscalAdvice(accounts, holdings, snapshots, rates),
     ...assuranceVieFiscalAdvice(accounts, holdings, snapshots, rates, totalValue),
     ...horizonRiskAdequacy(objectives, byType, totalValue),
+    ...precautionAdvice(accounts, holdings, snapshots, rates, objectives),
   ];
 
   const all = [...singleChecks.filter((x): x is Insight => x !== null), ...multiChecks];

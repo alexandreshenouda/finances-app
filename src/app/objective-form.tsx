@@ -1,6 +1,8 @@
 /** Création / édition d'un objectif financier : épargne de précaution, projet à long
  *  ou court terme. La catégorie « épargne de précaution » est limitée à une instance
- *  (retirée du sélecteur une fois définie, sauf en édition de celle-ci). */
+ *  (retirée du sélecteur une fois définie, sauf en édition de celle-ci). Pour celle-ci,
+ *  revenus nets et dépenses vitales alimentent une suggestion de durée/montant
+ *  (`suggestPrecaution`) applicable en un tap. */
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
@@ -9,7 +11,7 @@ import { Button, Card, Chips, Field, Slider } from '@/components/ui';
 import { C, useStyles } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { formatDuration, formatMoney, formatPct } from '@/lib/format';
-import { objectiveProgress } from '@/lib/objectives';
+import { objectiveProgress, suggestPrecaution } from '@/lib/objectives';
 import { useStore } from '@/lib/store';
 import {
   OBJECTIVE_CATEGORY_LABELS,
@@ -40,6 +42,9 @@ function makeStyles() {
     label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
     warning: { color: C.negative, fontSize: 12, lineHeight: 17, marginTop: 4, marginBottom: 8 },
     previewLine: { color: C.text, fontSize: 14, marginTop: 4 },
+    suggestionAmount: { color: C.text, fontSize: 15, fontWeight: '600', marginBottom: 6 },
+    suggestionText: { color: C.textDim, fontSize: 13, lineHeight: 18, marginBottom: 4 },
+    suggestionOk: { color: C.positive, fontSize: 13, marginTop: 4 },
   });
 }
 
@@ -65,6 +70,7 @@ export default function ObjectiveForm() {
   // epargne_precaution
   const [securityMonths, setSecurityMonths] = useState(existing?.securityMonths ?? 3);
   const [monthlyExpenses, setMonthlyExpenses] = useState(existing?.monthlyExpenses?.toString() ?? '');
+  const [monthlyIncome, setMonthlyIncome] = useState(existing?.monthlyIncome?.toString() ?? '');
 
   // projet_long_terme / projet_court_terme
   const [name, setName] = useState(existing?.name ?? '');
@@ -73,13 +79,17 @@ export default function ObjectiveForm() {
   const [deadline, setDeadline] = useState(existing?.deadline ?? '');
 
   const monthlyExpensesNum = parseNum(monthlyExpenses);
+  const monthlyIncomeNum = parseNum(monthlyIncome);
+  const suggestion = suggestPrecaution(monthlyExpensesNum, monthlyIncomeNum);
   const targetAmountNum = parseNum(targetAmount);
   const bufferAmountNum = parseNum(bufferAmount);
   const deadlineDate = deadline.trim() ? parseDate(deadline) : undefined;
 
   const valid =
     category === 'epargne_precaution'
-      ? monthlyExpensesNum !== undefined && monthlyExpensesNum > 0
+      ? monthlyExpensesNum !== undefined &&
+        monthlyExpensesNum > 0 &&
+        (monthlyIncomeNum === undefined || monthlyIncomeNum > 0)
       : name.trim().length > 0 &&
         targetAmountNum !== undefined &&
         targetAmountNum > 0 &&
@@ -93,12 +103,13 @@ export default function ObjectiveForm() {
       createdAt: existing?.createdAt ?? new Date().toISOString(),
       securityMonths: category === 'epargne_precaution' ? securityMonths : undefined,
       monthlyExpenses: category === 'epargne_precaution' ? monthlyExpensesNum : undefined,
+      monthlyIncome: category === 'epargne_precaution' ? monthlyIncomeNum : undefined,
       name: name.trim() || undefined,
       targetAmount: targetAmountNum,
       bufferAmount: category === 'projet_long_terme' ? bufferAmountNum : undefined,
       deadline: deadlineDate,
     }),
-    [existing, category, securityMonths, monthlyExpensesNum, name, targetAmountNum, bufferAmountNum, deadlineDate]
+    [existing, category, securityMonths, monthlyExpensesNum, monthlyIncomeNum, name, targetAmountNum, bufferAmountNum, deadlineDate]
   );
 
   const otherObjectives = objectives.filter((o) => o.id !== draft.id);
@@ -115,7 +126,13 @@ export default function ObjectiveForm() {
   const save = () => {
     if (!valid) return;
     if (category === 'epargne_precaution') {
-      upsertObjective({ id: existing?.id, category, securityMonths, monthlyExpenses: monthlyExpensesNum! });
+      upsertObjective({
+        id: existing?.id,
+        category,
+        securityMonths,
+        monthlyExpenses: monthlyExpensesNum!,
+        monthlyIncome: monthlyIncomeNum,
+      });
     } else {
       upsertObjective({
         id: existing?.id,
@@ -149,21 +166,59 @@ export default function ObjectiveForm() {
         </Card>
 
         {category === 'epargne_precaution' ? (
-          <Card>
-            <Text style={styles.label}>{t('objectiveForm.duree_securite', { months: securityMonths })}</Text>
-            <Slider value={securityMonths} min={1} max={24} step={1} onChange={setSecurityMonths} color={sliderColor} />
-            {securityMonths > SECURITY_MONTHS_WARNING && (
-              <Text style={styles.warning}>{t('objectiveForm.duree_warning')}</Text>
+          <>
+            <Card>
+              <Text style={styles.label}>{t('objectiveForm.duree_securite', { months: securityMonths })}</Text>
+              <Slider value={securityMonths} min={1} max={24} step={1} onChange={setSecurityMonths} color={sliderColor} />
+              {securityMonths > SECURITY_MONTHS_WARNING && (
+                <Text style={styles.warning}>{t('objectiveForm.duree_warning')}</Text>
+              )}
+              <Field
+                label={t('objectiveForm.depenses_mensuelles')}
+                value={monthlyExpenses}
+                onChangeText={setMonthlyExpenses}
+                keyboardType="decimal-pad"
+                placeholder={t('objectiveForm.depenses_placeholder')}
+                hint={t('objectiveForm.depenses_hint')}
+              />
+              <Field
+                label={t('objectiveForm.revenus_mensuels')}
+                value={monthlyIncome}
+                onChangeText={setMonthlyIncome}
+                keyboardType="decimal-pad"
+                placeholder={t('objectiveForm.revenus_placeholder')}
+                hint={t('objectiveForm.revenus_hint')}
+              />
+            </Card>
+            {suggestion && (
+              <Card>
+                <Text style={styles.label}>{t('objectiveForm.suggestion_titre')}</Text>
+                <Text style={styles.suggestionAmount}>
+                  {t('objectiveForm.suggestion_montant', { amount: formatMoney(suggestion.amount), months: suggestion.months })}
+                </Text>
+                <Text style={[styles.suggestionText, suggestion.budget === 'deficit' && { color: C.negative }]}>
+                  {t(`objectiveForm.suggestion_${suggestion.budget}`, {
+                    ratio: formatPct((suggestion.vitalRatio ?? 0) * 100),
+                    months: suggestion.months,
+                  })}
+                </Text>
+                {suggestion.monthlyMargin !== undefined && (
+                  <Text style={styles.suggestionText}>
+                    {t('objectiveForm.marge_mensuelle', { amount: formatMoney(suggestion.monthlyMargin) })}
+                  </Text>
+                )}
+                {securityMonths === suggestion.months ? (
+                  <Text style={styles.suggestionOk}>{t('objectiveForm.suggestion_appliquee')}</Text>
+                ) : (
+                  <Button
+                    title={t('objectiveForm.appliquer_suggestion', { months: suggestion.months })}
+                    variant="secondary"
+                    onPress={() => setSecurityMonths(suggestion.months)}
+                  />
+                )}
+              </Card>
             )}
-            <Field
-              label={t('objectiveForm.depenses_mensuelles')}
-              value={monthlyExpenses}
-              onChangeText={setMonthlyExpenses}
-              keyboardType="decimal-pad"
-              placeholder={t('objectiveForm.depenses_placeholder')}
-              hint={t('objectiveForm.depenses_hint')}
-            />
-          </Card>
+          </>
         ) : (
           <Card>
             <Field label={t('objectiveForm.nom_projet')} value={name} onChangeText={setName} placeholder={t('objectiveForm.nom_projet_placeholder')} />

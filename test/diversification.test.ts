@@ -160,7 +160,23 @@ describe('computeInsights — garde-fous', () => {
   });
 
   it('renvoie un message positif quand aucune règle ne se déclenche', () => {
-    expect(ids(insights())).toEqual(['balanced']);
+    // Une épargne de précaution complète et conforme à la suggestion (3 mois pour des
+    // dépenses vitales à 33 % des revenus), sinon les conseils de précaution se déclenchent.
+    const precaution = objective({
+      category: 'epargne_precaution',
+      securityMonths: 3,
+      monthlyExpenses: 1_000,
+      monthlyIncome: 3_000,
+    });
+    const list = insights({
+      accounts: [account({ id: 'l', type: 'livret', cashBalance: 3_000 })],
+      objectives: [precaution],
+    });
+    expect(ids(list)).toEqual(['balanced']);
+  });
+
+  it('suggère de définir une épargne de précaution quand il n’y en a pas', () => {
+    expect(find(insights(), 'precaution-missing')?.severity).toBe('info');
   });
 
   it('trie les alertes avant les informations, elles-mêmes avant les félicitations', () => {
@@ -300,6 +316,56 @@ describe('computeInsights — matelas de précaution', () => {
   });
 });
 
+describe('computeInsights — épargne de précaution vs suggestion', () => {
+  const run = (o: Partial<Objective>, cash = 0) =>
+    insights({
+      accounts: [account({ id: 'l', type: 'livret', cashBalance: cash })],
+      byType: byType({ livret: cash, pea: 50_000 }),
+      totalValue: cash + 50_000,
+      objectives: [objective({ category: 'epargne_precaution', ...o })],
+    });
+
+  it('invite à renseigner les revenus quand ils manquent', () => {
+    const list = run({ securityMonths: 3, monthlyExpenses: 2_000 }, 6_000);
+    expect(find(list, 'precaution-income-missing')?.severity).toBe('info');
+    expect(find(list, 'precaution-target-low')).toBeUndefined();
+  });
+
+  it('signale une cible inférieure à la suggestion, en alerte à partir de 2 mois d’écart', () => {
+    // 2 100 / 3 000 = 70 % → 5 mois suggérés.
+    const info = find(run({ securityMonths: 4, monthlyExpenses: 2_100, monthlyIncome: 3_000 }), 'precaution-target-low');
+    expect(info?.severity).toBe('info');
+    expect(info?.params).toMatchObject({ months: 4, suggested: 5 });
+
+    const warn = find(run({ securityMonths: 3, monthlyExpenses: 2_100, monthlyIncome: 3_000 }), 'precaution-target-low');
+    expect(warn?.severity).toBe('warning');
+  });
+
+  it('signale une cible très au-delà de la suggestion', () => {
+    // 1 000 / 4 000 = 25 % → 3 mois suggérés ; 7 mois = 3 + 4 > seuil de 3 mois d’excès.
+    expect(find(run({ securityMonths: 7, monthlyExpenses: 1_000, monthlyIncome: 4_000 }), 'precaution-target-high')).toBeDefined();
+    expect(find(run({ securityMonths: 6, monthlyExpenses: 1_000, monthlyIncome: 4_000 }), 'precaution-target-high')).toBeUndefined();
+  });
+
+  it('alerte sur un budget où les dépenses vitales dépassent les revenus', () => {
+    const list = run({ securityMonths: 6, monthlyExpenses: 2_500, monthlyIncome: 2_000 }, 15_000);
+    expect(find(list, 'precaution-budget-deficit')?.severity).toBe('warning');
+    expect(find(list, 'precaution-target-low')).toBeUndefined(); // 6 mois = suggestion
+  });
+
+  it('propose un plan de constitution chiffré quand la marge est connue', () => {
+    // Cible 3 × 1 000 = 3 000 €, 2 000 € en place → 1 000 € manquants (66,7 % : « en cours »).
+    // Marge = 3 000 − 1 000 = 2 000 €/mois, la moitié = 1 000 €/mois → 1 mois.
+    const c = find(run({ securityMonths: 3, monthlyExpenses: 1_000, monthlyIncome: 3_000 }, 2_000), 'cash-cushion-building');
+    expect(c?.severity).toBe('info');
+    expect(c?.actionKey).toBe('diversification.cash_cushion_plan_action');
+
+    // Sans revenus : pas de plan chiffré, conseil générique.
+    const g = find(run({ securityMonths: 3, monthlyExpenses: 1_000 }, 2_000), 'cash-cushion-building');
+    expect(g?.actionKey).toBe('diversification.cash_cushion_building_action');
+  });
+});
+
 describe('computeInsights — trésorerie dormante', () => {
   it('se déclenche au-delà du seuil « 2 mois de dépenses », plancher 3 000 €', () => {
     const withCourant = (amount: number, objectives?: Objective[]) =>
@@ -317,6 +383,13 @@ describe('computeInsights — trésorerie dormante', () => {
     // Avec des dépenses mensuelles déclarées, le seuil suit le train de vie.
     const gros = [objective({ category: 'epargne_precaution', securityMonths: 6, monthlyExpenses: 4_000 })];
     expect(find(withCourant(7_000, gros), 'idle-cash')).toBeUndefined(); // seuil = 8 000 €
+
+    // Le salaire transite par le compte courant : un mois de revenus y reste normal.
+    const salaire = [
+      objective({ category: 'epargne_precaution', securityMonths: 3, monthlyExpenses: 1_000, monthlyIncome: 5_000 }),
+    ];
+    expect(find(withCourant(4_500, salaire), 'idle-cash')).toBeUndefined(); // seuil = 5 000 €
+    expect(find(withCourant(5_500, salaire), 'idle-cash')).toBeDefined();
   });
 });
 

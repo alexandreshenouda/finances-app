@@ -5,6 +5,8 @@ import {
   epargnePrecautionTarget,
   monthsUntil,
   objectiveProgress,
+  precautionBuildPlan,
+  suggestPrecaution,
   totalExcludingRealEstate,
 } from '@/lib/objectives';
 import { RATES, account, objective, snapshot } from './factories';
@@ -78,6 +80,52 @@ describe('epargnePrecautionTarget', () => {
   it('vaut 0 sans objectif de précaution ou si un paramètre manque', () => {
     expect(epargnePrecautionTarget([])).toBe(0);
     expect(epargnePrecautionTarget([objective({ category: 'epargne_precaution', securityMonths: 6 })])).toBe(0);
+  });
+});
+
+describe('suggestPrecaution', () => {
+  it('ne suggère rien sans dépenses vitales', () => {
+    expect(suggestPrecaution(undefined, 3_000)).toBeNull();
+    expect(suggestPrecaution(0, 3_000)).toBeNull();
+  });
+
+  it('retombe sur 3 mois quand les revenus sont inconnus', () => {
+    expect(suggestPrecaution(2_000)).toEqual({ months: 3, amount: 6_000, budget: 'unknown' });
+    expect(suggestPrecaution(2_000, 0)?.budget).toBe('unknown');
+  });
+
+  it('allonge la durée avec le poids des dépenses vitales dans les revenus', () => {
+    // Paliers : < 50 % → 3 mois, 50–70 % → 4, 70–85 % → 5, ≥ 85 % → 6.
+    expect(suggestPrecaution(1_200, 3_000)?.months).toBe(3); // 40 %
+    expect(suggestPrecaution(1_500, 3_000)?.months).toBe(4); // 50 % pile
+    expect(suggestPrecaution(2_100, 3_000)?.months).toBe(5); // 70 % pile
+    expect(suggestPrecaution(2_550, 3_000)?.months).toBe(6); // 85 % pile
+    expect(suggestPrecaution(4_000, 3_000)?.months).toBe(6); // déficit
+  });
+
+  it('calcule montant, ratio, marge et situation budgétaire', () => {
+    const s = suggestPrecaution(2_100, 3_000)!;
+    expect(s.amount).toBe(5 * 2_100);
+    expect(s.vitalRatio).toBeCloseTo(0.7, 10);
+    expect(s.monthlyMargin).toBe(900);
+    expect(s.budget).toBe('tight');
+    expect(suggestPrecaution(1_000, 3_000)?.budget).toBe('comfortable');
+    expect(suggestPrecaution(3_000, 3_000)?.budget).toBe('deficit');
+    expect(suggestPrecaution(3_500, 3_000)?.monthlyMargin).toBe(-500);
+  });
+});
+
+describe('precautionBuildPlan', () => {
+  it('consacre la moitié de la marge au matelas, arrondi au mois supérieur', () => {
+    // 5 000 € manquants, marge 1 500 € → 750 €/mois → 6,67 → 7 mois.
+    expect(precautionBuildPlan(5_000, 1_500)).toEqual({ monthly: 750, months: 7 });
+  });
+
+  it('ne propose rien sans manque à combler ni marge positive', () => {
+    expect(precautionBuildPlan(0, 1_500)).toBeUndefined();
+    expect(precautionBuildPlan(5_000, undefined)).toBeUndefined();
+    expect(precautionBuildPlan(5_000, 0)).toBeUndefined();
+    expect(precautionBuildPlan(5_000, -200)).toBeUndefined();
   });
 });
 
