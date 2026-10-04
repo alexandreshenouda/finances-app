@@ -61,7 +61,9 @@ export default function Diversification() {
   const showRealEstate = useStore((s) => s.showRealEstate);
   const riskProfile = useStore((s) => s.riskProfile);
   const setRiskProfile = useStore((s) => s.setRiskProfile);
-  useStore((s) => s.privacyMode); // re-render au changement de mode confidentialité
+  // Re-render au changement de mode confidentialité ; aussi dépendance du memo des
+  // insights, dont les montants sont formatés (donc masqués ou non) au calcul.
+  const privacyMode = useStore((s) => s.privacyMode);
 
   // Auto-classification en arrière-plan des lignes non classées ou sans secteurs
   useFocusEffect(
@@ -150,7 +152,8 @@ export default function Diversification() {
   const insights = useMemo(
     () =>
       computeInsights({ accounts: active, holdings, snapshots, byType, totalValue, rates, objectives, riskProfile }),
-    [active, holdings, snapshots, byType, totalValue, rates, objectives, riskProfile]
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- privacyMode : voir plus haut
+    [active, holdings, snapshots, byType, totalValue, rates, objectives, riskProfile, privacyMode]
   );
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');

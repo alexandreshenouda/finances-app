@@ -82,6 +82,12 @@ pour le détail des contraintes.
   est ancrée dessus, et la courbe prend la **couleur du thème au-dessus de 0 %** et le **rouge
   en dessous**. L'infobulle rappelle le montant en devise correspondant au point survolé.
 - **Répartition du patrimoine** par type de compte, en **barre empilée ou camembert**.
+- **Épargne de précaution suggérée** : l'objectif « Épargne de précaution » se définit à partir
+  des **dépenses vitales mensuelles** (loyer/crédit, alimentation, énergie, assurances, transport)
+  et, en option, des **revenus nets mensuels** du foyer. Un **montant suggéré** s'affiche en direct :
+  dépenses vitales × une durée qui s'allonge avec leur poids dans les revenus (< 50 % → 3 mois,
+  50–70 % → 4, 70–85 % → 5, ≥ 85 % → 6 ; 3 mois si les revenus ne sont pas renseignés), avec la
+  marge mensuelle restante et un bouton pour **appliquer la suggestion** à la durée de sécurité.
 - **Projection patrimoniale future** : section interactive en dessous des objectifs permettant de simuler l'évolution prévisionnelle du patrimoine à 3, 5, 10, 15, 20 ou 30 ans :
   - **Visualisation Brute ou Nette** : prise en compte de l'**amortissement réel des crédits** mois par mois (les dettes diminuent selon leurs échéanciers jusqu'à extinction complète) ;
   - **Inclusion / exclusion de l'immobilier** au choix ;
@@ -118,6 +124,7 @@ pour le détail des contraintes.
 - **Détection des faux doublons d'ETF (*Look-through overlap*)** : analyse croisée des 10 premières positions sous-jacentes extraites de JustETF pour détecter la concentration réelle et invisible sur les méga-capitalisations (ex: Apple, Microsoft, Nvidia présents dans plusieurs ETF indiciels).
 - **Audit des frais de gestion (*Fee drag*)** : calcul des frais annuels moyens pondérés (TER des fonds + frais de gestion des comptes) et alerte pédagogique sur l'impact de capitalisation négative des fonds onéreux (> 1,2 %).
 - **Trésorerie dormante & Adéquation aux objectifs** : détection des liquidités excédentaires sur compte courant à transférer vers des livrets garantis (Livret A, LDDS), et contrôle de l'adéquation entre l'échéance des projets court/long terme et la volatilité des actifs.
+- **Épargne de précaution** : invitation à la définir si elle manque, alerte si les dépenses vitales dépassent les revenus, comparaison de la durée choisie avec la durée suggérée (cible trop faible ou très prudente), et suivi du matelas réel (livrets + comptes courants) : insuffisant, en cours de constitution — avec un **plan chiffré** (la moitié de la marge mensuelle après dépenses vitales, et le délai pour atteindre la cible) quand les revenus sont connus — ou excédentaire.
 - **Rééquilibrage par les flux entrants (*Cash-flow rebalancing*)** : recommandation de rééquilibrer par l'orientation des futurs versements réguliers (DCA) plutôt que par des arbitrages imposables.
 - **Diversification sectorielle & géographique** : onglet dédié comparant votre patrimoine à un profil de référence (Prudent, Équilibré, Dynamique) et alertant sur les concentrations excessives.
 - **Classification multi-sources** : JustETF (scraping temps réel pour ETFs UCITS et actions) → Yahoo Finance (secteur actions) → table locale de repli (`referenceEtfs.ts`).
@@ -225,7 +232,7 @@ vivent dans `test/`, un par module de `src/lib` :
 | `test/portfolio.test.ts` | valorisation des comptes, plus-values, quote-part, `buildSeries`, mode performance (%) |
 | `test/realestate.test.ts` | amortissement (mensualités constantes **et** paliers/différé), valorisation des biens, courbe patrimoniale |
 | `test/houseIndex.test.ts` | interpolation de l'indice des prix des logements (indépendante du fuseau horaire / changement d'heure) |
-| `test/objectives.test.ts` | progression des objectifs, épargne de précaution, effort mensuel |
+| `test/objectives.test.ts` | progression des objectifs, épargne de précaution (suggestion, plan de constitution), effort mensuel |
 | `test/projection.test.ts` | CAGR historique, capitalisation, frais, inflation, amortissement futur, atteinte des objectifs |
 | `test/diversification.test.ts` | répartition cible par profil, agrégations secteur/pays, seuils des conseils |
 | `test/classification.test.ts` | pays depuis l'ISIN, cooldown de re-classification, normalisation des secteurs/pays |

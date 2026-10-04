@@ -445,8 +445,13 @@ export interface Objective {
 
   /** epargne_precaution : nombre de mois de dépenses visé (1 à 24). */
   securityMonths?: number;
-  /** epargne_precaution : dépenses mensuelles (crédits, loyers, alimentation…), en EUR. */
+  /** epargne_precaution : dépenses vitales mensuelles (crédits, loyers, alimentation,
+   * énergie, assurances…), en EUR. Base du montant cible (× securityMonths). Le nom du
+   * champ est conservé pour la compatibilité des sauvegardes existantes. */
   monthlyExpenses?: number;
+  /** epargne_precaution : revenus nets mensuels du foyer, en EUR (optionnel). Sert à
+   * calculer la durée suggérée (voir `suggestPrecaution` dans `objectives.ts`). */
+  monthlyIncome?: number;
 
   /** projet_long_terme / projet_court_terme */
   name?: string;
