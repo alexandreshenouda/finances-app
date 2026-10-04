@@ -61,6 +61,25 @@ with deferral) in addition to constant monthly payments — see `realestate.ts`
 (`loanStats`, `loanPhases`, `loanSchedule`) which simulates month-by-month rather than
 closed-form.
 
+## Translations (fr / en / de)
+- Every user-visible string goes through i18next, keys in `src/i18n/locales/{fr,en,de}.json`.
+  Components use `const { t } = useTranslation()`; `src/lib` (which has no hooks) imports
+  the instance — `import i18next from '../i18n'` — and calls `i18next.t(...)` **at the
+  moment the message is built**, so it follows the current language.
+- Error / warning messages surfaced by `src/lib` (connector sync warnings, price/FX/
+  classification errors, geocoding & DVF errors) live under `errors.*`. Use
+  `errors.prefixe` (`{{source}} : {{message}}` in fr, no space before the colon in en/de)
+  instead of hand-concatenating `` `${name} : ${msg}` ``. Proper nouns (Trade Republic,
+  Yahoo…) are passed as interpolation values, not translated. Debug-log text
+  (`logDebug*`) stays untranslated — it is a dev tool.
+- Never rely on `t(key, { defaultValue })` to paper over a missing key: the fallback is
+  French in every language. `test/i18n.test.ts` fails if fr/en/de don't declare exactly
+  the same keys. Dynamic keys (`` t(`objectives.${category}`) ``) must point at an
+  existing section — a wrong prefix renders the raw key on screen (this happened with a
+  non-existent `objectiveCategories.*` in `ProjectionCard`).
+- Tests run in French (i18next default), so existing assertions on French messages
+  stay valid after moving a literal into the locale files.
+
 ## Tab icons & general UI theme
 User rule: **all** UI added to this app (icons, screens, charts) must reuse the palette
 in `src/constants/theme.ts` (`C`) and the primitives in `src/components/ui.tsx` — never

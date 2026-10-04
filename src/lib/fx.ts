@@ -2,6 +2,7 @@
  * Taux de change → EUR. Source : api.frankfurter.app (taux BCE, gratuit, CORS ok).
  * Les derniers taux connus sont persistés dans le store pour fonctionner hors ligne.
  */
+import i18next from './i18n';
 import { useStore } from './store';
 import { CURRENCIES, type Currency, type FxRates } from './types';
 
@@ -31,6 +32,6 @@ export async function refreshFxRates(): Promise<{ ok: boolean; error?: string }>
     useStore.getState().setFxRates(next);
     return { ok: true };
   } catch (e: any) {
-    return { ok: false, error: `Taux de change : ${e?.message ?? e}` };
+    return { ok: false, error: i18next.t('errors.taux_change', { message: e?.message ?? e }) };
   }
 }

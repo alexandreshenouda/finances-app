@@ -1,5 +1,6 @@
 /** Orchestrateur de synchronisation : identifiants → connecteur → mise à jour du store. */
 import { todayKey, uid } from '../format';
+import i18next from '../i18n';
 import { connectionSecretKey, getSecret } from '../secure';
 import { useStore } from '../store';
 import type { Connection } from '../types';
@@ -25,21 +26,21 @@ async function runConnector(conn: Connection): Promise<SyncResult> {
   switch (conn.provider) {
     case 'binance': {
       const creds = await loadCredentials<BinanceCredentials>(conn.id);
-      if (!creds) throw new Error('Identifiants Binance introuvables');
+      if (!creds) throw new Error(i18next.t('errors.identifiants_binance_manquants'));
       return syncBinance(creds);
     }
     case 'kraken': {
       const creds = await loadCredentials<KrakenCredentials>(conn.id);
-      if (!creds) throw new Error('Identifiants Kraken introuvables');
+      if (!creds) throw new Error(i18next.t('errors.identifiants_kraken_manquants'));
       return syncKraken(creds);
     }
     case 'enablebanking': {
       const creds = await loadCredentials<EnableBankingCredentials>(conn.id);
-      if (!creds) throw new Error('Identifiants Enable Banking introuvables');
+      if (!creds) throw new Error(i18next.t('errors.identifiants_eb_manquants'));
       return syncEnableBanking(creds);
     }
     case 'traderepublic':
-      throw new Error('Trade Republic nécessite une validation 2FA : utilisez le bouton Reconnecter.');
+      throw new Error(i18next.t('errors.tr_2fa_requise'));
   }
 }
 
@@ -98,7 +99,7 @@ export function persistExternalAccounts(conn: Connection, result: SyncResult): v
 export async function syncConnection(connectionId: string): Promise<{ warnings: string[] }> {
   const store = useStore.getState();
   const conn = store.connections.find((c) => c.id === connectionId);
-  if (!conn) throw new Error('Connexion inconnue');
+  if (!conn) throw new Error(i18next.t('errors.connexion_inconnue'));
 
   try {
     const result = await runConnector(conn);
@@ -122,7 +123,7 @@ export async function syncAllConnections(): Promise<{ warnings: string[]; errors
       const r = await syncConnection(conn.id);
       warnings.push(...r.warnings);
     } catch (e: any) {
-      errors.push(`${conn.label} : ${e?.message ?? e}`);
+      errors.push(i18next.t('errors.prefixe', { source: conn.label, message: e?.message ?? e }));
     }
   }
   return { warnings, errors };

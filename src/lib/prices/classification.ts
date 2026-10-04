@@ -10,6 +10,7 @@
  *    les plus courants.
  * 5. Préfixe ISIN → pays juridique de repli si aucune autre source géographique n'a répondu.
  */
+import i18next from '../i18n';
 import { useStore } from '../store';
 import type { CountryCode, Holding } from '../types';
 import { fetchCoinGeckoCategory } from './coingecko';
@@ -111,7 +112,7 @@ export async function classifyHoldings(options?: { forceAll?: boolean }): Promis
           source = 'coingecko';
         }
       } catch (e: any) {
-        errors.push(`${h.name} : ${e?.message ?? e}`);
+        errors.push(i18next.t('errors.prefixe', { source: h.name, message: e?.message ?? e }));
         holdingHasError = true;
       }
 
@@ -214,7 +215,7 @@ export async function classifyHoldings(options?: { forceAll?: boolean }): Promis
       classified++;
     } else if (holdingError) {
       // Erreur réseau — on reporte au prochain focus (pas de cooldown, l'erreur peut être transitoire)
-      errors.push(`${h.name} : ${holdingError}`);
+      errors.push(i18next.t('errors.prefixe', { source: h.name, message: holdingError }));
       // Ne pas écrire dans le store : laisse la holding inchangée pour re-tenter au prochain focus
     } else {
       // Aucune source n'a trouvé de données (ISIN inconnu de JustETF et Yahoo) : cooldown 7 jours

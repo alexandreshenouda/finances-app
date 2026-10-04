@@ -4,6 +4,7 @@
  * Bloqué par CORS dans un navigateur — fonctionne dans l'app Android.
  */
 import { logDebug } from '../debugLog';
+import i18next from '../i18n';
 
 const BASE = 'https://query1.finance.yahoo.com/v8/finance/chart';
 const TAG = 'yahoo';
@@ -17,13 +18,13 @@ async function fetchQuote(symbol: string): Promise<YahooQuote> {
   const res = await fetch(`${BASE}/${encodeURIComponent(symbol)}?range=5d&interval=1d`, {
     headers: { 'User-Agent': 'Mozilla/5.0' },
   });
-  if (!res.ok) throw new Error(`Yahoo HTTP ${res.status} pour ${symbol}`);
+  if (!res.ok) throw new Error(i18next.t('errors.http_pour', { source: 'Yahoo', status: res.status, target: symbol }));
   const json: any = await res.json();
   const meta = json?.chart?.result?.[0]?.meta;
   const price = meta?.regularMarketPrice;
   const currency = meta?.currency;
   if (typeof price !== 'number' || !currency) {
-    throw new Error(`Cours introuvable pour ${symbol}`);
+    throw new Error(i18next.t('errors.cours_introuvable', { symbol }));
   }
   return { price, currency };
 }
@@ -90,7 +91,7 @@ export async function searchYahooSymbol(query: string): Promise<YahooSearchMatch
   /** Corps JSON de la recherche, ou erreur explicite si elle n'a pas abouti. */
   const getJson = async (target: string, init?: RequestInit): Promise<any> => {
     const res = await fetch(target, init);
-    if (!res.ok) throw new Error(`Yahoo HTTP ${res.status} pour la recherche « ${query} »`);
+    if (!res.ok) throw new Error(i18next.t('errors.yahoo_recherche_http', { status: res.status, query }));
     return res.json();
   };
 

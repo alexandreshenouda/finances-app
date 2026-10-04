@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { C, useStyles } from '@/constants/theme';
 import { formatEur, formatPct } from '@/lib/format';
+import { useTranslation } from 'react-i18next';
 import { ACCOUNT_TYPE_COLORS, ACCOUNT_TYPE_LABELS, ACCOUNT_TYPE_ORDER, type AccountType } from '@/lib/types';
 
 const SIZE = 176;
@@ -42,8 +43,9 @@ function makeStyles() {
 
 export function PieChart({ byType }: { byType: Map<AccountType, number> }) {
   const styles = useStyles(makeStyles);
-  const entries = ACCOUNT_TYPE_ORDER.filter((t) => (byType.get(t) ?? 0) > 0).map(
-    (t) => [t, byType.get(t)!] as const
+  const { t } = useTranslation();
+  const entries = ACCOUNT_TYPE_ORDER.filter((type) => (byType.get(type) ?? 0) > 0).map(
+    (type) => [type, byType.get(type)!] as const
   );
   const total = entries.reduce((acc, [, v]) => acc + v, 0);
   if (total <= 0) return null;
@@ -77,7 +79,7 @@ export function PieChart({ byType }: { byType: Map<AccountType, number> }) {
           )}
         </Svg>
         <View style={styles.center} pointerEvents="none">
-          <Text style={styles.centerLabel}>Total</Text>
+          <Text style={styles.centerLabel}>{t('common.total')}</Text>
           <Text style={styles.centerValue}>{formatEur(total)}</Text>
         </View>
       </View>

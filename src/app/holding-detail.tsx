@@ -50,12 +50,13 @@ function makeStyles() {
   });
 }
 
+/** Noms propres affichés tels quels ; `reference` / `isin` sont traduits (`holdingDetail.source_*`). */
 const SOURCE_ICONS: Record<string, string> = {
   justetf: 'JustETF',
   yahoo: 'Yahoo Finance',
   coingecko: 'CoinGecko',
-  reference: 'Réf. locale',
-  isin: 'Préfixe ISIN',
+  reference: 'holdingDetail.source_reference',
+  isin: 'holdingDetail.source_isin',
 };
 
 export default function HoldingDetail() {
@@ -85,7 +86,8 @@ export default function HoldingDetail() {
   const hCur = holdingCurrency(holding, account);
   const valueEur = holdingValueEur(holding, account, rates);
   const perf = holdingPerfPct(holding);
-  const sourceName = holding.classificationSource ? (SOURCE_ICONS[holding.classificationSource] ?? holding.classificationSource) : null;
+  const sourceKey = holding.classificationSource ? (SOURCE_ICONS[holding.classificationSource] ?? holding.classificationSource) : null;
+  const sourceName = sourceKey?.startsWith('holdingDetail.') ? t(sourceKey) : sourceKey;
 
   return (
     <>

@@ -6,6 +6,7 @@ import { hmac } from '@noble/hashes/hmac.js';
 import { sha256, sha512 } from '@noble/hashes/sha2.js';
 import { utf8ToBytes } from '@noble/hashes/utils.js';
 import { fromUint8Array, toUint8Array } from 'js-base64';
+import i18next from '../i18n';
 import type { ExternalAccount, ExternalHolding, SyncResult } from './types';
 
 const BASE = 'https://api.kraken.com';
@@ -90,7 +91,7 @@ export async function syncKraken(creds: KrakenCredentials): Promise<SyncResult> 
   for (const [asset, qty] of byAsset) {
     const p = prices.get(asset);
     if (p === undefined) {
-      warnings.push(`Kraken : pas de cours EUR pour ${asset} (ignoré)`);
+      warnings.push(i18next.t('errors.pas_de_cours_eur', { exchange: 'Kraken', asset }));
       continue;
     }
     if (qty * p < 0.5) continue;

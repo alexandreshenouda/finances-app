@@ -4,6 +4,7 @@
  */
 import { todayKey } from '../format';
 import { refreshFxRates } from '../fx';
+import i18next from '../i18n';
 import { accountCurrentValue, holdingCurrency } from '../portfolio';
 import { useStore } from '../store';
 import { classifyHoldings } from './classification';
@@ -41,11 +42,11 @@ export async function refreshAllPrices(): Promise<RefreshResult> {
           touchedAccounts.add(h.accountId);
           updated++;
         } else {
-          errors.push(`${h.name} : id CoinGecko « ${h.symbol} » inconnu`);
+          errors.push(i18next.t('errors.coingecko_id_inconnu', { name: h.name, symbol: h.symbol }));
         }
       }
     } catch (e: any) {
-      errors.push(`CoinGecko : ${e?.message ?? e}`);
+      errors.push(i18next.t('errors.prefixe', { source: 'CoinGecko', message: e?.message ?? e }));
     }
   }
 
@@ -65,12 +66,12 @@ export async function refreshAllPrices(): Promise<RefreshResult> {
         symbol = matches[0]?.symbol ?? '';
         isinToSymbol.set(isin, symbol);
       } catch (e: any) {
-        errors.push(`${h.name} : résolution ISIN ${isin} → ${e?.message ?? e}`);
+        errors.push(i18next.t('errors.resolution_isin', { name: h.name, isin, message: e?.message ?? e }));
         continue;
       }
     }
     if (!symbol) {
-      errors.push(`${h.name} : aucun ticker Yahoo trouvé pour l'ISIN ${isin}`);
+      errors.push(i18next.t('errors.aucun_ticker_yahoo', { name: h.name, isin }));
       continue;
     }
     h.symbol = symbol;
@@ -95,7 +96,7 @@ export async function refreshAllPrices(): Promise<RefreshResult> {
         updated++;
       }
     } catch (e: any) {
-      errors.push(`${symbol} : ${e?.message ?? e}`);
+      errors.push(i18next.t('errors.prefixe', { source: symbol, message: e?.message ?? e }));
     }
   }
 

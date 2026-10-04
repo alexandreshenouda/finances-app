@@ -6,6 +6,7 @@
  */
 import { Platform } from 'react-native';
 import { logDebug } from '../debugLog';
+import i18next from '../i18n';
 import type { CountryCode, SectorKey } from '../types';
 import { normalizeSector } from './sectors';
 
@@ -298,7 +299,7 @@ const classificationCache = new Map<string, JustEtfClassification | null>();
  */
 export class JustEtfUnavailableError extends Error {
   constructor(message: string) {
-    super(`JustETF injoignable : ${message}`);
+    super(i18next.t('errors.justetf_injoignable', { message }));
     this.name = 'JustEtfUnavailableError';
   }
 }
@@ -414,7 +415,7 @@ async function fetchHtml(url: string, timeoutMs = 4500): Promise<string | null> 
     }
   }
 
-  if (!relayed) throw new JustEtfUnavailableError('aucun proxy CORS disponible');
+  if (!relayed) throw new JustEtfUnavailableError(i18next.t('errors.aucun_proxy'));
   return null;
 }
 

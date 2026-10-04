@@ -336,7 +336,7 @@ describe('trFetchPortfolio', () => {
 
     expect(result.warnings).toEqual([
       'Solde USD ignoré (conversion non gérée)',
-      '1 position(s) crypto ignorée(s) (non gérées par ce connecteur)',
+      '1 position crypto ignorée (non gérée par ce connecteur)',
       'Position ignorée (BADQTY000001, quantité illisible)',
       'Cours introuvable pour Sans cours — ligne valorisée à 0 €',
     ]);

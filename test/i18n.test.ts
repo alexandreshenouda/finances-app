@@ -2,6 +2,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { __setLocales } from './stubs/expo-localization';
 import i18next, { detectDeviceLanguage } from '@/lib/i18n';
+import fr from '@/i18n/locales/fr.json';
+import en from '@/i18n/locales/en.json';
+import de from '@/i18n/locales/de.json';
+import { geocodeAddress } from '@/lib/prices/localValuation';
 import {
   ACCOUNT_TYPE_COLORS,
   ACCOUNT_TYPE_COLORS_CLASSIQUE,
@@ -48,6 +52,27 @@ describe('libellés traduits (proxy)', () => {
     expect(en).toBeTruthy();
     expect(en).not.toBe(fr);
     expect(en).toBe(i18next.t('accountTypes.livret'));
+  });
+});
+
+/** Chemins des feuilles (`section.cle`) d'un fichier de traduction. */
+function leafKeys(obj: object, prefix = ''): string[] {
+  return Object.entries(obj).flatMap(([k, v]) =>
+    v && typeof v === 'object' ? leafKeys(v, `${prefix}${k}.`) : [`${prefix}${k}`]
+  );
+}
+
+describe('fichiers de traduction', () => {
+  it('fr, en et de déclarent exactement les mêmes clés', () => {
+    const frKeys = leafKeys(fr).sort();
+    expect(leafKeys(en).sort()).toEqual(frKeys);
+    expect(leafKeys(de).sort()).toEqual(frKeys);
+  });
+
+  it('les messages de src/lib suivent la langue courante', async () => {
+    expect(await geocodeAddress('  ')).toEqual({ ok: false, error: 'Adresse manquante' });
+    await i18next.changeLanguage('en');
+    expect(await geocodeAddress('  ')).toEqual({ ok: false, error: 'Missing address' });
   });
 });
 

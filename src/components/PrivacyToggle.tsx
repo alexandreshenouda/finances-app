@@ -1,11 +1,13 @@
 /** Bouton œil (en-tête) : bascule le mode confidentialité — montants masqués, % visibles. */
 import { C, useTheme } from '@/constants/theme';
 import { useStore } from '@/lib/store';
+import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 import Svg, { Circle, Line, Path } from 'react-native-svg';
 
 export function PrivacyToggle() {
   useTheme();
+  const { t } = useTranslation();
   const privacy = useStore((s) => s.privacyMode);
   const setPrivacyMode = useStore((s) => s.setPrivacyMode);
   const common = {
@@ -21,7 +23,7 @@ export function PrivacyToggle() {
       hitSlop={10}
       style={{ marginRight: 16 }}
       accessibilityRole="button"
-      accessibilityLabel={privacy ? 'Afficher les montants' : 'Masquer les montants'}
+      accessibilityLabel={privacy ? t('common.afficher_montants') : t('common.masquer_montants')}
     >
       <Svg width={24} height={24} viewBox="0 0 24 24">
         <Path d="M2 12 C5 6.5 8.5 5 12 5 C15.5 5 19 6.5 22 12 C19 17.5 15.5 19 12 19 C8.5 19 5 17.5 2 12 Z" {...common} />

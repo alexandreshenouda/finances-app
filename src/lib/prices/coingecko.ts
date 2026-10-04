@@ -1,4 +1,5 @@
 /** Cours crypto via l'API publique CoinGecko (gratuite, CORS ok), multi-devises. */
+import i18next from '../i18n';
 import type { Currency } from '../types';
 
 const BASE = 'https://api.coingecko.com/api/v3';
@@ -29,7 +30,7 @@ const NOISY_CATEGORY = /index|holdings|ecosystem/i;
 export async function fetchCoinGeckoCategory(id: string): Promise<string | undefined> {
   const url = `${BASE}/coins/${encodeURIComponent(id)}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status} pour ${id}`);
+  if (!res.ok) throw new Error(i18next.t('errors.http_pour', { source: 'CoinGecko', status: res.status, target: id }));
   const json = (await res.json()) as { categories?: unknown };
   const categories = Array.isArray(json.categories) ? json.categories.filter((c): c is string => typeof c === 'string') : [];
   return categories.find((c) => !NOISY_CATEGORY.test(c)) ?? categories[0];

@@ -19,6 +19,7 @@
  */
 import { encode as base64Encode } from 'js-base64';
 import { logDebug, logDebugError } from '../debugLog';
+import i18next from '../i18n';
 import { getSecret, setSecret } from '../secure';
 import type { ExternalAccount, ExternalHolding } from './types';
 
@@ -108,7 +109,7 @@ export async function trInitiateLogin(phoneNumber: string, pin: string): Promise
   }
   const json = await res.json();
   logDebug(TAG, `POST /api/v2/auth/web/login → HTTP ${res.status}`, JSON.stringify(json));
-  if (!json?.processId) throw new Error("Trade Republic n'a pas renvoyé de processId");
+  if (!json?.processId) throw new Error(i18next.t('errors.tr_pas_de_process'));
   return { processId: json.processId };
 }
 
@@ -144,7 +145,7 @@ export async function trAwaitApproval(
   while (Date.now() < deadline) {
     if (opts.shouldAbort?.()) {
       logDebug(TAG, 'Polling approbation : annulé');
-      throw new Error('Connexion annulée');
+      throw new Error(i18next.t('errors.connexion_annulee'));
     }
 
     const res = await fetch(`${HOST}/api/v2/auth/web/login/processes/${processId}`, { headers });
@@ -162,11 +163,11 @@ export async function trAwaitApproval(
       }
       if (REJECTED_STATES.has(state)) {
         logDebugError(TAG, `Polling approbation : refusé/expiré (state=${state})`);
-        throw new Error("Connexion refusée ou expirée dans l'app Trade Republic");
+        throw new Error(i18next.t('errors.connexion_refusee_tr'));
       }
     } else if ([401, 403, 404, 410].includes(res.status)) {
       logDebugError(TAG, `GET .../processes/${processId} → HTTP ${res.status}`);
-      throw new Error(`Session de connexion invalide ou expirée (HTTP ${res.status})`);
+      throw new Error(i18next.t('errors.tr_session_invalide', { status: res.status }));
     } else if (`http:${res.status}` !== lastLogged) {
       logDebug(TAG, `GET .../processes/${processId} → HTTP ${res.status}`);
       lastLogged = `http:${res.status}`;
@@ -175,7 +176,7 @@ export async function trAwaitApproval(
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
   logDebugError(TAG, 'Polling approbation : délai dépassé');
-  throw new Error("Délai dépassé : approuvez la connexion dans l'app Trade Republic");
+  throw new Error(i18next.t('errors.tr_delai_depasse'));
 }
 
 /** Message WebSocket entrant : "<id> <code> <payload>". */
@@ -198,7 +199,7 @@ class TrSocket {
   constructor() {
     this.ws = new WebSocket(WS_URL);
     this.ready = new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('Trade Republic : connexion WebSocket expirée')), 15000);
+      const timer = setTimeout(() => reject(new Error(i18next.t('errors.tr_ws_expire'))), 15000);
       this.ws.onopen = () => {
         logDebug(TAG, `WS connect ${JSON.stringify(CONNECT_MESSAGE)}`);
         this.ws.send(`connect 31 ${JSON.stringify(CONNECT_MESSAGE)}`);
@@ -206,7 +207,7 @@ class TrSocket {
       this.ws.onerror = () => {
         clearTimeout(timer);
         logDebugError(TAG, 'WS : erreur (session invalide ou WAF ?)');
-        reject(new Error('Trade Republic : erreur WebSocket (session invalide ou WAF ?)'));
+        reject(new Error(i18next.t('errors.tr_ws_erreur')));
       };
       this.ws.onmessage = (ev) => {
         const data = String(ev.data);
@@ -241,7 +242,7 @@ class TrSocket {
       }
     } else if (code === 'E') {
       this.pending.delete(id);
-      waiter.reject(new Error(`Trade Republic : ${payload.slice(0, 160)}`));
+      waiter.reject(new Error(i18next.t('errors.prefixe', { source: 'Trade Republic', message: payload.slice(0, 160) })));
     }
     // 'D' (delta) et 'C' (closed) ignorés : on ne garde que le premier snapshot.
   }
@@ -253,7 +254,7 @@ class TrSocket {
     return new Promise<T>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error('Trade Republic : réponse WebSocket expirée'));
+        reject(new Error(i18next.t('errors.tr_ws_reponse_expiree')));
       }, timeoutMs);
       this.pending.set(id, {
         resolve: (v) => {
@@ -325,7 +326,7 @@ export async function trFetchAccountInfo(): Promise<{ raw: any; secAccNo?: strin
   const text = await res.text().catch(() => '');
   if (!res.ok) {
     logDebugError(TAG, `GET /api/v2/auth/account → HTTP ${res.status}`, text);
-    throw new Error(`Trade Republic : infos compte HTTP ${res.status}`);
+    throw new Error(i18next.t('errors.tr_infos_compte_http', { status: res.status }));
   }
   let json: any = null;
   try {
@@ -453,7 +454,7 @@ function sumEurCash(entries: any, accountNumber: string | undefined, warnings: s
   for (const c of Array.isArray(entries) ? entries : []) {
     if (accountNumber && c?.accountNumber && c.accountNumber !== accountNumber) continue;
     if (c?.currencyId === 'EUR') total += Number(c.amount) || 0;
-    else if (c?.currencyId) warnings.push(`Solde ${c.currencyId} ignoré (conversion non gérée)`);
+    else if (c?.currencyId) warnings.push(i18next.t('errors.tr_solde_devise_ignore', { currency: c.currencyId }));
   }
   return total;
 }
@@ -486,7 +487,7 @@ async function fetchPositions(
     if (categories) {
       const cryptoCount = categories.filter(isCrypto).flatMap((c: any) => collectPositions(c)).length;
       if (cryptoCount > 0) {
-        warnings.push(`${cryptoCount} position(s) crypto ignorée(s) (non gérées par ce connecteur)`);
+        warnings.push(i18next.t('errors.tr_crypto_ignorees', { count: cryptoCount }));
       }
       positions = categories
         .filter((c: any) => !isCrypto(c))
@@ -525,12 +526,12 @@ export async function trFetchPortfolio(): Promise<TrPortfolioResult> {
       logDebugError(TAG, `WS accountPairs → ${e?.message ?? e}`);
     }
     if (pairs.length === 0) {
-      warnings.push('Liste des comptes indisponible : seul le compte-titres principal sera importé');
+      warnings.push(i18next.t('errors.tr_comptes_indisponibles'));
       try {
         const { secAccNo } = await trFetchAccountInfo();
         if (secAccNo) pairs = [{ securitiesAccountNumber: secAccNo, productType: PRODUCT_DEFAULT }];
       } catch (e: any) {
-        warnings.push(`Infos compte indisponibles : ${e?.message ?? e}`);
+        warnings.push(i18next.t('errors.tr_infos_compte_indisponibles', { message: e?.message ?? e }));
       }
     }
 
@@ -541,7 +542,7 @@ export async function trFetchPortfolio(): Promise<TrPortfolioResult> {
       cashEntries = await socket.once<any>({ type: 'cash' });
       logDebug(TAG, 'WS cash', JSON.stringify(cashEntries));
     } catch (e: any) {
-      warnings.push(`Liquidités indisponibles : ${e?.message ?? e}`);
+      warnings.push(i18next.t('errors.tr_liquidites_indisponibles', { message: e?.message ?? e }));
     }
 
     // 3. Une passe par enveloppe.
@@ -579,7 +580,7 @@ export async function trFetchPortfolio(): Promise<TrPortfolioResult> {
         const quantity = positionQuantity(pos);
         if (!isin || quantity === undefined || quantity <= 0) {
           // Champ renommé côté Trade Republic : on journalise le brut pour pouvoir corriger.
-          warnings.push(`Position ignorée (${isin ?? 'ISIN inconnu'}, quantité illisible)`);
+          warnings.push(i18next.t('errors.tr_position_illisible', { isin: isin ?? i18next.t('errors.isin_inconnu') }));
           logDebugError(TAG, 'Position illisible', JSON.stringify(pos));
           continue;
         }
@@ -596,13 +597,13 @@ export async function trFetchPortfolio(): Promise<TrPortfolioResult> {
             name = instrument?.shortName || instrument?.name || isin;
           }
         } catch {
-          warnings.push(`Nom introuvable pour ${isin}`);
+          warnings.push(i18next.t('errors.tr_nom_introuvable', { isin }));
         }
 
         const price = await fetchPrice(socket, isin);
         if (price === undefined) {
           // Valoriser à 0 fausserait le patrimoine en silence : on le signale.
-          warnings.push(`Cours introuvable pour ${name} — ligne valorisée à 0 €`);
+          warnings.push(i18next.t('errors.tr_cours_introuvable_zero', { name }));
           logDebugError(TAG, `Aucun cours pour ${isin} (aucune place de cotation exploitable)`);
         }
 
@@ -630,7 +631,7 @@ export async function trFetchPortfolio(): Promise<TrPortfolioResult> {
     }
 
     if (accounts.length === 0) {
-      warnings.push('Aucun compte Trade Republic récupéré (voir le journal de debug)');
+      warnings.push(i18next.t('errors.tr_aucun_compte'));
     }
     return { accounts, warnings };
   } finally {

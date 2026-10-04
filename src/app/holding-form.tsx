@@ -183,7 +183,7 @@ export default function HoldingForm() {
 
   return (
     <>
-      <Stack.Screen options={{ title: existing ? (isSynced ? t('holdingForm.titre_detail', { defaultValue: 'Détail de la ligne' }) : t('holdingForm.titre_edit')) : t('holdingForm.titre_new') }} />
+      <Stack.Screen options={{ title: existing ? (isSynced ? t('holdingForm.titre_detail') : t('holdingForm.titre_edit')) : t('holdingForm.titre_new') }} />
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Card>
           <Field label={t('forms.nom')} value={name} onChangeText={setName} placeholder={t('holdingForm.nom_placeholder')} editable={!isSynced} />
@@ -239,7 +239,7 @@ export default function HoldingForm() {
         </Card>
         {!isSynced && <Button title={t('common.save')} onPress={save} disabled={!name.trim() || parseNum(quantity) === undefined} />}
         {!isSynced && existing && <Button title={t('holdingForm.supprimer_bouton')} variant="danger" onPress={onDelete} />}
-        <Button title={isSynced ? t('common.retour', { defaultValue: 'Retour' }) : t('common.cancel')} variant="secondary" onPress={() => router.back()} />
+        <Button title={isSynced ? t('common.retour') : t('common.cancel')} variant="secondary" onPress={() => router.back()} />
       </ScrollView>
     </>
   );

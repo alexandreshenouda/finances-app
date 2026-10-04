@@ -747,7 +747,10 @@ export function ProjectionCard({
         <View style={styles.objectivesSection}>
           <Text style={styles.controlLabel}>{t('objectives.title')}</Text>
           {projection.reachedObjectives.map((reach: ObjectiveProjectionReach) => {
-            const name = reach.objective.name || t(`objectiveCategories.${reach.objective.category}`);
+            const name =
+              reach.objective.category === 'epargne_precaution'
+                ? t('objectives.epargne_precaution')
+                : reach.objective.name || t(`objectives.${reach.objective.category}`);
             return (
               <View
                 key={reach.objective.id}

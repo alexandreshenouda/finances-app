@@ -10,6 +10,7 @@
  * Elle est rafraîchie en ligne depuis FRED (série BIS, gratuit, sans clé) ;
  * l'échec (CORS sur Web, hors-ligne…) est silencieux et conserve le seed.
  */
+import i18next from '../i18n';
 import { useStore } from '../store';
 import type { HousePricePoint } from '../types';
 
@@ -100,11 +101,11 @@ export async function refreshHouseIndex(): Promise<{ ok: boolean; error?: string
       const value = parseFloat(raw);
       if (Number.isFinite(value) && value > 0) points.push({ date: date.trim(), value });
     }
-    if (points.length < 2) throw new Error('série vide');
+    if (points.length < 2) throw new Error(i18next.t('errors.serie_vide'));
     points.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
     useStore.getState().setHouseIndex(points);
     return { ok: true };
   } catch (e: any) {
-    return { ok: false, error: `Indice immobilier : ${e?.message ?? e}` };
+    return { ok: false, error: i18next.t('errors.indice_immo', { message: e?.message ?? e }) };
   }
 }

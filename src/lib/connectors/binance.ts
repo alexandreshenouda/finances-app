@@ -6,6 +6,7 @@
 import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
+import i18next from '../i18n';
 import type { ExternalAccount, ExternalHolding, SyncResult } from './types';
 
 const BASE = 'https://api.binance.com';
@@ -77,7 +78,7 @@ export async function syncBinance(creds: BinanceCredentials): Promise<SyncResult
     }
     const p = priceEur(asset, tickers);
     if (p === undefined) {
-      warnings.push(`Binance : pas de cours EUR pour ${asset} (ignoré)`);
+      warnings.push(i18next.t('errors.pas_de_cours_eur', { exchange: 'Binance', asset }));
       continue;
     }
     const value = qty * p;

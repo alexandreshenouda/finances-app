@@ -12,6 +12,7 @@
  * Authentification API : JWT RS256 signé avec la clé privée de l'application.
  */
 import { KJUR } from 'jsrsasign';
+import i18next from '../i18n';
 import type { ExternalAccount, SyncResult } from './types';
 
 const BASE = 'https://api.enablebanking.com';
@@ -119,7 +120,7 @@ export async function startAuth(
       psu_type: 'personal',
     },
   });
-  if (!json?.url) throw new Error("Enable Banking n'a pas renvoyé d'URL d'autorisation");
+  if (!json?.url) throw new Error(i18next.t('errors.eb_pas_url'));
   return json.url as string;
 }
 
@@ -176,7 +177,7 @@ export async function syncEnableBanking(creds: EnableBankingCredentials): Promis
       try {
         const balance = await fetchBalanceEur(creds, acc.uid);
         if (balance === undefined) {
-          warnings.push(`${session.aspspName} / ${acc.name} : solde indisponible`);
+          warnings.push(i18next.t('errors.eb_solde_indisponible', { bank: session.aspspName, account: acc.name }));
           continue;
         }
         accounts.push({
@@ -188,7 +189,7 @@ export async function syncEnableBanking(creds: EnableBankingCredentials): Promis
           holdings: [],
         });
       } catch (e: any) {
-        warnings.push(`${session.aspspName} / ${acc.name} : ${e?.message ?? e}`);
+        warnings.push(i18next.t('errors.prefixe', { source: `${session.aspspName} / ${acc.name}`, message: e?.message ?? e }));
       }
     }
   }

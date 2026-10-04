@@ -19,6 +19,7 @@
  *    pratique), c'est l'infrastructure du gouvernement qui sert son propre outil
  *    phare de visualisation DVF : bien plus susceptible de rester en ligne.
  */
+import i18next from '../i18n';
 import type { LocalEstimate, PropertyGeo, PropertyKind } from '../types';
 
 /** Seuls ces types de bien ont un équivalent DVF direct et un €/m² comparable. */
@@ -47,16 +48,16 @@ export async function geocodeAddress(
   address: string
 ): Promise<{ ok: true; geo: PropertyGeo } | { ok: false; error: string }> {
   const q = address.trim();
-  if (!q) return { ok: false, error: 'Adresse manquante' };
+  if (!q) return { ok: false, error: i18next.t('errors.adresse_manquante') };
   try {
     const data = await fetchJsonOrThrow(
       `${GEOCODE_URL}?q=${encodeURIComponent(q)}&limit=1`,
-      'service de géocodage indisponible pour le moment, réessayez plus tard'
+      i18next.t('errors.geocodage_indisponible')
     );
     const feature = data?.features?.[0];
     const props = feature?.properties;
     const coords = feature?.geometry?.coordinates; // [lon, lat]
-    if (!props?.citycode || !Array.isArray(coords) || coords.length < 2) throw new Error('adresse introuvable');
+    if (!props?.citycode || !Array.isArray(coords) || coords.length < 2) throw new Error(i18next.t('errors.adresse_introuvable'));
     return {
       ok: true,
       geo: {
@@ -68,7 +69,7 @@ export async function geocodeAddress(
       },
     };
   } catch (e: any) {
-    return { ok: false, error: `Géocodage : ${e?.message ?? e}` };
+    return { ok: false, error: i18next.t('errors.geocodage', { message: e?.message ?? e }) };
   }
 }
 
@@ -137,7 +138,7 @@ export async function fetchLocalEstimate(
   kind: PropertyKind
 ): Promise<{ ok: true; estimate: LocalEstimate } | { ok: false; error: string }> {
   const fields = TYPE_FIELDS[kind];
-  if (!fields) return { ok: false, error: 'Ce type de bien n’est pas couvert par les ventes DVF' };
+  if (!fields) return { ok: false, error: i18next.t('errors.dvf_type_non_couvert') };
   try {
     const communeData = await fetchJsonOrThrow(
       `${DVF_API_BASE}/commune/${encodeURIComponent(geo.inseeCode)}`,
@@ -158,13 +159,13 @@ export async function fetchLocalEstimate(
       scope = 'departement';
     }
 
-    if (!result) throw new Error('pas assez de ventes comparables disponibles, même à l’échelle du département');
+    if (!result) throw new Error(i18next.t('errors.dvf_pas_assez'));
 
     return {
       ok: true,
       estimate: { pricePerM2: result.pricePerM2, sampleSize: result.sampleSize, scope, computedAt: new Date().toISOString() },
     };
   } catch (e: any) {
-    return { ok: false, error: `Estimation locale : ${e?.message ?? e}` };
+    return { ok: false, error: i18next.t('errors.estimation_locale', { message: e?.message ?? e }) };
   }
 }

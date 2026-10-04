@@ -120,7 +120,7 @@ export default function AccountForm() {
             label={t('accountForm.date_ouverture')}
             value={openingDate}
             onChangeText={setOpeningDate}
-            placeholder="YYYY-MM-DD (ex : 2021-04-15)"
+            placeholder={t('accountForm.date_ouverture_placeholder')}
             hint={!dateValid ? t('accountForm.date_ouverture_erreur') : t('accountForm.date_ouverture_hint')}
           />
           {type === 'immobilier' && (
