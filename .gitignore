@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+# Couverture Vitest (npm run test:coverage)
+coverage/
+
 # Expo
 .expo/
 dist/

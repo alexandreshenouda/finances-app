@@ -1,5 +1,7 @@
 # Lance la suite de tests unitaires Vitest (`npm test`, cf. `test/`) à l'ouverture ou
 # à la mise à jour d'une PR, et après chaque merge / push sur `main`.
+# Sur `main`, publie aussi les badges « tests » et « couverture » du README sur la
+# branche orpheline `badges` (JSON endpoint lus par shields.io, aucun service tiers).
 name: Tests unitaires
 
 on:
@@ -32,5 +34,55 @@ jobs:
       - name: Installer les dépendances
         run: npm ci
 
-      - name: Tests unitaires (Vitest)
-        run: npm test
+      - name: Tests unitaires + couverture (Vitest)
+        run: >-
+          npm run test:coverage --
+          --reporter=default --reporter=json --outputFile.json=coverage/test-results.json
+
+      # Même si des tests échouent : le badge doit afficher le taux réel, pas le dernier vert.
+      - name: Conserver les rapports pour les badges
+        if: always() && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-reports
+          path: |
+            coverage/test-results.json
+            coverage/coverage-summary.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  # Job séparé : seul lui a le droit d'écrire, et il n'exécute pas le code testé.
+  badges:
+    needs: vitest
+    if: always() && github.event_name == 'push' && needs.vitest.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: vitest-reports
+          path: reports
+
+      - name: Générer les badges
+        run: node .github/scripts/make-badges.mjs reports "$RUNNER_TEMP/badges"
+
+      # Un seul commit, force-pushé : la branche ne contient que les JSON courants.
+      - name: Publier sur la branche `badges`
+        working-directory: ${{ runner.temp }}/badges
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init -q -b badges
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests.json coverage.json
+          git commit -q -m "badges: ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" badges

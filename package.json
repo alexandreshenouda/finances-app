@@ -46,6 +46,7 @@
   "devDependencies": {
     "@types/jsrsasign": "^10.5.15",
     "@types/react": "~19.2.2",
+    "@vitest/coverage-v8": "^5.0.1",
     "electron": "^43.1.0",
     "electron-builder": "^26.15.3",
     "typescript": "~6.0.3",
@@ -59,6 +60,7 @@
     "lint": "expo lint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "build:web": "expo export --platform web",
     "electron": "electron electron/main.js",
     "windows:dev": "expo export --platform web && electron electron/main.js",
