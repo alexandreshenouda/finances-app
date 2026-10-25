@@ -5,7 +5,7 @@ import { C } from '@/constants/theme';
 import i18next from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { Tabs } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function TabsLayout() {
   const language = useStore((s) => s.language);
@@ -13,9 +13,15 @@ export default function TabsLayout() {
   const showImmobilierTab = useStore((s) => s.showImmobilierTab);
   const showEmpruntsTab = useStore((s) => s.showEmpruntsTab);
   const showDiversificationTab = useStore((s) => s.showDiversificationTab);
+  const showAiTab = useStore((s) => s.showAiTab);
   const [refreshKey, setRefreshKey] = useState(0);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     setRefreshKey((x) => x + 1);
   }, [language, theme]);
 
@@ -77,6 +83,15 @@ export default function TabsLayout() {
           title: t('tabs.diversification'),
           tabBarLabel: t('tabs.diversification'),
           tabBarIcon: ({ color, focused }) => <TabIcon name="diversification" color={color} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ai"
+        options={{
+          href: showAiTab ? undefined : null,
+          title: t('tabs.ai'),
+          tabBarLabel: t('tabs.ai'),
+          tabBarIcon: ({ color, focused }) => <TabIcon name="ai" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen

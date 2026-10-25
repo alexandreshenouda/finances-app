@@ -40,6 +40,7 @@ describe('réglages simples', () => {
     S().setShowImmobilierTab(false);
     S().setShowEmpruntsTab(false);
     S().setShowDiversificationTab(false);
+    S().setShowAiTab(false);
     S().setRiskProfile('dynamique');
     S().setDefaultPeriod('MAX');
     S().setChartMode('percent');
@@ -49,10 +50,44 @@ describe('réglages simples', () => {
       showImmobilierTab: false,
       showEmpruntsTab: false,
       showDiversificationTab: false,
+      showAiTab: false,
       riskProfile: 'dynamique',
       defaultPeriod: 'MAX',
       chartMode: 'percent',
     });
+  });
+
+  it('gère la watchlist, le modèle, le pré-prompt et le cache des rapports IA', () => {
+    expect(S().aiWatchlist.some((w) => w.symbol === 'NVDA')).toBe(true);
+    S().toggleAiWatchlist({ symbol: 'NVDA', name: 'NVIDIA Corp.', isin: 'US67066G1040', type: 'EQUITY' });
+    expect(S().aiWatchlist.some((w) => w.symbol === 'NVDA')).toBe(false);
+    S().toggleAiWatchlist({ symbol: 'NVDA', name: 'NVIDIA Corp.', isin: 'US67066G1040', type: 'EQUITY' });
+    expect(S().aiWatchlist.some((w) => w.symbol === 'NVDA')).toBe(true);
+
+    S().setAiLastSymbol('MC.PA', 'FR0000121014');
+    expect(S().aiLastSymbol).toBe('MC.PA');
+    expect(S().aiLastIsin).toBe('FR0000121014');
+    S().setAiLastSymbol('AIR.PA');
+    expect(S().aiLastIsin).toBeNull();
+
+    S().setAiModel('gemini-3.5-flash');
+    expect(S().aiModel).toBe('gemini-3.5-flash');
+
+    S().setAiCustomPreprompt('Prompt custom');
+    expect(S().aiCustomPreprompt).toBe('Prompt custom');
+    S().setAiCustomPreprompt('   ');
+    expect(S().aiCustomPreprompt).toBeUndefined();
+
+    const fakeReport = {
+      symbol: 'MC.PA',
+      model: 'gemini-3.6-flash',
+      generatedAt: 1700000000000,
+      structured: null,
+      markdownReport: 'Analyse complète',
+      groundingSources: [],
+    };
+    S().setAiReport('MC.PA', fakeReport);
+    expect(S().aiReports['MC.PA']).toEqual(fakeReport);
   });
 
   it('fusionne partiellement les paramètres de projection', () => {

@@ -3,7 +3,7 @@ import { Button, Card, SectionTitle } from '@/components/ui';
 import { C, useStyles } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
 import { classifyHoldings } from '@/lib/prices/classification';
-import { connectionSecretKey, deleteSecret } from '@/lib/secure';
+import { connectionSecretKey, deleteSecret, GEMINI_SECRET_KEY } from '@/lib/secure';
 import { useStore } from '@/lib/store';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -74,10 +74,11 @@ export default function Settings() {
       t('settings.effacer_titre'),
       t('settings.effacer_confirm'),
       async () => {
-        // Purge aussi les identifiants chiffrés des connexions.
+        // Purge aussi les identifiants chiffrés des connexions et la clé API Gemini.
         for (const c of connections) {
           await deleteSecret(connectionSecretKey(c.id));
         }
+        await deleteSecret(GEMINI_SECRET_KEY);
         resetAll();
         notify(t('settings.effacees_titre'), t('settings.effacees_texte'));
       }
@@ -91,6 +92,11 @@ export default function Settings() {
           label={t('settings.connexions')}
           sub={t('settings.connexions_sub')}
           onPress={() => router.push('/connections')}
+        />
+        <MenuRow
+          label={t('settings.ai_settings')}
+          sub={t('settings.ai_settings_sub')}
+          onPress={() => router.push('/ai-settings')}
         />
         <MenuRow
           label={t('settings.sauvegarde')}

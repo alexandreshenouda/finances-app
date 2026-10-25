@@ -1,13 +1,14 @@
-/** Détail d'une ligne de portefeuille : secteurs, géographie, top holdings, TER. */
-import { Card, ProgressBar, SectionTitle } from '@/components/ui';
+/** Détail d'une ligne de portefeuille : secteurs, géographie, top holdings, TER, et analyse IA InvestCounsel. */
+import { StockCounselView } from '@/components/StockCounselView';
+import { Button, Card, ProgressBar, SectionTitle } from '@/components/ui';
 import { C, useStyles } from '@/constants/theme';
 import { formatDate, formatEur, formatMoney, formatPct } from '@/lib/format';
 import { holdingCurrency, holdingPerfPct, holdingValueEur } from '@/lib/portfolio';
 import { useStore } from '@/lib/store';
 import { COUNTRY_LABELS, SECTOR_LABELS } from '@/lib/types';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 function makeStyles() {
   return StyleSheet.create({
@@ -25,6 +26,8 @@ function makeStyles() {
     },
     sourceBadgeText: { color: C.textDim, fontSize: 12, fontWeight: '600' },
     classifiedAt: { color: C.textFaint, fontSize: 12, marginBottom: 2 },
+    actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+    actionBtn: { flex: 1, minWidth: 150, marginVertical: 0 },
     // valeurs
     valueRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
     valueRowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
@@ -47,6 +50,7 @@ function makeStyles() {
     // pas de données
     noData: { color: C.textFaint, fontSize: 14, textAlign: 'center', paddingVertical: 24 },
     footnote: { color: C.textFaint, fontSize: 12, lineHeight: 18, marginTop: 4 },
+    aiSectionWrap: { marginTop: 8, marginBottom: 8 },
   });
 }
 
@@ -62,12 +66,37 @@ const SOURCE_ICONS: Record<string, string> = {
 export default function HoldingDetail() {
   const styles = useStyles(makeStyles);
   const { t } = useTranslation();
+  const router = useRouter();
   const { holdingId } = useLocalSearchParams<{ holdingId: string }>();
 
   const holding = useStore((s) => s.holdings.find((h) => h.id === holdingId));
   const account = useStore((s) => s.accounts.find((a) => a.id === holding?.accountId));
   const rates = useStore((s) => s.fxRates);
+  const setAiLastSymbol = useStore((s) => s.setAiLastSymbol);
+  const showAiTab = useStore((s) => s.showAiTab);
+  const setShowAiTab = useStore((s) => s.setShowAiTab);
   useStore((s) => s.privacyMode); // re-render pour masquage des montants
+
+  const openInAiTab = (
+    targetSymbol: string,
+    targetIsin?: string | null,
+    targetName?: string,
+    targetHoldingId?: string
+  ) => {
+    if (!showAiTab) {
+      setShowAiTab(true);
+    }
+    setAiLastSymbol(targetSymbol, targetIsin ?? null);
+    router.navigate({
+      pathname: '/ai',
+      params: {
+        symbol: targetSymbol,
+        isin: targetIsin ?? '',
+        name: targetName ?? targetSymbol,
+        ...(targetHoldingId ? { holdingId: targetHoldingId } : {}),
+      },
+    });
+  };
 
   if (!holding) {
     return (
@@ -86,18 +115,22 @@ export default function HoldingDetail() {
   const hCur = holdingCurrency(holding, account);
   const valueEur = holdingValueEur(holding, account, rates);
   const perf = holdingPerfPct(holding);
+  const isSynced = !!account?.connectionId;
   const sourceKey = holding.classificationSource ? (SOURCE_ICONS[holding.classificationSource] ?? holding.classificationSource) : null;
   const sourceName = sourceKey?.startsWith('holdingDetail.') ? t(sourceKey) : sourceKey;
 
   return (
     <>
-      <Stack.Screen options={{ title: t('holdingDetail.titre') }} />
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <Stack.Screen options={{ title: holding.name || t('holdingDetail.titre') }} />
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
 
         {/* ── En-tête ── */}
         <Card>
           <Text style={styles.name}>{holding.name}</Text>
           {holding.isin ? <Text style={styles.isin}>{holding.isin}</Text> : null}
+          {holding.symbol && holding.symbol !== holding.isin ? (
+            <Text style={styles.isin}>{holding.symbol}</Text>
+          ) : null}
           {sourceName && (
             <View style={styles.sourceBadge}>
               <Text style={styles.sourceBadgeText}>
@@ -110,6 +143,33 @@ export default function HoldingDetail() {
               {t('holdingDetail.classe_le', { date: formatDate(holding.classifiedAt) })}
             </Text>
           )}
+          <View style={styles.actionsRow}>
+            <Button
+              title={t('holdingDetail.ouvrir_onglet_ia')}
+              onPress={() =>
+                openInAiTab(
+                  holding.symbol ?? holding.isin ?? holding.name,
+                  holding.isin,
+                  holding.name,
+                  holding.id
+                )
+              }
+              style={styles.actionBtn}
+            />
+            {!isSynced && account && (
+              <Button
+                title={t('holdingDetail.modifier_ligne')}
+                variant="secondary"
+                onPress={() =>
+                  router.push({
+                    pathname: '/holding-form',
+                    params: { accountId: account.id, holdingId: holding.id },
+                  })
+                }
+                style={styles.actionBtn}
+              />
+            )}
+          </View>
         </Card>
 
         {/* ── Données de marché ── */}
@@ -155,6 +215,18 @@ export default function HoldingDetail() {
             </View>
           )}
         </Card>
+
+        {/* ── Analyse IA & Marché (InvestCounsel) ── */}
+        <SectionTitle>{t('holdingDetail.analyse_ia_titre')}</SectionTitle>
+        <View style={styles.aiSectionWrap}>
+          <StockCounselView
+            embedded
+            holdingId={holding.id}
+            initialSymbol={holding.symbol}
+            initialIsin={holding.isin}
+            initialName={holding.name}
+          />
+        </View>
 
         {/* ── Répartition sectorielle ── */}
         {holding.sectorWeights && holding.sectorWeights.length > 0 && (
@@ -211,23 +283,20 @@ export default function HoldingDetail() {
             <SectionTitle>{t('holdingDetail.top_positions')}</SectionTitle>
             <Card style={{ paddingVertical: 4 }}>
               {holding.topHoldings.map((th, i) => (
-                <View key={i} style={[styles.topRow, i > 0 && styles.topBorder]}>
+                <Pressable
+                  key={i}
+                  onPress={() => openInAiTab(th.isin || th.name, th.isin, th.name)}
+                  style={[styles.topRow, i > 0 && styles.topBorder]}
+                >
                   <Text style={styles.topName}>{th.name}</Text>
                   <View style={styles.topMeta}>
                     <Text style={styles.topIsin}>{th.isin ?? '—'}</Text>
                     <Text style={styles.topPct}>{formatPct(th.weight * 100)}</Text>
                   </View>
-                </View>
+                </Pressable>
               ))}
             </Card>
           </>
-        )}
-
-        {/* ── Aucune classification ── */}
-        {!hasClassification && (
-          <Card>
-            <Text style={styles.noData}>{t('holdingDetail.aucune_donnee')}</Text>
-          </Card>
         )}
 
         {/* ── Note de bas de page ── */}

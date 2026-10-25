@@ -4,7 +4,7 @@ import type { ColorValue } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { C } from '@/constants/theme';
 
-export type TabName = 'synthese' | 'comptes' | 'immobilier' | 'emprunts' | 'diversification' | 'parametres';
+export type TabName = 'synthese' | 'comptes' | 'immobilier' | 'emprunts' | 'diversification' | 'ai' | 'parametres';
 
 export function TabIcon({
   name,
@@ -49,6 +49,13 @@ export function TabIcon({
           <Path d="M12 12 V3.5" {...common} />
           <Path d="M12 12 L18.5 15.5" {...common} />
           <Path d="M12 12 L6 16" {...common} />
+          <Circle cx={12} cy={12} r={1.6} fill={focused ? C.positive : color} />
+        </>
+      )}
+      {name === 'ai' && (
+        <>
+          <Path d="M12 3.5 L14.2 9.8 L20.5 12 L14.2 14.2 L12 20.5 L9.8 14.2 L3.5 12 L9.8 9.8 Z" {...common} />
+          <Path d="M19 4 V7 M17.5 5.5 H20.5" {...common} />
           <Circle cx={12} cy={12} r={1.6} fill={focused ? C.positive : color} />
         </>
       )}

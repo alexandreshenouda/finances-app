@@ -31,6 +31,8 @@ export default function DisplaySettings() {
   const setShowEmpruntsTab = useStore((s) => s.setShowEmpruntsTab);
   const showDiversificationTab = useStore((s) => s.showDiversificationTab);
   const setShowDiversificationTab = useStore((s) => s.setShowDiversificationTab);
+  const showAiTab = useStore((s) => s.showAiTab);
+  const setShowAiTab = useStore((s) => s.setShowAiTab);
   const theme = useStore((s) => s.theme);
   const setThemePref = useStore((s) => s.setThemePref);
 
@@ -87,6 +89,9 @@ export default function DisplaySettings() {
             value={showDiversificationTab}
             onChange={setShowDiversificationTab}
           />
+        </View>
+        <View style={styles.checkboxSpacer}>
+          <Checkbox label={t('tabs.ai')} value={showAiTab} onChange={setShowAiTab} />
         </View>
       </Card>
     </ScrollView>

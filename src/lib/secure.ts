@@ -36,3 +36,6 @@ export async function deleteSecret(key: string): Promise<void> {
 export function connectionSecretKey(connectionId: string): string {
   return `conn.${connectionId}`;
 }
+
+/** Clé de stockage sécurisé de la clé API Google Gemini. */
+export const GEMINI_SECRET_KEY = 'gemini.apiKey';

@@ -1,14 +1,15 @@
-/** Connexions externes (Binance, Kraken, Enable Banking, Trade Republic). */
+/** Connexions externes (Binance, Kraken, Enable Banking, Trade Republic, Google Gemini IA). */
 import { Button, Card, Empty, SectionTitle } from '@/components/ui';
 import { C, useStyles } from '@/constants/theme';
+import { deleteGeminiApiKey, getGeminiApiKey } from '@/lib/aiCounsel';
 import { confirmAction, notify } from '@/lib/confirm';
 import { syncConnection } from '@/lib/connectors';
 import { formatDate } from '@/lib/format';
 import { connectionSecretKey, deleteSecret } from '@/lib/secure';
 import { useStore } from '@/lib/store';
 import { PROVIDER_LABELS } from '@/lib/types';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -33,6 +34,23 @@ export default function Connections() {
   const connections = useStore((s) => s.connections);
   const deleteConnection = useStore((s) => s.deleteConnection);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [hasGeminiKey, setHasGeminiKey] = useState(false);
+
+  const refreshGeminiKey = useCallback(() => {
+    getGeminiApiKey().then((k) => setHasGeminiKey(Boolean(k)));
+  }, []);
+
+  useFocusEffect(refreshGeminiKey);
+
+  const onDeleteGemini = () =>
+    confirmAction(
+      t('connections.supprimer_titre'),
+      t('connections.gemini_supprimer_confirm'),
+      async () => {
+        await deleteGeminiApiKey();
+        setHasGeminiKey(false);
+      }
+    );
 
   const onSync = async (id: string) => {
     setSyncing(id);
@@ -61,7 +79,27 @@ export default function Connections() {
       )}
 
       <SectionTitle>{t('connections.actives')}</SectionTitle>
-      {connections.length === 0 && <Empty text={t('connections.aucune')} />}
+      {connections.length === 0 && !hasGeminiKey && <Empty text={t('connections.aucune')} />}
+      {hasGeminiKey && (
+        <Card>
+          <Text style={styles.connLabel}>{t('connections.gemini_label')}</Text>
+          <Text style={styles.connSub}>{t('connections.gemini_actif')}</Text>
+          <View style={styles.connButtons}>
+            <Button
+              title={t('common.edit')}
+              variant="secondary"
+              onPress={() => router.push('/ai-settings')}
+              style={{ flex: 1 }}
+            />
+            <Button
+              title={t('common.delete')}
+              variant="danger"
+              onPress={onDeleteGemini}
+              style={{ flex: 1 }}
+            />
+          </View>
+        </Card>
+      )}
       {connections.map((c) => (
         <Card key={c.id}>
           <Text style={styles.connLabel}>{c.label}</Text>
@@ -92,6 +130,7 @@ export default function Connections() {
         <Button title={t('connections.kraken_bouton')} variant="secondary" onPress={() => router.push({ pathname: '/connection-form', params: { provider: 'kraken' } })} />
         <Button title={t('connections.tr_bouton')} variant="secondary" onPress={() => router.push('/tr-connect')} />
         <Button title={t('connections.eb_bouton')} variant="secondary" onPress={() => router.push('/eb-connect')} />
+        <Button title={t('connections.gemini_bouton')} variant="secondary" onPress={() => router.push('/ai-settings')} />
         <Text style={styles.addNote}>{t('connections.ajouter_note')}</Text>
       </Card>
     </ScrollView>

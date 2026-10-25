@@ -112,6 +112,13 @@ pour le détail des contraintes.
   (ventilation multi-pays look-through, ventilation sectorielle, top 10 des positions pondérées,
   frais de gestion TER) et des actions individuelles (pays, secteur) par simple saisie de l'ISIN.
 
+**Analyse de titres & Conseiller IA (InvestCounsel)**
+- **Onglet IA dédié & accès direct depuis vos lignes détenues** : cliquez sur n'importe quelle ligne détenue dans un compte pour ouvrir sa fiche complète (`holding-detail`) intégrant l'analyse **InvestCounsel AI**, ou ouvrez directement l'onglet **IA** pour rechercher et analyser tout ticker ou code ISIN mondial (actions, ETF, fonds) :
+  - **Recherche universelle Ticker & ISIN** : résolution automatique des codes ISIN (ex. `FR0000121014`, `IE00B4L5Y983`), watchlist personnalisable et accès en un clic à toutes les lignes détenues en portefeuille ;
+  - **Graphique interactif multi-échelle & Cône de projection 12M** : historique `1D`, `1W`, `1M`, `1Y`, `5Y` avec moyennes mobiles (`SMA 20`, `SMA 50`, `SMA 200`, `EMA 20`) et cône statistique log-normal à 12 mois (scénarios *Bear*, *Base*, *Bull* + cibles Gemini) ;
+  - **Score algorithmique 7 facteurs (0–100) & Télémétrie technique** : tendance séculaire (`SMA 200`), alignement `SMA 50/200` (*Golden/Death Cross*), momentum court terme (`EMA 20`), `RSI(14)`, impulsion `MACD(12,26,9)`, positionnement dans le canal 52 semaines, tonalité des actualités, volatilité annualisée, *max drawdown*, `ATR(14)`, ratio de Sharpe et pivots `S1/S2/R1/R2` ;
+  - **Comité d'investissement IA Gemini** : génération d'une revue institutionnelle complète (verdict, score de conviction, valeur intrinsèque *Low/Fair/High*, multiples de valorisation actuels vs moyenne historique 5 ans, radar 6 facteurs, risques géopolitiques & chaînes d'approvisionnement, catalyseurs, plan de trading entrée/stop-loss/take-profit et rapport Markdown en 8 sections). La clé API Gemini est configurée depuis **Paramètres → Intelligence Artificielle (Gemini)** (ou **Paramètres → Connexions**) et stockée chiffrée sur l'appareil dans `expo-secure-store` (`src/lib/secure.ts`, au même titre que les clés Binance, Kraken et Trade Republic).
+
 **Diversification & Conseils patrimoniaux**
 - **Suggestions interactives enrichies** : cartes au format triptyque conforme à la réglementation AMF (non-CIF) comprenant :
   - **Constat factuel & chiffré** personnalisé sur vos données ;
@@ -162,7 +169,7 @@ pour le détail des contraintes.
   instantanément tous les montants (les pourcentages de répartition et de performance restent
   visibles).
 - **Personnalisation de l'affichage** : choix de la période par défaut des graphiques et de
-  la variation, visibilité configurable des onglets (Immobilier, Emprunts, Diversification).
+  la variation, visibilité configurable des onglets (Immobilier, Emprunts, Diversification, IA).
 - **Multi-devises** : comptes et lignes en EUR (défaut), USD ou CHF — saisie dans la devise
   d'origine, affichage et courbes convertis en € avec les taux BCE
   ([frankfurter.dev](https://frankfurter.dev), rafraîchis à chaque mise à jour, derniers taux
@@ -248,6 +255,7 @@ vivent dans `test/`, un par module de `src/lib` :
 | `test/connectors.test.ts` | orchestrateur de synchro (identifiants, comptes liés, lignes, snapshot) |
 | `test/binance.test.ts`, `test/kraken.test.ts`, `test/enablebanking.test.ts` | connecteurs : signatures HMAC / JWT RS256 revérifiées avec `node:crypto`, valorisation EUR, erreurs |
 | `test/traderepublic.test.ts` | login v2 à approbation push, protocole WebSocket (faux serveur), enveloppes CTO/PEA/Private Equity |
+| `test/aiCounsel.test.ts` | recherche Yahoo & résolution ISIN, indicateurs techniques (SMA/EMA/RSI/MACD/volatilité/pivots/cône 12M), score 7 facteurs et comité d'investissement Gemini (REST + fallback de modèles) |
 | `test/debugLog.test.ts`, `test/confirm.test.ts`, `test/secure.test.ts`, `test/i18n.test.ts` | journal de debug, dialogues thématisés, stockage des secrets (natif / web), détection de langue, parité des clés fr/en/de et messages de `src/lib` traduits |
 
 Les valeurs de référence des crédits sont recalculées dans les tests par la **formule fermée
@@ -406,24 +414,41 @@ signingConfig dans le Gradle généré, et le workflow vérifie ensuite avec
 4. Choisissez votre banque, validez le consentement DSP2 chez elle (valable ~90 jours),
    les soldes sont importés.
 
+### Google Gemini (InvestCounsel IA)
+
+1. Créez une clé API Google Gemini personnelle (par exemple sur [Google AI Studio](https://aistudio.google.com/apikey)).
+2. Ouvrez **Paramètres → Intelligence Artificielle (Gemini)** (ou **Paramètres → Connexions → Google Gemini**) et enregistrez votre clé API.
+3. Comme pour Binance, Kraken et Trade Republic, la clé est chiffrée dans le stockage sécurisé de l'appareil (`expo-secure-store`, Keychain iOS / Keystore Android) sous la clé `patrimoine.secret.gemini.apiKey` et n'est **jamais** incluse dans les exports ou sauvegardes JSON.
+
+## Confidentialité & Données transmises à l'IA (Google Gemini)
+
+- **Aucune donnée personnelle ni patrimoniale n'est envoyée à l'IA** :
+  - Ni vos comptes (`Account`), ni vos établissements bancaires, ni vos soldes, ni votre patrimoine total ;
+  - Ni les quantités détenues, ni les montants investis, ni votre prix de revient unitaire (PRU) ou vos plus/moins-values latentes (le bandeau *« Position en portefeuille »* est calculé **100 % localement** sur l'appareil et n'est jamais injecté dans le prompt) ;
+  - Ni vos biens immobiliers, ni vos crédits, ni vos objectifs d'épargne, ni vos revenus ou dépenses.
+- **Ce qui est envoyé à l'API Google Gemini** (uniquement lorsque vous cliquez manuellement sur *« Lancer l'analyse Gemini »*, en appel direct depuis votre appareil vers `generativelanguage.googleapis.com` avec votre clé API) :
+  1. **Les données publiques de marché du seul titre analysé** issues de Yahoo Finance : symbole ticker, nom de l'instrument, type (`EQUITY` / `ETF`), code ISIN, place de cotation, devise, secteur/industrie, cours spot, plages 1J et 52 semaines, performances publiques (`1J`, `1S`, `1M`, `3M`, `6M`, `1A`, `5A`), dividende sur 12 mois glissants, indicateurs techniques calculés sur l'historique public des cours (`SMA 20/50/200`, `EMA 20`, `RSI 14`, `MACD`, volatilité annualisée, *max drawdown*, `ATR 14`, ratio de Sharpe estimé, pivots `S1/S2/R1/R2`, score algorithmique 7 facteurs, cône statistique 3M/12M) et jusqu'à 8 titres publics d'actualités de marché (`titre`, `éditeur`, `date`).
+  2. **Les paramètres génériques d'analyse** choisis sur l'écran : horizon cible (`SHORT_TERM` / `MEDIUM_TERM` / `LONG_TERM`), profil de risque générique (`CONSERVATIVE` / `BALANCED` / `AGGRESSIVE`), langue d'affichage (`fr` / `en` / `de`), le pré-prompt système et, uniquement si vous en saisissez une, votre **question ou note libre** (champ optionnel — veillez à n'y saisir aucune information personnelle si vous ne souhaitez pas la transmettre à Google).
+
 ## Architecture
 
 ```
 src/
   app/                 écrans (expo-router) : onglets Synthèse / Comptes / Immobilier /
-                       Emprunts / Diversification / Paramètres (connexions, sauvegarde,
+                       Emprunts / Diversification / IA / Paramètres (connexions, sauvegarde,
                        affichage, entretien de l'historique, reclassification globale des lignes),
                        détail de compte et de bien, formulaires (compte, ligne, bien, prêt),
                        flux Enable Banking.
-                       `holding-detail` : modal de détail d'une ligne classifiée — répartition
-                       sectorielle, géographique, top positions, TER, source de classification
-                       (JustETF / Yahoo / CoinGecko / référence locale). Accessible via le bouton
-                       « Voir » sur les lignes qui ont des données de classification.
-  components/          LineChart (SVG), AllocationBar, PieChart, ProgressBar, ThemedDialog, primitives UI
+                       `holding-detail` : écran de détail d'une ligne détenue — données de marché,
+                       analyse complète InvestCounsel AI intégrée (`StockCounselView`), répartition
+                       sectorielle, géographique, top positions cliquables, TER, source de
+                       classification (JustETF / Yahoo / CoinGecko / référence locale).
+  components/          LineChart (SVG), StockCounselView, AllocationBar, PieChart, ProgressBar, ThemedDialog, primitives UI
   lib/
     types.ts           modèle : Account, Holding, Snapshot, Connection, Property, Loan
     store.ts           store zustand persisté (AsyncStorage)
     secure.ts          secrets (expo-secure-store, repli localStorage sur web)
+    aiCounsel.ts       moteur InvestCounsel AI : données Yahoo multi-échelle, indicateurs techniques, cône de projection et API Gemini
     portfolio.ts       valorisation comptes + construction des séries temporelles
     realestate.ts      estimation des biens, amortissement des crédits (constant/paliers)
     prices/            Yahoo Finance, CoinGecko, JustETF scraper (ETFs & actions) & indice INSEE
@@ -466,8 +491,9 @@ est dérivée sans stocker de snapshots. Aucun serveur tiers autre que les API o
 
 </details>
 
-## Avertissement
+## Avertissement légal & réglementaire (Non-CIF)
 
-Outil de suivi personnel : les valorisations proviennent d'API publiques non garanties et
-peuvent être approximatives (notamment la conversion EUR). Ce n'est pas un outil de conseil
-en investissement.
+Outil de suivi personnel et d'information à vocation strictement pédagogique :
+- **Absence de conseil en investissement (Non-CIF)** : ni cette application, ni ses diagnostics de diversification ou de fiscalité, ni ses simulations de projection, ni le module d'analyse technique et d'intelligence artificielle **InvestCounsel IA (Google Gemini)** ne constituent un conseil en investissement financier (CIF), une recommandation personnalisée d'achat ou de vente, ou une sollicitation au sens de la réglementation financière (AMF / MiFID II).
+- **Limites des données et de l'IA générative** : les valorisations et cours proviennent d'API publiques non garanties et peuvent être approximatifs ou différés. Les analyses et cibles de cours produites par des modèles statistiques ou par l'intelligence artificielle générative (Google Gemini) sont expérimentales et peuvent comporter des erreurs, approximations, biais ou hallucinations.
+- **Risque de perte en capital** : les performances passées et les simulations ne préjugent pas des performances futures. Tout investissement sur les marchés financiers ou immobiliers comporte un risque de perte en capital — rapprochez-vous d'un conseiller financier agréé avant toute décision d'investissement.

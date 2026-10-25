@@ -22,7 +22,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 
 function makeStyles() {
   return StyleSheet.create({
@@ -212,15 +212,11 @@ export default function AccountDetail() {
           {holdings.map((h, i) => {
             const perf = holdingPerfPct(h);
             const hCur = holdingCurrency(h, account);
-            const hasClassification =
-              (h.sectorWeights && h.sectorWeights.length > 0) ||
-              (h.countryWeights && h.countryWeights.length > 0) ||
-              !!h.country;
             return (
               <Pressable
                 key={h.id}
                 onPress={() =>
-                  router.push({ pathname: '/holding-form', params: { accountId: account.id, holdingId: h.id } })
+                  router.push({ pathname: '/holding-detail' as any, params: { holdingId: h.id } })
                 }
                 style={[styles.holdingRow, i < holdings.length - 1 && styles.rowBorder]}
               >
@@ -234,24 +230,56 @@ export default function AccountDetail() {
                 <View style={{ alignItems: 'flex-end' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <Text style={styles.holdingValue}>{formatEur(holdingValueEur(h, account, rates))}</Text>
-                    {hasClassification && (
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation?.();
+                        router.push({
+                          pathname: '/(tabs)/ai' as any,
+                          params: {
+                            symbol: h.symbol ?? h.isin ?? h.name,
+                            isin: h.isin ?? '',
+                            name: h.name,
+                            holdingId: h.id,
+                          },
+                        });
+                      }}
+                      hitSlop={8}
+                      style={({ pressed }) => [styles.eyeBtn, { opacity: pressed ? 0.5 : 1 }]}
+                    >
+                      <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                        <Path
+                          d="M12 3L14.2 8.5L20 10.7L14.2 12.9L12 18.4L9.8 12.9L4 10.7L9.8 8.5L12 3Z"
+                          stroke={C.accent}
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <Path
+                          d="M19 16L19.8 18.2L22 19L19.8 19.8L19 22L18.2 19.8L16 19L18.2 18.2L19 16Z"
+                          stroke={C.accent}
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </Svg>
+                    </Pressable>
+                    {!isSynced && (
                       <Pressable
                         onPress={(e) => {
                           e.stopPropagation?.();
-                          router.push({ pathname: '/holding-detail' as any, params: { holdingId: h.id } });
+                          router.push({ pathname: '/holding-form', params: { accountId: account.id, holdingId: h.id } });
                         }}
                         hitSlop={8}
                         style={({ pressed }) => [styles.eyeBtn, { opacity: pressed ? 0.5 : 1 }]}
                       >
                         <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
                           <Path
-                            d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
-                            stroke={C.accent}
+                            d="M12 20H21M16.5 3.5A2.121 2.121 0 0 1 19.5 6.5L7 19L3 20L4 16L16.5 3.5Z"
+                            stroke={C.textDim}
                             strokeWidth={2}
                             strokeLinecap="round"
                             strokeLinejoin="round"
                           />
-                          <Circle cx={12} cy={12} r={3} stroke={C.accent} strokeWidth={2} />
                         </Svg>
                       </Pressable>
                     )}

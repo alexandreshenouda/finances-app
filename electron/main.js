@@ -37,11 +37,49 @@ const MIME = {
   '.map': 'application/json; charset=utf-8',
 };
 
-/** Sert dist/ avec repli SPA sur index.html pour les routes clientes. */
+const ALLOWED_YAHOO_HOSTS = new Set([
+  'query1.finance.yahoo.com',
+  'query2.finance.yahoo.com',
+]);
+
+/** Sert dist/ avec repli SPA sur index.html pour les routes clientes, et relaie /__yahoo. */
 function createServer() {
-  return http.createServer((req, res) => {
+  return http.createServer(async (req, res) => {
     try {
-      const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
+      const rawUrl = req.url || '/';
+      if (rawUrl.startsWith('/__yahoo')) {
+        const parsed = new URL(rawUrl, `http://127.0.0.1:${PORT}`);
+        const target = parsed.searchParams.get('url') || '';
+        let targetUrl;
+        try {
+          targetUrl = new URL(target);
+        } catch {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Invalid target URL' }));
+          return;
+        }
+        if (!ALLOWED_YAHOO_HOSTS.has(targetUrl.hostname)) {
+          res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ error: 'Host not allowed' }));
+          return;
+        }
+        const upstream = await fetch(targetUrl.toString(), {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            Accept: 'application/json',
+          },
+        });
+        const body = await upstream.text();
+        res.writeHead(upstream.status, {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json; charset=utf-8',
+        });
+        res.end(body);
+        return;
+      }
+
+      const urlPath = decodeURIComponent(rawUrl.split('?')[0]);
       let filePath = path.normalize(path.join(DIST, urlPath));
       // Empêche toute remontée hors de dist/.
       if (!filePath.startsWith(DIST)) {

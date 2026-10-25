@@ -4,6 +4,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { setLocale, setMaskedMoney, todayKey, uid } from './format';
+import {
+  DEFAULT_WATCHLIST,
+  normalizeGeminiModel,
+  type GeminiCounselReport,
+  type WatchlistEntry,
+} from './aiCounsel';
 import i18next, { detectDeviceLanguage, type Language } from './i18n';
 import {
   DEFAULT_FX_RATES,
@@ -63,6 +69,21 @@ interface AppState extends AppData {
   setShowEmpruntsTab: (v: boolean) => void;
   showDiversificationTab: boolean;
   setShowDiversificationTab: (v: boolean) => void;
+  showAiTab: boolean;
+  setShowAiTab: (v: boolean) => void;
+
+  /** Paramètres et état persisté du conseiller IA (InvestCounsel). */
+  aiWatchlist: WatchlistEntry[];
+  toggleAiWatchlist: (entry: WatchlistEntry) => void;
+  aiLastSymbol: string;
+  aiLastIsin?: string | null;
+  setAiLastSymbol: (symbol: string, isin?: string | null) => void;
+  aiModel: string;
+  setAiModel: (m: string) => void;
+  aiCustomPreprompt?: string;
+  setAiCustomPreprompt: (p?: string) => void;
+  aiReports: Record<string, GeminiCounselReport>;
+  setAiReport: (symbol: string, report: GeminiCounselReport) => void;
 
   /** Profil de risque déclaratif pour les suggestions de répartition. Défaut : équilibré. */
   riskProfile: RiskProfile;
@@ -159,6 +180,31 @@ export const useStore = create<AppState>()(
       setShowEmpruntsTab: (v) => set({ showEmpruntsTab: v }),
       showDiversificationTab: true,
       setShowDiversificationTab: (v) => set({ showDiversificationTab: v }),
+      showAiTab: true,
+      setShowAiTab: (v) => set({ showAiTab: v }),
+
+      aiWatchlist: DEFAULT_WATCHLIST,
+      toggleAiWatchlist: (entry) =>
+        set((s) => {
+          const exists = s.aiWatchlist.some((w) => w.symbol === entry.symbol);
+          return {
+            aiWatchlist: exists
+              ? s.aiWatchlist.filter((w) => w.symbol !== entry.symbol)
+              : [entry, ...s.aiWatchlist],
+          };
+        }),
+      aiLastSymbol: 'NVDA',
+      aiLastIsin: 'US67066G1040',
+      setAiLastSymbol: (symbol, isin) => set({ aiLastSymbol: symbol, aiLastIsin: isin ?? null }),
+      aiModel: 'gemini-3.6-flash',
+      setAiModel: (m) => set({ aiModel: normalizeGeminiModel(m) }),
+      aiCustomPreprompt: undefined,
+      setAiCustomPreprompt: (p) => set({ aiCustomPreprompt: p?.trim() ? p : undefined }),
+      aiReports: {},
+      setAiReport: (symbol, report) =>
+        set((s) => ({
+          aiReports: { ...s.aiReports, [symbol]: report },
+        })),
 
       riskProfile: 'equilibre',
       setRiskProfile: (p) => set({ riskProfile: p }),
@@ -340,6 +386,13 @@ export const useStore = create<AppState>()(
           showImmobilierTab: true,
           showEmpruntsTab: true,
           showDiversificationTab: true,
+          showAiTab: true,
+          aiWatchlist: DEFAULT_WATCHLIST,
+          aiLastSymbol: 'NVDA',
+          aiLastIsin: 'US67066G1040',
+          aiModel: 'gemini-3.6-flash',
+          aiCustomPreprompt: undefined,
+          aiReports: {},
           riskProfile: 'equilibre',
           defaultPeriod: '1A',
           chartMode: 'value',
@@ -406,6 +459,13 @@ export const useStore = create<AppState>()(
         showImmobilierTab: s.showImmobilierTab,
         showEmpruntsTab: s.showEmpruntsTab,
         showDiversificationTab: s.showDiversificationTab,
+        showAiTab: s.showAiTab,
+        aiWatchlist: s.aiWatchlist,
+        aiLastSymbol: s.aiLastSymbol,
+        aiLastIsin: s.aiLastIsin,
+        aiModel: s.aiModel,
+        aiCustomPreprompt: s.aiCustomPreprompt,
+        aiReports: s.aiReports,
         riskProfile: s.riskProfile,
         defaultPeriod: s.defaultPeriod,
         chartMode: s.chartMode,

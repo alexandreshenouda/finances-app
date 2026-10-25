@@ -68,6 +68,7 @@ export default function RootLayout() {
         <Stack.Screen name="loan-form" options={{ title: t('loanForm.titre_new'), presentation: 'modal' }} />
         <Stack.Screen name="objective-form" options={{ title: t('objectiveForm.titre_new'), presentation: 'modal' }} />
         <Stack.Screen name="connections" options={{ title: t('connections.title') }} />
+        <Stack.Screen name="ai-settings" options={{ title: t('settings.ai_settings') }} />
         <Stack.Screen name="backup" options={{ title: t('backup.title') }} />
         <Stack.Screen name="display-settings" options={{ title: t('settings.affichage') }} />
         <Stack.Screen name="language-settings" options={{ title: t('settings.langue') }} />
