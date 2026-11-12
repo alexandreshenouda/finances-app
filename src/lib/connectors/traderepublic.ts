@@ -292,6 +292,9 @@ interface TrAccountSnapshot {
   privateMarkets: ExternalHolding[];
   /** Versements, retraits, dividendes et intérêts récents du compte espèces. */
   cashFlows: ExternalCashFlow[];
+  /** PEA uniquement : cumul des versements et plafond (EUR). */
+  peaDepositsEur?: number;
+  peaCeilingEur?: number;
 }
 
 interface TrPortfolioResult {
@@ -509,6 +512,7 @@ async function fetchPositions(
   return [];
 }
 
+// ─── Historique des opérations (REST) & plafond du PEA ───────────────────────
 //
 // Relevé dans le bundle du client web (cf. AGENTS.md) :
 //  - `GET /api/v2/timeline/transactions` — paramètres `pageSize`, `categoryIds` (ids séparés
@@ -523,6 +527,9 @@ async function fetchPositions(
 //    dur celle des versements. `TRANSFER_CATEGORY_PATTERN` la reconnaît à son id / libellé ;
 //    si rien ne correspond, aucun versement n'est compté et un avertissement le dit, la
 //    liste brute étant journalisée pour corriger le motif.
+//  - WS `taxWrapperAccountUtilization` + `secAccNo` → `{ totalAmount, usedAmount }`
+//    (`{ value, currency }`) : plafond et cumul des versements du PEA.
+
 const TIMELINE_PATH = '/api/v2/timeline';
 const INCOME_CATEGORY = 'INCOME';
 /** Catégories de mouvements d'argent entre l'extérieur et le compte (versements / retraits). */
@@ -667,6 +674,25 @@ async function fetchCashFlows(
   return flows;
 }
 
+/** Plafond et cumul des versements d'un PEA ; `undefined` si la réponse est inexploitable. */
+async function fetchPeaUtilization(
+  socket: TrSocket,
+  secAccNo: string
+): Promise<{ depositsEur: number; ceilingEur: number } | undefined> {
+  try {
+    const res = await socket.once<any>({ type: 'taxWrapperAccountUtilization', secAccNo });
+    logDebug(TAG, `WS taxWrapperAccountUtilization (${secAccNo})`, JSON.stringify(res));
+    const used = Number(res?.usedAmount?.value);
+    const total = Number(res?.totalAmount?.value);
+    if (res?.usedAmount?.currency !== 'EUR' || res?.totalAmount?.currency !== 'EUR') return undefined;
+    if (!Number.isFinite(used) || !Number.isFinite(total) || total <= 0) return undefined;
+    return { depositsEur: used, ceilingEur: total };
+  } catch (e: any) {
+    logDebugError(TAG, `WS taxWrapperAccountUtilization (${secAccNo}) → ${e?.message ?? e}`);
+    return undefined;
+  }
+}
+
 /**
  * Récupère l'instantané complet du portefeuille via WebSocket : une passe par
  * enveloppe (compte-titres, PEA), liquidités incluses, chaque position nommée et
@@ -800,6 +826,9 @@ export async function trFetchPortfolio(): Promise<TrPortfolioResult> {
       const cashFlows = pair.cashAccountNumber
         ? await fetchCashFlows(pair.cashAccountNumber, transferIds, warnings)
         : [];
+      const pea = productType === PRODUCT_TAX_WRAPPER ? await fetchPeaUtilization(socket, secAccNo) : undefined;
+      logDebug(TAG, `${productType} (${secAccNo}) : ${cashFlows.length} flux, versements PEA=${pea?.depositsEur ?? '—'}`);
+
       accounts.push({
         productType,
         secAccNo,
@@ -807,6 +836,8 @@ export async function trFetchPortfolio(): Promise<TrPortfolioResult> {
         holdings,
         privateMarkets,
         cashFlows,
+        peaDepositsEur: pea?.depositsEur,
+        peaCeilingEur: pea?.ceilingEur,
       });
     }
 
@@ -836,6 +867,8 @@ export function trBuildAccounts(result: TrPortfolioResult): ExternalAccount[] {
         cashBalanceEur: snap.cashEur || undefined,
         holdings: snap.holdings,
         cashFlows: snap.cashFlows,
+        peaDepositsEur: snap.peaDepositsEur,
+        peaCeilingEur: snap.peaCeilingEur,
       });
     } else {
       accounts.push({

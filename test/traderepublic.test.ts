@@ -136,6 +136,8 @@ const portfolioHandler: Handler = (s) => {
           ],
         },
       }; // …tout en V2, à plat
+    case 'taxWrapperAccountUtilization':
+      return { A: { totalAmount: { value: '150000', currency: 'EUR' }, usedAmount: { value: '42000.5', currency: 'EUR' } } };
     case 'instrument':
       if (s.id === APPLE) return { A: { shortName: 'Apple' } };
       if (s.id === PE_FUND) return { A: { exchangeIds: ['LSX', 'PRIV'] } };
@@ -369,6 +371,9 @@ describe('trFetchPortfolio', () => {
         holdings: [{ name: 'TotalEnergies', symbol: TOTAL, isin: TOTAL, quantity: 4, unitPriceEur: 30, buyPriceEur: undefined }],
         privateMarkets: [{ name: 'Sans cours', symbol: NO_PRICE, isin: NO_PRICE, quantity: 1, unitPriceEur: 0, buyPriceEur: undefined }],
         cashFlows: [],
+        // Plafond du PEA : `taxWrapperAccountUtilization`, demandé pour l'enveloppe TAX_WRAPPER seulement.
+        peaDepositsEur: 42000.5,
+        peaCeilingEur: 150000,
       },
     ]);
 
@@ -553,7 +558,9 @@ describe('historique des opérations et plafond du PEA', () => {
       { externalId: 'wd-1', date: day(-6), kind: 'withdrawal', amountEur: 250.5, label: 'Opération wd-1' },
       { externalId: 'dep-old', date: day(-399), kind: 'deposit', amountEur: 700, label: 'Opération dep-old' },
     ]);
+    expect(cto.peaDepositsEur).toBeUndefined();
     expect(pea.cashFlows.map((f) => [f.externalId, f.kind, f.isin])).toEqual([['pea-div', 'dividend', TOTAL]]);
+    expect(pea).toMatchObject({ peaDepositsEur: 42000.5, peaCeilingEur: 150000 });
     expect(result.warnings.some((w) => w.includes('Historique') || w.includes('versements'))).toBe(false);
 
     // Requêtes au format du client web : catégories jointes par des virgules, tableaux en `clé[]`.
@@ -567,6 +574,9 @@ describe('historique des opérations et plafond du PEA', () => {
     ]);
     expect(txCalls[0].url).toContain('pageSize=50&categoryIds=INCOME&cashAccountNumbers%5B%5D=CASH1');
     expect((txCalls[0].init?.headers as Record<string, string>)['x-tr-platform']).toBe('web');
+    expect(ws().subs.filter((s) => s.type === 'taxWrapperAccountUtilization')).toEqual([
+      { type: 'taxWrapperAccountUtilization', secAccNo: 'SEC2' },
+    ]);
     // Les opérations écartées sont journalisées, pas perdues en silence.
     expect(logs().filter((e) => e.message.startsWith('Opération ignorée')).map((e) => JSON.parse(e.detail!).id)).toEqual(
       expect.arrayContaining(['tax-1', 'usd-1', 'dep-x'])
@@ -575,6 +585,7 @@ describe('historique des opérations et plafond du PEA', () => {
     // Flux et plafond suivent chaque enveloppe jusqu'aux comptes créés.
     const built = trBuildAccounts(result);
     expect(built.find((a) => a.externalId === 'traderepublic-main')?.cashFlows).toHaveLength(5);
+    expect(built.find((a) => a.externalId === 'traderepublic-pea')).toMatchObject({ peaDepositsEur: 42000.5, peaCeilingEur: 150000 });
     expect(built.find((a) => a.type === 'private_equity')?.cashFlows).toBeUndefined();
   });
 
@@ -609,6 +620,20 @@ describe('historique des opérations et plafond du PEA', () => {
     expect(logs().some((e) => e.level === 'error' && e.message.includes('/timeline/transaction-categories → HTTP 503'))).toBe(true);
   });
 
+  it('laisse le plafond du PEA inconnu si la réponse est inexploitable', async () => {
+    const withUtilization = (reply: Reply): Handler => (s) => (s.type === 'taxWrapperAccountUtilization' ? reply : portfolioHandler(s));
+    for (const reply of [
+      { E: 'Unknown topic type' },
+      { A: { totalAmount: { value: '150000', currency: 'USD' }, usedAmount: { value: '1', currency: 'USD' } } },
+      { A: { totalAmount: { value: '0', currency: 'EUR' }, usedAmount: { value: '1', currency: 'EUR' } } },
+      { A: { totalAmount: { value: 'x', currency: 'EUR' }, usedAmount: { value: '1', currency: 'EUR' } } },
+      { A: null },
+    ] as Reply[]) {
+      FakeWebSocket.handler = withUtilization(reply);
+      const pea = (await trFetchPortfolio()).accounts[1];
+      expect([pea.peaDepositsEur, pea.peaCeilingEur]).toEqual([undefined, undefined]);
+    }
+  });
 });
 
 describe('parseTimelineItem', () => {

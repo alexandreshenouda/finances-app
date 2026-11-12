@@ -436,6 +436,10 @@ tag would clobber each other. Keep it that way if you add a third.
   that have a deposit history — an untracked account is *unknown*, not zero),
   `dividendSummary()` (12 rolling months, per year, per ISIN, yield on cost of holdings still
   held) and `peaCeilingStatus()` (`Account.peaDeposits` vs `Account.peaCeiling ?? PEA_CEILING_EUR`).
+- `Account.peaDeposits` is typed by hand in `account-form.tsx` for an unsynced PEA and overwritten
+  by the connector for a synced one (the field is then hidden). Withdrawals don't lower it — that
+  is the legal rule. The `pea-ceiling-*` insight uses it when known (≥ `PEA_CEILING_NEAR_RATIO`)
+  and only falls back to the plan's market value when it is not.
 - The Budget tab shows net contributions next to `actualSavings()` over the same window: the
   former has no market performance, the latter does. Keep both notes.
 - `AccountFlows` (account detail) displays money → it carries the `privacyMode` subscription.
@@ -455,6 +459,8 @@ Derived from the web bundle (same method as above), **not verified against a liv
   `TRANSFER_CATEGORY_PATTERN` matches them by id / label; when nothing matches, no deposit is
   imported and a warning says so (`errors.tr_versements_non_reconnus`) — the raw list is in the
   debug log, fix the pattern from it rather than guessing. Deposit vs withdrawal is the sign.
+- WS `taxWrapperAccountUtilization` + `secAccNo` → `{ totalAmount, usedAmount }` (`{ value,
+  currency }`), asked for `TAX_WRAPPER` envelopes only → `peaCeilingEur` / `peaDepositsEur`.
 - History is best-effort: any failure adds a warning, never fails the sync. Window =
   `HISTORY_DAYS` (400), `HISTORY_MAX_PAGES` × `HISTORY_PAGE_SIZE` per envelope and category group.
 

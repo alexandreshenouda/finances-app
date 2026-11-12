@@ -1,7 +1,7 @@
 /** Rubriques « flux » d'un compte : plafond du PEA, versements nets et dividendes reçus. */
 import { ListCard, ListRow, Card, ProgressBar, SectionTitle } from '@/components/ui';
 import { C, FONT, TABULAR, useStyles } from '@/constants/theme';
-import { netContributions } from '@/lib/cashflows';
+import { netContributions, peaCeilingStatus } from '@/lib/cashflows';
 import { addDays, formatEur, formatPct, todayKey } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import type { Account } from '@/lib/types';
@@ -31,10 +31,38 @@ export function AccountFlows({ account }: { account: Account }) {
   const today = todayKey();
   const contributions = useMemo(() => netContributions(flows, [account], addDays(today, -365), today), [flows, account, today]);
 
+  const pea = peaCeilingStatus(account);
   const isSynced = !!account.connectionId;
   const hasContributions = contributions.trackedAccountIds.length > 0;
   return (
     <>
+      {account.type === 'pea' && (pea || !isSynced) && (
+        <>
+          <SectionTitle>{t('flows.plafond_titre')}</SectionTitle>
+          <Card>
+            {pea ? (
+              <>
+                <View style={styles.head}>
+                  <Text style={styles.headLabel}>{t('flows.plafond_verse', { pct: formatPct(pea.ratio * 100) })}</Text>
+                  <Text style={styles.headValue}>
+                    {t('flows.plafond_sur', { deposits: formatEur(pea.deposits), ceiling: formatEur(pea.ceiling) })}
+                  </Text>
+                </View>
+                <ProgressBar ratio={pea.ratio} color={pea.remaining === 0 ? C.warning : C.accent} />
+                <Text style={styles.note}>
+                  {pea.remaining === 0
+                    ? t('flows.plafond_atteint')
+                    : t('flows.plafond_reste', { remaining: formatEur(pea.remaining) })}{' '}
+                  {t(isSynced ? 'flows.plafond_source_synchro' : 'flows.plafond_source_saisie')}
+                </Text>
+              </>
+            ) : (
+              <Text style={[styles.note, { marginTop: 0 }]}>{t('flows.plafond_a_renseigner')}</Text>
+            )}
+          </Card>
+        </>
+      )}
+
       {hasContributions && (
         <>
           <SectionTitle>{t('flows.versements_titre')}</SectionTitle>

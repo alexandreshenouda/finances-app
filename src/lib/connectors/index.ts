@@ -66,6 +66,9 @@ export function persistExternalAccounts(conn: Connection, result: SyncResult): v
       cashBalance: ext.cashBalanceEur ?? (ext.holdings.length > 0 ? 0 : existing?.cashBalance ?? 0),
       connectionId: conn.id,
       externalId: ext.externalId,
+      ...(ext.peaDepositsEur !== undefined
+        ? { peaDeposits: ext.peaDepositsEur, peaCeiling: ext.peaCeilingEur }
+        : {}),
     });
 
     if (ext.cashFlows && ext.cashFlows.length > 0) {

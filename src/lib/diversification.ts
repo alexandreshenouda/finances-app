@@ -3,6 +3,7 @@
  * puis par catégorie. Chaque `Insight` porte un triptyque complet (constat, pourquoi c'est
  * important, piste d'action conforme AMF). */
 import { actualSavings, budgetLines, budgetSummary, compareSavings, objectivesMonthlyEffort } from './budget';
+import { PEA_CEILING_NEAR_RATIO, peaCeilingStatus } from './cashflows';
 import { formatDate, formatDuration, formatEur, formatPct, monthsBetween, todayKey } from './format';
 import { cashAndLivretTotal, epargnePrecautionTarget, precautionBuildPlan, suggestPrecaution } from './objectives';
 import { accountCurrentValue, accountShare, holdingCurrency, holdingValueEur } from './portfolio';
@@ -329,8 +330,30 @@ function peaFiscalAdvice(
       }
     }
 
-    // Plafond des versements (150 000 €)
-    if (val >= 135000) {
+    // Plafond des versements : sur le cumul réellement versé quand il est connu (saisi ou
+    // remonté par le connecteur), sinon — faute de mieux — sur la valorisation du plan.
+    const ceiling = peaCeilingStatus(pea);
+    if (ceiling) {
+      if (ceiling.ratio >= PEA_CEILING_NEAR_RATIO) {
+        insights.push({
+          id: `pea-ceiling-${pea.id}`,
+          severity: 'info',
+          category: 'fiscal',
+          titleKey: 'diversification.pea_ceiling_title',
+          observationKey:
+            ceiling.remaining === 0 ? 'diversification.pea_ceiling_reached_obs' : 'diversification.pea_ceiling_deposits_obs',
+          whyKey: 'diversification.pea_ceiling_why',
+          actionKey: 'diversification.pea_ceiling_action',
+          params: {
+            name: pea.name,
+            deposits: formatEur(ceiling.deposits),
+            ceiling: formatEur(ceiling.ceiling),
+            remaining: formatEur(ceiling.remaining),
+            pct: formatPct(ceiling.ratio * 100),
+          },
+        });
+      }
+    } else if (val >= 135000) {
       insights.push({
         id: `pea-ceiling-${pea.id}`,
         severity: 'info',

@@ -6,7 +6,7 @@
 import { addDays, todayKey } from './format';
 import { toEur } from './fx';
 import { accountShare, holdingCurrency } from './portfolio';
-import { type Account, type CashFlow, type FxRates, type Holding } from './types';
+import { PEA_CEILING_EUR, type Account, type CashFlow, type FxRates, type Holding } from './types';
 
 const DAYS_PER_MONTH = 365.25 / 12;
 
@@ -65,3 +65,29 @@ export function netContributions(
   };
 }
 
+// ─── Plafond du PEA ─────────────────────────────────────────────────────────
+
+export interface PeaCeilingStatus {
+  deposits: number;
+  ceiling: number;
+  /** Part du plafond consommée, entre 0 et 1. */
+  ratio: number;
+  /** Versements encore possibles (EUR, jamais négatif). */
+  remaining: number;
+}
+
+/** Seuil à partir duquel le plafond est considéré comme presque atteint. */
+export const PEA_CEILING_NEAR_RATIO = 0.9;
+
+/** Consommation du plafond de versements d'un PEA ; `undefined` si les versements sont inconnus. */
+export function peaCeilingStatus(account: Account): PeaCeilingStatus | undefined {
+  if (account.type !== 'pea' || account.peaDeposits === undefined) return undefined;
+  const ceiling = account.peaCeiling && account.peaCeiling > 0 ? account.peaCeiling : PEA_CEILING_EUR;
+  const deposits = Math.max(0, account.peaDeposits);
+  return {
+    deposits,
+    ceiling,
+    ratio: Math.min(1, deposits / ceiling),
+    remaining: Math.max(0, ceiling - deposits),
+  };
+}

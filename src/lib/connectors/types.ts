@@ -36,6 +36,9 @@ export interface ExternalAccount {
   holdings: ExternalHolding[];
   /** Flux récents du compte, si le fournisseur expose un historique. */
   cashFlows?: ExternalCashFlow[];
+  /** PEA : cumul des versements et plafond, si le fournisseur les expose. */
+  peaDepositsEur?: number;
+  peaCeilingEur?: number;
 }
 
 export interface SyncResult {

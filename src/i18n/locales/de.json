@@ -232,7 +232,9 @@
     "budget_precaution_mismatch_title": "Notfallfonds an das Budget anpassen",
     "budget_precaution_mismatch": "Ihr Notfallfonds-Ziel basiert auf {{declared}}/Monat notwendiger Ausgaben, Ihr Budget weist jedoch {{essential}}/Monat aus.",
     "budget_precaution_mismatch_why": "Die Zielhöhe des Sicherheitspolsters hängt direkt von den notwendigen Ausgaben ab: Eine veraltete Basis ergibt ein zu niedriges oder zu hohes Ziel.",
-    "budget_precaution_mismatch_action": "Öffnen Sie das Ziel „Notfallfonds“ und nutzen Sie „Beträge aus meinem Budget übernehmen“, um es anzugleichen."
+    "budget_precaution_mismatch_action": "Öffnen Sie das Ziel „Notfallfonds“ und nutzen Sie „Beträge aus meinem Budget übernehmen“, um es anzugleichen.",
+    "pea_ceiling_deposits_obs": "Sie haben {{deposits}} in Ihren PEA „{{name}}“ eingezahlt, also {{pct}} der Grenze von {{ceiling}}: Es sind noch {{remaining}} an Einzahlungen möglich.",
+    "pea_ceiling_reached_obs": "Sie haben {{deposits}} in Ihren PEA „{{name}}“ eingezahlt: Die Einzahlungsgrenze von {{ceiling}} ist erreicht."
   },
   "riskProfiles": {
     "prudent": "Defensiv",
@@ -514,7 +516,9 @@
     "frais_gestion_placeholder": "z. B. 0,75",
     "frais_garde_placeholder": "z. B. 24",
     "frais_notes": "Notizen zu den Gebühren",
-    "frais_notes_placeholder": "z. B. 0 % auf Partner-ETFs"
+    "frais_notes_placeholder": "z. B. 0 % auf Partner-ETFs",
+    "pea_versements": "Kumulierte Einzahlungen in € (optional)",
+    "pea_versements_placeholder": "z. B. 42000 (gesetzliche Grenze: 150.000 €)"
   },
   "connections": {
     "title": "Verbindungen",
@@ -1336,6 +1340,14 @@
     "supprimer_confirm": "„{{name}}“ aus dem Budget löschen?"
   },
   "flows": {
+    "plafond_titre": "PEA-Einzahlungsgrenze",
+    "plafond_verse": "{{pct}} der Grenze eingezahlt",
+    "plafond_sur": "{{deposits}} / {{ceiling}}",
+    "plafond_reste": "Bis zur gesetzlichen Grenze können noch {{remaining}} eingezahlt werden.",
+    "plafond_atteint": "Einzahlungsgrenze erreicht: Der Plan kann weiter wachsen, aber keine Einzahlungen mehr erhalten.",
+    "plafond_source_synchro": "Summe wird bei jeder Synchronisierung aktualisiert.",
+    "plafond_source_saisie": "Summe im Kontoformular eingetragen.",
+    "plafond_a_renseigner": "Tragen Sie Ihre kumulierten Einzahlungen im Kontoformular ein, um die gesetzliche Grenze von 150.000 € zu verfolgen.",
     "versements_titre": "Einzahlungen über 12 Monate",
     "versements": "Einzahlungen",
     "retraits": "Auszahlungen",

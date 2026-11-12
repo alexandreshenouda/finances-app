@@ -1,6 +1,6 @@
 /** Tests des flux constatés : versements nets, dividendes, plafond PEA (`src/lib/cashflows.ts`). */
 import { describe, expect, it } from 'vitest';
-import { netContributions } from '@/lib/cashflows';
+import { netContributions, PEA_CEILING_NEAR_RATIO, peaCeilingStatus } from '@/lib/cashflows';
 import type { CashFlow, CashFlowKind } from '@/lib/types';
 import { account, holding, RATES } from './factories';
 
@@ -60,3 +60,31 @@ describe('netContributions', () => {
   });
 });
 
+describe('peaCeilingStatus', () => {
+  it('ne s’applique qu’à un PEA dont les versements sont connus', () => {
+    expect(peaCeilingStatus(account({ type: 'cto', peaDeposits: 10 }))).toBeUndefined();
+    expect(peaCeilingStatus(account({ type: 'pea' }))).toBeUndefined();
+  });
+
+  it('rapporte les versements au plafond légal par défaut', () => {
+    expect(peaCeilingStatus(account({ type: 'pea', peaDeposits: 37_500 }))).toEqual({
+      deposits: 37_500,
+      ceiling: 150_000,
+      ratio: 0.25,
+      remaining: 112_500,
+    });
+    expect(peaCeilingStatus(account({ type: 'pea', peaDeposits: 0 }))?.ratio).toBe(0);
+    expect(PEA_CEILING_NEAR_RATIO).toBe(0.9);
+  });
+
+  it('utilise le plafond du connecteur, borne le ratio à 1 et le reliquat à 0', () => {
+    expect(peaCeilingStatus(account({ type: 'pea', peaDeposits: 30_000, peaCeiling: 20_000 }))).toEqual({
+      deposits: 30_000,
+      ceiling: 20_000,
+      ratio: 1,
+      remaining: 0,
+    });
+    // Plafond ou versements aberrants : repli sur le plafond légal, versements ramenés à 0.
+    expect(peaCeilingStatus(account({ type: 'pea', peaDeposits: -5, peaCeiling: 0 }))).toMatchObject({ deposits: 0, ceiling: 150_000 });
+  });
+});

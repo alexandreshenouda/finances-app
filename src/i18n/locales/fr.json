@@ -232,7 +232,9 @@
     "budget_precaution_mismatch_title": "Épargne de précaution à réaligner sur le budget",
     "budget_precaution_mismatch": "Votre objectif d'épargne de précaution se base sur {{declared}}/mois de dépenses vitales, alors que votre budget en compte {{essential}}/mois.",
     "budget_precaution_mismatch_why": "Le montant cible du matelas de sécurité dépend directement des dépenses vitales : une base périmée donne une cible trop basse ou trop haute.",
-    "budget_precaution_mismatch_action": "Ouvrez l'objectif « Épargne de précaution » et utilisez « Reprendre les montants de mon budget » pour l'aligner."
+    "budget_precaution_mismatch_action": "Ouvrez l'objectif « Épargne de précaution » et utilisez « Reprendre les montants de mon budget » pour l'aligner.",
+    "pea_ceiling_deposits_obs": "Vous avez versé {{deposits}} sur votre PEA « {{name}} », soit {{pct}} du plafond de {{ceiling}} : il reste {{remaining}} de versements possibles.",
+    "pea_ceiling_reached_obs": "Vous avez versé {{deposits}} sur votre PEA « {{name}} » : le plafond de versements de {{ceiling}} est atteint."
   },
   "riskProfiles": {
     "prudent": "Prudent",
@@ -514,7 +516,9 @@
     "frais_gestion_placeholder": "ex : 0,75",
     "frais_garde_placeholder": "ex : 24",
     "frais_notes": "Notes sur les frais",
-    "frais_notes_placeholder": "ex : 0 % sur les ETF partenaires"
+    "frais_notes_placeholder": "ex : 0 % sur les ETF partenaires",
+    "pea_versements": "Cumul des versements en € (optionnel)",
+    "pea_versements_placeholder": "ex : 42000 (plafond légal : 150 000 €)"
   },
   "connections": {
     "title": "Connexions",
@@ -1336,6 +1340,14 @@
     "supprimer_confirm": "Supprimer « {{name}} » du budget ?"
   },
   "flows": {
+    "plafond_titre": "Plafond de versements du PEA",
+    "plafond_verse": "{{pct}} du plafond versé",
+    "plafond_sur": "{{deposits}} / {{ceiling}}",
+    "plafond_reste": "Il reste {{remaining}} à verser avant le plafond légal.",
+    "plafond_atteint": "Plafond de versements atteint : le plan peut continuer à croître, mais plus recevoir de versement.",
+    "plafond_source_synchro": "Cumul mis à jour à chaque synchronisation.",
+    "plafond_source_saisie": "Cumul saisi dans la fiche du compte.",
+    "plafond_a_renseigner": "Renseignez le cumul de vos versements dans la fiche du compte pour suivre le plafond légal de 150 000 €.",
     "versements_titre": "Versements sur 12 mois",
     "versements": "Versements",
     "retraits": "Retraits",

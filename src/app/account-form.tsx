@@ -54,6 +54,9 @@ export default function AccountForm() {
   const [cash, setCash] = useState(existing?.cashBalance?.toString() ?? '');
   const [ownershipPct, setOwnershipPct] = useState(existing?.ownershipPct?.toString() ?? '');
   const [openingDate, setOpeningDate] = useState(existing?.openingDate ?? '');
+  const [peaDeposits, setPeaDeposits] = useState(existing?.peaDeposits?.toString() ?? '');
+  // Compte synchronisé : le cumul des versements vient du connecteur, pas du formulaire.
+  const peaDepositsManual = type === 'pea' && !existing?.connectionId;
   const [entryPct, setEntryPct] = useState(existing?.fees?.entryPct?.toString() ?? '');
   const [managementPct, setManagementPct] = useState(existing?.fees?.managementPct?.toString() ?? '');
   const [custody, setCustody] = useState(existing?.fees?.custodyAnnual?.toString() ?? '');
@@ -80,6 +83,8 @@ export default function AccountForm() {
       institution: institution.trim() || undefined,
       cashBalance: parseNum(cash),
       openingDate: openingDate.trim() ? parseDate(openingDate) : undefined,
+      peaDeposits: type !== 'pea' ? undefined : peaDepositsManual ? parseNum(peaDeposits) : existing?.peaDeposits,
+      peaCeiling: type === 'pea' && !peaDepositsManual ? existing?.peaCeiling : undefined,
       // Quote-part réservée aux comptes immobiliers ; 100 % ou vide = détention pleine.
       ownershipPct: type === 'immobilier' && pct !== undefined && pct !== 100 ? pct : undefined,
       fees: hasFees ? fees : undefined,
@@ -123,6 +128,15 @@ export default function AccountForm() {
             placeholder={t('accountForm.date_ouverture_placeholder')}
             hint={!dateValid ? t('accountForm.date_ouverture_erreur') : t('accountForm.date_ouverture_hint')}
           />
+          {peaDepositsManual && (
+            <Field
+              label={t('accountForm.pea_versements')}
+              value={peaDeposits}
+              onChangeText={setPeaDeposits}
+              keyboardType="decimal-pad"
+              placeholder={t('accountForm.pea_versements_placeholder')}
+            />
+          )}
           {type === 'immobilier' && (
             <Field
               label={t('accountForm.quote_part')}

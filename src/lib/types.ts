@@ -138,9 +138,17 @@ export interface Account {
   connectionId?: string;
   /** Identifiant du compte chez le fournisseur externe */
   externalId?: string;
+  /** PEA : cumul des versements (EUR), saisi à la main ou remonté par le connecteur.
+   *  Les retraits ne le diminuent pas — c'est la règle du plafond légal. */
+  peaDeposits?: number;
+  /** PEA : plafond de versements remonté par le connecteur ; absent = `PEA_CEILING_EUR`. */
+  peaCeiling?: number;
   createdAt: string; // ISO
   archived?: boolean;
 }
+
+/** Plafond légal de versements d'un PEA classique (EUR). */
+export const PEA_CEILING_EUR = 150_000;
 
 /**
  * Flux d'espèces constaté sur un compte : versement / retrait (argent qui entre ou sort de

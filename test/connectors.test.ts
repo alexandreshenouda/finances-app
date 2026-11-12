@@ -71,6 +71,8 @@ describe('persistExternalAccounts', () => {
     const conn = connection('traderepublic');
     const pea = result({
       type: 'pea',
+      peaDepositsEur: 42_000,
+      peaCeilingEur: 150_000,
       cashFlows: [
         { externalId: 'tx-1', date: '2024-03-01', kind: 'deposit', amountEur: 500, label: 'Virement' },
         { externalId: 'tx-2', date: '2024-03-05', kind: 'dividend', amountEur: 12.5, isin: 'FR0010756098' },
@@ -79,10 +81,21 @@ describe('persistExternalAccounts', () => {
     persistExternalAccounts(conn, pea);
     persistExternalAccounts(conn, pea);
     const [acc] = accountsOf(conn.id);
+    expect(acc).toMatchObject({ peaDeposits: 42_000, peaCeiling: 150_000 });
     expect(S().cashFlows.map((f) => [f.accountId, f.externalId, f.kind, f.amount, f.isin])).toEqual([
       [acc.id, 'tx-1', 'deposit', 500, undefined],
       [acc.id, 'tx-2', 'dividend', 12.5, 'FR0010756098'],
     ]);
+  });
+
+  it('ne touche pas au cumul de versements saisi quand le connecteur ne le fournit pas', () => {
+    const conn = connection('binance');
+    persistExternalAccounts(conn, result());
+    const [acc] = accountsOf(conn.id);
+    S().upsertAccount({ ...acc, peaDeposits: 1_000 });
+    persistExternalAccounts(conn, result());
+    expect(accountsOf(conn.id)[0].peaDeposits).toBe(1_000);
+    expect(S().cashFlows).toEqual([]);
   });
 
   it('crée le compte lié, ses lignes (cours « exchange ») et le snapshot EUR du jour', () => {

@@ -216,6 +216,9 @@ pour le détail des contraintes.
   rapatrie ~13 mois d'opérations du compte espèces de chaque enveloppe.
   - *Versements nets* (dépôts − retraits) : affichés sur la fiche du compte et, dans le Budget,
     à côté de l'épargne constatée — qui, elle, inclut la performance des marchés.
+  - *Plafond de versements du PEA* : cumul versé / 150 000 € avec barre de progression ; pour un
+    PEA non synchronisé, le cumul se saisit dans la fiche du compte. Le conseil « plafond du
+    PEA » s'appuie sur ce cumul plutôt que sur la valorisation du plan.
 - **Multi-devises** : comptes et lignes en EUR (défaut), USD ou CHF — saisie dans la devise
   d'origine, affichage et courbes convertis en € avec les taux BCE
   ([frankfurter.dev](https://frankfurter.dev), rafraîchis à chaque mise à jour, derniers taux
