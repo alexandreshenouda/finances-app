@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Card, SectionTitle } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, RADIUS, useStyles } from '@/constants/theme';
 import { useStore } from '@/lib/store';
 import { type Language } from '@/lib/i18n';
 
@@ -14,13 +14,13 @@ const LANGUAGE_OPTIONS: { lang: Language; label: string }[] = [
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    hint: { color: C.textDim, fontSize: 13, marginBottom: 12, lineHeight: 18 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    hint: { color: C.textDim, fontSize: FONT.sm, marginBottom: 12, lineHeight: 18 },
     chipContainer: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
     chip: {
       paddingHorizontal: 12,
       paddingVertical: 8,
-      borderRadius: 6,
+      borderRadius: RADIUS.sm,
       backgroundColor: C.card,
       borderWidth: 1,
       borderColor: C.border,
@@ -29,7 +29,7 @@ function makeStyles() {
       backgroundColor: C.accent,
       borderColor: C.accent,
     },
-    chipText: { color: C.text, fontSize: 14, fontWeight: '500' },
+    chipText: { color: C.text, fontSize: FONT.md, fontWeight: '500' },
     chipTextActive: { color: C.onAccent },
   });
 }

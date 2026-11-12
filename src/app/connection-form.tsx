@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Field } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
 import { notify } from '@/lib/confirm';
 import { syncConnection } from '@/lib/connectors';
 import { connectionSecretKey, setSecret } from '@/lib/secure';
@@ -14,8 +14,8 @@ import { PROVIDER_LABELS } from '@/lib/types';
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    help: { color: C.textDim, fontSize: 13, marginBottom: 12, lineHeight: 18 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    help: { color: C.textDim, fontSize: FONT.sm, marginBottom: 12, lineHeight: 18 },
   });
 }
 

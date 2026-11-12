@@ -9,7 +9,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Checkbox, SectionTitle } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
 import { useDebugLogStore, type LogEntry } from '@/lib/debugLog';
 import { todayKey } from '@/lib/format';
@@ -23,13 +23,13 @@ function formatEntries(entries: LogEntry[]): string {
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    hint: { color: C.textDim, fontSize: 13, lineHeight: 18 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    hint: { color: C.textDim, fontSize: FONT.sm, lineHeight: 18 },
     row: { paddingVertical: 10 },
     rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
-    rowHead: { fontSize: 12, fontWeight: '600' },
-    message: { color: C.text, fontSize: 13, marginTop: 2 },
-    detail: { color: C.textFaint, fontSize: 11, marginTop: 4, lineHeight: 15 },
+    rowHead: { fontSize: FONT.sm, fontWeight: '600' },
+    message: { color: C.text, fontSize: FONT.sm, marginTop: 2 },
+    detail: { color: C.textFaint, fontSize: FONT.xs, marginTop: 4, lineHeight: 15 },
   });
 }
 

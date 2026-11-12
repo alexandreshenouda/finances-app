@@ -9,8 +9,8 @@ import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Empty, Field, SectionTitle, SelectField } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { Button, Card, Chevron, Empty, Field, SectionTitle, SelectField } from '@/components/ui';
+import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
 import { notify } from '@/lib/confirm';
 import { loadCredentials, syncConnection } from '@/lib/connectors';
 import {
@@ -30,12 +30,12 @@ import { useStore } from '@/lib/store';
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    help: { color: C.textDim, fontSize: 13, lineHeight: 19, marginBottom: 12 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    help: { color: C.textDim, fontSize: FONT.sm, lineHeight: 19, marginBottom: 12 },
     sessionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
     rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
-    sessionName: { color: C.text, fontSize: 15, fontWeight: '500' },
-    sessionSub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
+    sessionName: { color: C.text, fontSize: FONT.md, fontWeight: '500' },
+    sessionSub: { color: C.textFaint, fontSize: FONT.sm, marginTop: 2 },
     bankRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -43,8 +43,7 @@ function makeStyles() {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: C.border,
     },
-    bankName: { color: C.text, fontSize: 14, flex: 1 },
-    chevron: { color: C.textFaint, fontSize: 18 },
+    bankName: { color: C.text, fontSize: FONT.md, flex: 1 },
   });
 }
 
@@ -253,7 +252,7 @@ export default function EbConnect() {
                 {filtered.map((b) => (
                   <Pressable key={b.name} onPress={() => authorize(b)} style={styles.bankRow} disabled={busy}>
                     <Text style={styles.bankName}>{b.name}</Text>
-                    <Text style={styles.chevron}>›</Text>
+                    <Chevron />
                   </Pressable>
                 ))}
               </Card>

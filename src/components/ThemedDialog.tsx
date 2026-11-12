@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { C, useStyles } from '@/constants/theme';
+import { C, FONT, RADIUS, SCRIM, useStyles } from '@/constants/theme';
 import { useDialogStore } from '@/lib/confirm';
 import { Button } from './ui';
 
@@ -12,7 +12,7 @@ function makeStyles() {
   return StyleSheet.create({
     backdrop: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.72)',
+      backgroundColor: SCRIM,
       justifyContent: 'center',
       alignItems: 'center',
       padding: 24,
@@ -21,7 +21,7 @@ function makeStyles() {
       width: '100%',
       maxWidth: 380,
       backgroundColor: C.card,
-      borderRadius: 16,
+      borderRadius: RADIUS.md,
       borderWidth: 1,
       borderColor: C.border,
       padding: 20,
@@ -33,13 +33,13 @@ function makeStyles() {
     },
     title: {
       color: C.text,
-      fontSize: 17,
+      fontSize: FONT.lg,
       fontWeight: '700',
       marginBottom: 10,
     },
     message: {
       color: C.textDim,
-      fontSize: 14,
+      fontSize: FONT.md,
       lineHeight: 21,
       marginBottom: 20,
     },

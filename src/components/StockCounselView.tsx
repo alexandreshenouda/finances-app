@@ -17,7 +17,7 @@ import {
   SectionTitle,
   SelectField,
 } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, FONT, RADIUS, SCRIM, TABULAR, useStyles } from '@/constants/theme';
 import {
   computeTechnicalAnalytics,
   DEFAULT_GEMINI_MODELS,
@@ -139,26 +139,26 @@ function makeStyles() {
       flexWrap: 'wrap',
     },
     titleBlock: { flex: 1, minWidth: 180 },
-    screenTitle: { color: C.text, fontSize: 18, fontWeight: '700' },
-    screenSub: { color: C.textDim, fontSize: 12, marginTop: 2 },
+    screenTitle: { color: C.text, fontSize: FONT.lg, fontWeight: '700' },
+    screenSub: { color: C.textDim, fontSize: FONT.sm, marginTop: 2 },
     keyBadge: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
       backgroundColor: C.cardAlt,
-      borderRadius: 20,
+      borderRadius: RADIUS.pill,
       paddingHorizontal: 12,
       paddingVertical: 7,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
     },
-    keyDot: { width: 8, height: 8, borderRadius: 4 },
-    keyBadgeText: { color: C.text, fontSize: 12, fontWeight: '600' },
+    keyDot: { width: 8, height: 8, borderRadius: RADIUS.xs },
+    keyBadgeText: { color: C.text, fontSize: FONT.sm, fontWeight: '600' },
     searchRow: {
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: C.cardAlt,
-      borderRadius: 12,
+      borderRadius: RADIUS.md,
       paddingHorizontal: 12,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
@@ -167,18 +167,18 @@ function makeStyles() {
     searchInput: {
       flex: 1,
       color: C.text,
-      fontSize: 14,
+      fontSize: FONT.md,
       paddingVertical: 10,
     },
     isinTag: {
       backgroundColor: C.accent,
-      borderRadius: 6,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 6,
       paddingVertical: 2,
     },
-    isinTagText: { color: C.onAccent, fontSize: 10, fontWeight: '700' },
+    isinTagText: { color: C.onAccent, fontSize: FONT.xs, fontWeight: '700' },
     clearBtn: { padding: 4 },
-    clearBtnText: { color: C.textDim, fontSize: 14, fontWeight: '700' },
+    clearBtnText: { color: C.textDim, fontSize: FONT.md, fontWeight: '700' },
     dropdownBox: {
       marginTop: 8,
       borderTopWidth: StyleSheet.hairlineWidth,
@@ -187,7 +187,7 @@ function makeStyles() {
     },
     dropdownBanner: {
       color: C.accent,
-      fontSize: 12,
+      fontSize: FONT.sm,
       fontWeight: '600',
       marginBottom: 6,
     },
@@ -201,20 +201,20 @@ function makeStyles() {
       gap: 8,
     },
     ddSymbolRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-    ddSymbol: { color: C.accent, fontSize: 13, fontWeight: '700', fontFamily: 'monospace' },
+    ddSymbol: { color: C.accent, fontSize: FONT.sm, fontWeight: '700', ...TABULAR },
     ddTypePill: {
       backgroundColor: C.cardAlt,
-      borderRadius: 4,
+      borderRadius: RADIUS.xs,
       paddingHorizontal: 5,
       paddingVertical: 1,
     },
-    ddTypeText: { color: C.textDim, fontSize: 10, fontWeight: '600' },
-    ddIsin: { color: C.textFaint, fontSize: 11, fontFamily: 'monospace' },
-    ddName: { color: C.text, fontSize: 13, marginTop: 2 },
-    ddExchange: { color: C.textDim, fontSize: 11, textAlign: 'right' },
+    ddTypeText: { color: C.textDim, fontSize: FONT.xs, fontWeight: '600' },
+    ddIsin: { color: C.textFaint, fontSize: FONT.xs, ...TABULAR },
+    ddName: { color: C.text, fontSize: FONT.sm, marginTop: 2 },
+    ddExchange: { color: C.textDim, fontSize: FONT.xs, textAlign: 'right' },
     stripLabel: {
       color: C.textFaint,
-      fontSize: 11,
+      fontSize: FONT.xs,
       fontWeight: '600',
       textTransform: 'uppercase',
       letterSpacing: 0.6,
@@ -227,7 +227,7 @@ function makeStyles() {
       alignItems: 'center',
       gap: 6,
       backgroundColor: C.cardAlt,
-      borderRadius: 18,
+      borderRadius: RADIUS.pill,
       paddingHorizontal: 11,
       paddingVertical: 6,
       borderWidth: StyleSheet.hairlineWidth,
@@ -237,8 +237,8 @@ function makeStyles() {
       backgroundColor: C.accent,
       borderColor: C.accent,
     },
-    presetSym: { color: C.text, fontSize: 12, fontWeight: '700', fontFamily: 'monospace' },
-    presetName: { color: C.textDim, fontSize: 12, maxWidth: 130 },
+    presetSym: { color: C.text, fontSize: FONT.sm, fontWeight: '700', ...TABULAR },
+    presetName: { color: C.textDim, fontSize: FONT.sm, maxWidth: 130 },
     presetTextActive: { color: C.onAccent },
     // Position détenue
     positionBanner: {
@@ -246,43 +246,43 @@ function makeStyles() {
       justifyContent: 'space-between',
       alignItems: 'center',
       backgroundColor: C.cardAlt,
-      borderRadius: 10,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 12,
       paddingVertical: 10,
       marginBottom: 12,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.accent,
     },
-    positionTitle: { color: C.accent, fontSize: 12, fontWeight: '700' },
-    positionSub: { color: C.text, fontSize: 13, fontWeight: '600', marginTop: 2 },
+    positionTitle: { color: C.accent, fontSize: FONT.sm, fontWeight: '700' },
+    positionSub: { color: C.text, fontSize: FONT.sm, fontWeight: '600', marginTop: 2 },
     // En-tête graphique
     badgesRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 6 },
     symbolBadge: {
       backgroundColor: C.accent,
-      borderRadius: 6,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 8,
       paddingVertical: 3,
     },
-    symbolBadgeText: { color: C.onAccent, fontSize: 12, fontWeight: '700', fontFamily: 'monospace' },
+    symbolBadgeText: { color: C.onAccent, fontSize: FONT.sm, fontWeight: '700', ...TABULAR },
     metaBadge: {
       backgroundColor: C.cardAlt,
-      borderRadius: 6,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
     },
-    metaBadgeText: { color: C.textDim, fontSize: 11, fontWeight: '600' },
+    metaBadgeText: { color: C.textDim, fontSize: FONT.xs, fontWeight: '600' },
     favBtn: {
       backgroundColor: C.cardAlt,
-      borderRadius: 6,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
     },
-    assetTitle: { color: C.text, fontSize: 19, fontWeight: '700' },
-    assetSector: { color: C.textDim, fontSize: 12, marginTop: 2 },
+    assetTitle: { color: C.text, fontSize: FONT.xl, fontWeight: '700' },
+    assetSector: { color: C.textDim, fontSize: FONT.sm, marginTop: 2 },
     priceRow: {
       flexDirection: 'row',
       alignItems: 'baseline',
@@ -292,9 +292,9 @@ function makeStyles() {
       marginBottom: 10,
       gap: 8,
     },
-    spotPrice: { color: C.text, fontSize: 26, fontWeight: '700' },
-    deltaText: { fontSize: 14, fontWeight: '600' },
-    deltaPeriod: { color: C.textFaint, fontSize: 12, fontWeight: '400' },
+    spotPrice: { color: C.text, fontSize: FONT.xl, fontWeight: '700' },
+    deltaText: { fontSize: FONT.md, fontWeight: '600' },
+    deltaPeriod: { color: C.textFaint, fontSize: FONT.sm, fontWeight: '400' },
     toolbarRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -306,26 +306,26 @@ function makeStyles() {
     overlayRow: { flexDirection: 'row', gap: 6 },
     overlayChip: {
       backgroundColor: C.cardAlt,
-      borderRadius: 16,
+      borderRadius: RADIUS.md,
       paddingHorizontal: 10,
       paddingVertical: 5,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
     },
     overlayChipActive: { backgroundColor: C.accent, borderColor: C.accent },
-    overlayChipText: { color: C.textDim, fontSize: 11, fontWeight: '600' },
+    overlayChipText: { color: C.textDim, fontSize: FONT.xs, fontWeight: '600' },
     overlayChipTextActive: { color: C.onAccent },
     hudBar: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 10,
       backgroundColor: C.cardAlt,
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 10,
       paddingVertical: 6,
       marginBottom: 6,
     },
-    hudText: { color: C.textDim, fontSize: 11, fontFamily: 'monospace' },
+    hudText: { color: C.textDim, fontSize: FONT.xs, ...TABULAR },
     legendRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -334,8 +334,8 @@ function makeStyles() {
       marginBottom: 8,
     },
     legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-    legendDot: { width: 8, height: 8, borderRadius: 4 },
-    legendText: { color: C.textFaint, fontSize: 11 },
+    legendDot: { width: 8, height: 8, borderRadius: RADIUS.xs },
+    legendText: { color: C.textFaint, fontSize: FONT.xs },
     metricsGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -349,11 +349,11 @@ function makeStyles() {
       flexGrow: 1,
       flexBasis: '45%',
       backgroundColor: C.cardAlt,
-      borderRadius: 10,
+      borderRadius: RADIUS.sm,
       padding: 10,
     },
-    metricLabel: { color: C.textFaint, fontSize: 11, marginBottom: 3 },
-    metricValue: { color: C.text, fontSize: 13, fontWeight: '600', fontFamily: 'monospace' },
+    metricLabel: { color: C.textFaint, fontSize: FONT.xs, marginBottom: 3 },
+    metricValue: { color: C.text, fontSize: FONT.sm, fontWeight: '600', ...TABULAR },
     // Sentiment & Tendance
     cardHeadRow: {
       flexDirection: 'row',
@@ -363,14 +363,14 @@ function makeStyles() {
       gap: 8,
       marginBottom: 10,
     },
-    cardTitle: { color: C.text, fontSize: 16, fontWeight: '700' },
+    cardTitle: { color: C.text, fontSize: FONT.lg, fontWeight: '700' },
     regimeBadge: {
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderWidth: 1,
     },
-    regimeBadgeText: { fontSize: 11, fontWeight: '700' },
+    regimeBadgeText: { fontSize: FONT.xs, fontWeight: '700' },
     scoreMainRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -379,23 +379,23 @@ function makeStyles() {
       gap: 8,
       marginBottom: 8,
     },
-    scoreBig: { fontSize: 32, fontWeight: '700', fontFamily: 'monospace' },
-    scoreMax: { color: C.textFaint, fontSize: 14, marginLeft: 4 },
+    scoreBig: { fontSize: FONT.hero, fontWeight: '700', ...TABULAR },
+    scoreMax: { color: C.textFaint, fontSize: FONT.md, marginLeft: 4 },
     subPillsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     subPill: {
       backgroundColor: C.cardAlt,
-      borderRadius: 6,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 8,
       paddingVertical: 4,
     },
-    subPillText: { color: C.textDim, fontSize: 11 },
+    subPillText: { color: C.textDim, fontSize: FONT.xs },
     meterScaleRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       marginTop: 4,
       marginBottom: 12,
     },
-    meterScaleText: { color: C.textFaint, fontSize: 10 },
+    meterScaleText: { color: C.textFaint, fontSize: FONT.xs },
     pivotsRow: {
       flexDirection: 'row',
       flexWrap: 'wrap',
@@ -406,12 +406,12 @@ function makeStyles() {
       flex: 1,
       minWidth: 80,
       backgroundColor: C.cardAlt,
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       padding: 8,
       alignItems: 'center',
     },
-    pivotTag: { color: C.textFaint, fontSize: 10, marginBottom: 2 },
-    pivotVal: { color: C.text, fontSize: 12, fontWeight: '600', fontFamily: 'monospace' },
+    pivotTag: { color: C.textFaint, fontSize: FONT.xs, marginBottom: 2 },
+    pivotVal: { color: C.text, fontSize: FONT.sm, fontWeight: '600', ...TABULAR },
     signalRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -421,18 +421,18 @@ function makeStyles() {
       borderTopColor: C.border,
       gap: 8,
     },
-    signalFactor: { color: C.text, fontSize: 13, fontWeight: '600' },
-    signalDetail: { color: C.textDim, fontSize: 11, marginTop: 2 },
+    signalFactor: { color: C.text, fontSize: FONT.sm, fontWeight: '600' },
+    signalDetail: { color: C.textDim, fontSize: FONT.xs, marginTop: 2 },
     signalTag: {
-      borderRadius: 6,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 7,
       paddingVertical: 3,
     },
-    signalTagText: { fontSize: 10, fontWeight: '700' },
+    signalTagText: { fontSize: FONT.xs, fontWeight: '700' },
     // Scénarios de cours futur
     horizonCard: {
       backgroundColor: C.cardAlt,
-      borderRadius: 10,
+      borderRadius: RADIUS.sm,
       padding: 10,
       marginTop: 8,
       borderWidth: StyleSheet.hairlineWidth,
@@ -446,31 +446,31 @@ function makeStyles() {
       marginBottom: 8,
       gap: 4,
     },
-    horizonTitle: { color: C.text, fontSize: 14, fontWeight: '700' },
-    horizonSub: { color: C.textFaint, fontSize: 11 },
+    horizonTitle: { color: C.text, fontSize: FONT.md, fontWeight: '700' },
+    horizonSub: { color: C.textFaint, fontSize: FONT.xs },
     expectedPill: {
       backgroundColor: C.card,
-      borderRadius: 6,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 8,
       paddingVertical: 3,
     },
-    expectedPillText: { color: C.accent, fontSize: 11, fontWeight: '600', fontFamily: 'monospace' },
+    expectedPillText: { color: C.accent, fontSize: FONT.xs, fontWeight: '600', ...TABULAR },
     triGrid: { flexDirection: 'row', gap: 6 },
     triCell: {
       flex: 1,
       backgroundColor: C.card,
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       padding: 8,
       alignItems: 'center',
     },
-    triLabel: { color: C.textFaint, fontSize: 10, marginBottom: 3 },
-    triPrice: { color: C.text, fontSize: 12, fontWeight: '700', fontFamily: 'monospace' },
-    triPct: { fontSize: 11, fontWeight: '600', fontFamily: 'monospace', marginTop: 2 },
-    footnote: { color: C.textFaint, fontSize: 11, lineHeight: 16, marginTop: 10 },
+    triLabel: { color: C.textFaint, fontSize: FONT.xs, marginBottom: 3 },
+    triPrice: { color: C.text, fontSize: FONT.sm, fontWeight: '700', ...TABULAR },
+    triPct: { fontSize: FONT.xs, fontWeight: '600', ...TABULAR, marginTop: 2 },
+    footnote: { color: C.textFaint, fontSize: FONT.xs, lineHeight: 16, marginTop: 10 },
     // Gemini Counselor
     verdictBanner: {
       backgroundColor: C.cardAlt,
-      borderRadius: 12,
+      borderRadius: RADIUS.md,
       padding: 12,
       marginTop: 10,
       borderWidth: StyleSheet.hairlineWidth,
@@ -478,34 +478,34 @@ function makeStyles() {
       gap: 10,
     },
     verdictPill: {
-      borderRadius: 6,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 10,
       paddingVertical: 4,
     },
-    verdictPillText: { fontSize: 12, fontWeight: '700' },
-    executiveThesis: { color: C.text, fontSize: 13, lineHeight: 19 },
+    verdictPillText: { fontSize: FONT.sm, fontWeight: '700' },
+    executiveThesis: { color: C.text, fontSize: FONT.sm, lineHeight: 19 },
     ivBox: {
       backgroundColor: C.card,
-      borderRadius: 10,
+      borderRadius: RADIUS.sm,
       padding: 10,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
     },
-    ivTitle: { color: C.textFaint, fontSize: 11, fontWeight: '600', marginBottom: 6 },
+    ivTitle: { color: C.textFaint, fontSize: FONT.xs, fontWeight: '600', marginBottom: 6 },
     ivRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
     ivCol: { flex: 1, alignItems: 'center' },
-    ivLabel: { color: C.textDim, fontSize: 10 },
-    ivVal: { color: C.text, fontSize: 13, fontWeight: '700', fontFamily: 'monospace', marginTop: 2 },
-    ivMethod: { color: C.textFaint, fontSize: 11, marginTop: 6 },
+    ivLabel: { color: C.textDim, fontSize: FONT.xs },
+    ivVal: { color: C.text, fontSize: FONT.sm, fontWeight: '700', ...TABULAR, marginTop: 2 },
+    ivMethod: { color: C.textFaint, fontSize: FONT.xs, marginTop: 6 },
     subSectionCard: {
       backgroundColor: C.cardAlt,
-      borderRadius: 12,
+      borderRadius: RADIUS.md,
       padding: 12,
       marginTop: 10,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
     },
-    subSectionTitle: { color: C.text, fontSize: 14, fontWeight: '700', marginBottom: 8 },
+    subSectionTitle: { color: C.text, fontSize: FONT.md, fontWeight: '700', marginBottom: 8 },
     multRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -513,47 +513,47 @@ function makeStyles() {
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: C.border,
     },
-    multLabel: { color: C.textDim, fontSize: 12 },
-    multVal: { color: C.text, fontSize: 12, fontWeight: '600', fontFamily: 'monospace' },
+    multLabel: { color: C.textDim, fontSize: FONT.sm },
+    multVal: { color: C.text, fontSize: FONT.sm, fontWeight: '600', ...TABULAR },
     histCallout: {
       color: C.textDim,
-      fontSize: 12,
+      fontSize: FONT.sm,
       lineHeight: 17,
       marginTop: 8,
     },
     factorItem: { marginBottom: 8 },
     factorTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-    factorLabel: { color: C.text, fontSize: 12 },
-    factorScore: { color: C.textDim, fontSize: 12, fontFamily: 'monospace' },
+    factorLabel: { color: C.text, fontSize: FONT.sm },
+    factorScore: { color: C.textDim, fontSize: FONT.sm, ...TABULAR },
     geoBlock: { marginTop: 8 },
-    geoHeading: { color: C.accent, fontSize: 12, fontWeight: '700', marginBottom: 2 },
-    geoBody: { color: C.text, fontSize: 12, lineHeight: 18 },
+    geoHeading: { color: C.accent, fontSize: FONT.sm, fontWeight: '700', marginBottom: 2 },
+    geoBody: { color: C.text, fontSize: FONT.sm, lineHeight: 18 },
     bulletRow: { flexDirection: 'row', gap: 6, marginBottom: 6 },
-    bulletDot: { color: C.accent, fontSize: 13, fontWeight: '700' },
-    bulletText: { flex: 1, color: C.text, fontSize: 12, lineHeight: 18 },
+    bulletDot: { color: C.accent, fontSize: FONT.sm, fontWeight: '700' },
+    bulletText: { flex: 1, color: C.text, fontSize: FONT.sm, lineHeight: 18 },
     pbItem: {
       paddingVertical: 6,
       borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: C.border,
     },
-    pbLabel: { color: C.textFaint, fontSize: 11 },
-    pbVal: { color: C.text, fontSize: 13, fontWeight: '600', marginTop: 2 },
+    pbLabel: { color: C.textFaint, fontSize: FONT.xs },
+    pbVal: { color: C.text, fontSize: FONT.sm, fontWeight: '600', marginTop: 2 },
     // Markdown
     mdH2: {
       color: C.accent,
-      fontSize: 15,
+      fontSize: FONT.md,
       fontWeight: '700',
       marginTop: 14,
       marginBottom: 6,
     },
     mdH3: {
       color: C.text,
-      fontSize: 14,
+      fontSize: FONT.md,
       fontWeight: '700',
       marginTop: 10,
       marginBottom: 4,
     },
-    mdP: { color: C.text, fontSize: 13, lineHeight: 20, marginBottom: 8 },
+    mdP: { color: C.text, fontSize: FONT.sm, lineHeight: 20, marginBottom: 8 },
     mdBold: { fontWeight: '700', color: C.text },
     mdCode: {
       fontFamily: 'monospace',
@@ -567,13 +567,13 @@ function makeStyles() {
       borderTopColor: C.border,
     },
     newsMeta: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 },
-    newsPub: { color: C.accent, fontSize: 11, fontWeight: '600' },
-    newsDate: { color: C.textFaint, fontSize: 11 },
-    newsTitle: { color: C.text, fontSize: 13, fontWeight: '600', lineHeight: 18 },
+    newsPub: { color: C.accent, fontSize: FONT.xs, fontWeight: '600' },
+    newsDate: { color: C.textFaint, fontSize: FONT.xs },
+    newsTitle: { color: C.text, fontSize: FONT.sm, fontWeight: '600', lineHeight: 18 },
     // Modals
     modalBackdrop: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.72)',
+      backgroundColor: SCRIM,
       justifyContent: 'center',
       padding: 16,
     },
@@ -581,37 +581,37 @@ function makeStyles() {
       backgroundColor: C.cardAlt,
       borderLeftWidth: 3,
       borderLeftColor: C.warning,
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       padding: 12,
       marginBottom: 12,
     },
     disclaimerTitle: {
       color: C.warning,
-      fontSize: 12,
+      fontSize: FONT.sm,
       fontWeight: '700',
       marginBottom: 4,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
     },
-    disclaimerText: { color: C.textDim, fontSize: 12, lineHeight: 17 },
+    disclaimerText: { color: C.textDim, fontSize: FONT.sm, lineHeight: 17 },
     privacyWrap: {
       backgroundColor: C.cardAlt,
       borderLeftWidth: 3,
       borderLeftColor: C.accent,
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       padding: 10,
       marginTop: 8,
       marginBottom: 4,
     },
     privacyTitle: {
       color: C.accent,
-      fontSize: 11,
+      fontSize: FONT.xs,
       fontWeight: '700',
       marginBottom: 3,
       textTransform: 'uppercase',
       letterSpacing: 0.4,
     },
-    privacyText: { color: C.textDim, fontSize: 11, lineHeight: 16 },
+    privacyText: { color: C.textDim, fontSize: FONT.xs, lineHeight: 16 },
   });
 }
 
@@ -1539,7 +1539,7 @@ export function StockCounselView({
             <Text
               style={{
                 color: detainedSummary.perf >= 0 ? C.positive : C.negative,
-                fontSize: 14,
+                fontSize: FONT.md,
                 fontWeight: '700',
               }}
             >
@@ -1614,7 +1614,7 @@ export function StockCounselView({
                 style={styles.favBtn}
                 accessibilityLabel={isFavorite ? t('ai.favori_retirer') : t('ai.favori_ajouter')}
               >
-                <Text style={{ color: isFavorite ? C.accent : C.textDim, fontSize: 13 }}>
+                <Text style={{ color: isFavorite ? C.accent : C.textDim, fontSize: FONT.sm }}>
                   {isFavorite ? '★' : '☆'}
                 </Text>
               </Pressable>
@@ -1818,7 +1818,7 @@ export function StockCounselView({
                   <Path
                     d={sma20Path}
                     fill="none"
-                    stroke="#38bdf8"
+                    stroke={C.textDim}
                     strokeWidth={1.4}
                     strokeDasharray="3 2"
                   />
@@ -1958,7 +1958,7 @@ export function StockCounselView({
                   </Text>
                 </View>
                 <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: '#38bdf8' }]} />
+                  <View style={[styles.legendDot, { backgroundColor: C.textDim }]} />
                   <Text style={styles.legendText}>{t('ai.legende_sma20')}</Text>
                 </View>
                 <View style={styles.legendItem}>
@@ -2335,7 +2335,7 @@ export function StockCounselView({
 
             {counselError && (
               <View style={[styles.subSectionCard, { borderColor: C.negative }]}>
-                <Text style={{ color: C.negative, fontSize: 13, marginBottom: 8 }}>
+                <Text style={{ color: C.negative, fontSize: FONT.sm, marginBottom: 8 }}>
                   {counselError}
                 </Text>
                 <Button
@@ -2396,7 +2396,7 @@ export function StockCounselView({
                             },
                           ]}
                         >
-                          <Text style={[styles.verdictPillText, { color: '#0A0A0A' }]}>
+                          <Text style={[styles.verdictPillText, { color: C.onAccent }]}>
                             {geminiStructured.verdict}
                           </Text>
                         </View>
@@ -2661,7 +2661,7 @@ export function StockCounselView({
                       {t('ai.rapport_complet')} ({currentReport.model})
                     </Text>
                     <Pressable onPress={() => setShowFullReport((v) => !v)}>
-                      <Text style={{ color: C.accent, fontSize: 12, fontWeight: '600' }}>
+                      <Text style={{ color: C.accent, fontSize: FONT.sm, fontWeight: '600' }}>
                         {showFullReport ? t('ai.masquer_rapport') : t('ai.afficher_rapport')}
                       </Text>
                     </Pressable>

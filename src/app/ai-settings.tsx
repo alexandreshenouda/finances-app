@@ -6,7 +6,7 @@
  * - Personnalisation optionnelle du pré-prompt système du comité d'investissement.
  */
 import { Button, Card, Field, SectionTitle, SelectField } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, RADIUS, useStyles } from '@/constants/theme';
 import {
   DEFAULT_GEMINI_MODELS,
   DEFAULT_INVESTMENT_COUNSELOR_PREPROMPT,
@@ -26,14 +26,14 @@ import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    help: { color: C.textDim, fontSize: 13, marginBottom: 12, lineHeight: 19 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    help: { color: C.textDim, fontSize: FONT.sm, marginBottom: 12, lineHeight: 19 },
     statusRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
       backgroundColor: C.cardAlt,
-      borderRadius: 10,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 12,
       paddingVertical: 10,
       marginBottom: 14,
@@ -41,48 +41,48 @@ function makeStyles() {
       borderColor: C.border,
     },
     statusDot: { width: 9, height: 9, borderRadius: 4.5 },
-    statusText: { color: C.text, fontSize: 13, fontWeight: '600', flex: 1 },
-    note: { color: C.textFaint, fontSize: 12, marginTop: 6, marginBottom: 10, lineHeight: 17 },
+    statusText: { color: C.text, fontSize: FONT.sm, fontWeight: '600', flex: 1 },
+    note: { color: C.textFaint, fontSize: FONT.sm, marginTop: 6, marginBottom: 10, lineHeight: 17 },
     disclaimerWrap: {
       backgroundColor: C.cardAlt,
       borderLeftWidth: 3,
       borderLeftColor: C.warning,
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       padding: 12,
       marginBottom: 10,
     },
     disclaimerTitle: {
       color: C.warning,
-      fontSize: 12,
+      fontSize: FONT.sm,
       fontWeight: '700',
       marginBottom: 4,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
     },
-    disclaimerText: { color: C.textDim, fontSize: 12, lineHeight: 17 },
+    disclaimerText: { color: C.textDim, fontSize: FONT.sm, lineHeight: 17 },
     privacyWrap: {
       backgroundColor: C.cardAlt,
       borderLeftWidth: 3,
       borderLeftColor: C.accent,
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       padding: 12,
       marginBottom: 12,
     },
     privacyTitle: {
       color: C.accent,
-      fontSize: 12,
+      fontSize: FONT.sm,
       fontWeight: '700',
       marginBottom: 4,
       textTransform: 'uppercase',
       letterSpacing: 0.5,
     },
-    privacyText: { color: C.textDim, fontSize: 12, lineHeight: 17 },
+    privacyText: { color: C.textDim, fontSize: FONT.sm, lineHeight: 17 },
     prepromptInput: {
       backgroundColor: C.cardAlt,
       color: C.text,
-      borderRadius: 10,
+      borderRadius: RADIUS.sm,
       padding: 12,
-      fontSize: 12,
+      fontSize: FONT.sm,
       fontFamily: 'monospace',
       minHeight: 220,
       textAlignVertical: 'top',

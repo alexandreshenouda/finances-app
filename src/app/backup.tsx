@@ -5,7 +5,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform, ScrollView, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, SectionTitle } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
 import { todayKey } from '@/lib/format';
 import { exportData, useStore, type AppData } from '@/lib/store';
@@ -13,8 +13,8 @@ import { exportData, useStore, type AppData } from '@/lib/store';
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    note: { color: C.textFaint, fontSize: 12, marginTop: 8, lineHeight: 17 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    note: { color: C.textFaint, fontSize: FONT.sm, marginTop: 8, lineHeight: 17 },
   });
 }
 

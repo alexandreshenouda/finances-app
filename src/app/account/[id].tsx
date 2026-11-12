@@ -1,7 +1,7 @@
 /** Détail d'un compte : courbe, lignes, frais, mise à jour de valeur. */
 import { LineChart } from '@/components/LineChart';
-import { Button, Card, Chips, Dot, Empty, PeriodChips, SectionTitle } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { Button, Card, Chips, Dot, Empty, PeriodChips, SectionTitle, Segmented } from '@/components/ui';
+import { C, CONTENT, FONT, RADIUS, TABULAR, useStyles } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { formatDate, formatDuration, formatEur, formatMoney, formatPct, formatQuantity, monthsBetween, todayKey } from '@/lib/format';
 import { toEur } from '@/lib/fx';
@@ -27,7 +27,7 @@ import Svg, { Path } from 'react-native-svg';
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
     headerRow: { flexDirection: 'row', alignItems: 'center' },
     chartControls: {
       flexDirection: 'row',
@@ -37,32 +37,32 @@ function makeStyles() {
       gap: 8,
       marginBottom: 8,
     },
-    typeLabel: { color: C.textDim, fontSize: 13, fontWeight: '600' },
-    institution: { color: C.textFaint, fontSize: 13 },
-    value: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 6 },
-    gain: { fontSize: 14, fontWeight: '600', marginTop: 4 },
-    gainLabel: { color: C.textFaint, fontSize: 12, fontWeight: '400' },
-    ownership: { color: C.textDim, fontSize: 13, fontWeight: '600', marginTop: 2 },
-    lastUpdate: { color: C.textFaint, fontSize: 12, marginTop: 2 },
+    typeLabel: { color: C.textDim, fontSize: FONT.sm, fontWeight: '600' },
+    institution: { color: C.textFaint, fontSize: FONT.sm },
+    value: { color: C.text, fontSize: FONT.hero, fontWeight: '700', marginTop: 6, ...TABULAR },
+    gain: { fontSize: FONT.md, fontWeight: '600', marginTop: 4 },
+    gainLabel: { color: C.textFaint, fontSize: FONT.sm, fontWeight: '400' },
+    ownership: { color: C.textDim, fontSize: FONT.sm, fontWeight: '600', marginTop: 2 },
+    lastUpdate: { color: C.textFaint, fontSize: FONT.sm, marginTop: 2 },
     holdingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
     rowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
-    holdingName: { color: C.text, fontSize: 15, fontWeight: '500' },
-    holdingSub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
-    holdingValue: { color: C.text, fontSize: 15, fontWeight: '600' },
-    syncNote: { color: C.textFaint, fontSize: 12, paddingHorizontal: 4, marginTop: 4 },
-    manualHint: { color: C.textDim, fontSize: 13, marginBottom: 10 },
+    holdingName: { color: C.text, fontSize: FONT.md, fontWeight: '500' },
+    holdingSub: { color: C.textFaint, fontSize: FONT.sm, marginTop: 2 },
+    holdingValue: { color: C.text, fontSize: FONT.md, fontWeight: '600', ...TABULAR },
+    syncNote: { color: C.textFaint, fontSize: FONT.sm, paddingHorizontal: 4, marginTop: 4 },
+    manualHint: { color: C.textDim, fontSize: FONT.sm, marginBottom: 10 },
     manualInput: {
       flex: 1,
       backgroundColor: C.cardAlt,
-      borderRadius: 10,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 12,
       color: C.text,
-      fontSize: 15,
+      fontSize: FONT.md,
     },
     feeRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-    feeLabel: { color: C.textDim, fontSize: 14 },
-    feeValue: { color: C.text, fontSize: 14, fontWeight: '600' },
-    feeNotes: { color: C.textFaint, fontSize: 13, marginTop: 8 },
+    feeLabel: { color: C.textDim, fontSize: FONT.md },
+    feeValue: { color: C.text, fontSize: FONT.md, fontWeight: '600', ...TABULAR },
+    feeNotes: { color: C.textFaint, fontSize: FONT.sm, marginTop: 8 },
     eyeBtn: { padding: 4, marginLeft: 6 },
   });
 }
@@ -180,7 +180,7 @@ export default function AccountDetail() {
           <View style={{ height: 12 }} />
           <View style={styles.chartControls}>
             <PeriodChips value={period} onChange={setPeriodOverride} style={{ marginBottom: 0 }} />
-            <Chips
+            <Segmented
               options={CHART_MODES}
               value={chartMode}
               onChange={setChartMode}
@@ -234,8 +234,9 @@ export default function AccountDetail() {
                       onPress={(e) => {
                         e.stopPropagation?.();
                         router.push({
-                          pathname: '/(tabs)/ai' as any,
+                          pathname: '/analyse',
                           params: {
+                            section: 'ai',
                             symbol: h.symbol ?? h.isin ?? h.name,
                             isin: h.isin ?? '',
                             name: h.name,
@@ -285,7 +286,7 @@ export default function AccountDetail() {
                     )}
                   </View>
                   {perf !== undefined && (
-                    <Text style={{ color: perf >= 0 ? C.positive : C.negative, fontSize: 12, fontWeight: '600' }}>
+                    <Text style={{ color: perf >= 0 ? C.positive : C.negative, fontSize: FONT.sm, fontWeight: '600' }}>
                       {formatPct(perf, true)}
                     </Text>
                   )}

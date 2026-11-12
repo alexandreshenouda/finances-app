@@ -1,11 +1,12 @@
-/** Onglet Emprunts : tous les prêts (immobiliers et conso), création et édition. */
+/** Rubrique Emprunts (onglet Patrimoine) : tous les prêts (immobiliers et conso), création et édition. */
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { LoanCard } from '@/components/LoanCard';
-import { Button, Card, Empty, SectionTitle } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { TabIcon } from '@/components/TabIcons';
+import { Button, Card, EmptyState, SectionTitle } from '@/components/ui';
+import { C, CONTENT, FONT, TABULAR, useStyles } from '@/constants/theme';
 import { formatEur } from '@/lib/format';
 import { toEur } from '@/lib/fx';
 import { loanStats } from '@/lib/realestate';
@@ -15,14 +16,14 @@ import { type Loan } from '@/lib/types';
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    totalLabel: { color: C.textDim, fontSize: 14 },
-    totalValue: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 2 },
-    totalSub: { color: C.textFaint, fontSize: 12, marginTop: 4 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    totalLabel: { color: C.textDim, fontSize: FONT.md },
+    totalValue: { color: C.text, fontSize: FONT.hero, fontWeight: '700', marginTop: 2, ...TABULAR },
+    totalSub: { color: C.textFaint, fontSize: FONT.sm, marginTop: 4 },
   });
 }
 
-export default function Loans() {
+export function LoansSection() {
   const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const router = useRouter();
@@ -62,8 +63,16 @@ export default function Loans() {
         </Card>
       )}
 
-      <Button title={t('loans.ajouter')} onPress={() => router.push('/loan-form')} />
-      {loans.length === 0 && <Empty text={t('loans.aucun_detail')} />}
+      {loans.length === 0 ? (
+        <EmptyState
+          icon={<TabIcon name="emprunts" color={C.textDim} size={30} />}
+          text={t('loans.aucun_detail')}
+          actionLabel={t('loans.ajouter')}
+          onAction={() => router.push('/loan-form')}
+        />
+      ) : (
+        <Button title={t('loans.ajouter')} onPress={() => router.push('/loan-form')} />
+      )}
 
       {immoLoans.length > 0 && (
         <>

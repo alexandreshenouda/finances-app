@@ -1,6 +1,6 @@
 /** Création / édition d'une ligne (fonds, action, crypto…) d'un compte manuel. */
 import { Button, Card, Chips, Field, SelectField } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
 import { todayKey } from '@/lib/format';
 import { accountCurrentValue } from '@/lib/portfolio';
@@ -24,8 +24,8 @@ function parseNum(s: string): number | undefined {
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    label: { color: C.textDim, fontSize: FONT.sm, marginBottom: 6 },
   });
 }
 

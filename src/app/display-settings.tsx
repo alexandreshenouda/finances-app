@@ -1,7 +1,7 @@
 /** Paramètres d'affichage : période par défaut des courbes et +/- value. */
 import { Card, Checkbox, Chips, PeriodChips, SectionTitle } from '@/components/ui';
 import type { ThemeName } from '@/constants/theme';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
 import { useStore } from '@/lib/store';
 import { CHART_MODES, type ChartMode } from '@/lib/types';
 import { useTranslation } from 'react-i18next';
@@ -12,8 +12,8 @@ const THEME_OPTIONS: ThemeName[] = ['or', 'classique'];
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    hint: { color: C.textDim, fontSize: 13, marginBottom: 12, lineHeight: 18 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    hint: { color: C.textDim, fontSize: FONT.sm, marginBottom: 12, lineHeight: 18 },
     checkboxSpacer: { marginTop: 10 },
   });
 }

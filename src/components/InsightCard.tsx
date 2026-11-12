@@ -2,8 +2,8 @@
  * - Pastille de sévérité + Titre + Badge de catégorie
  * - Constat factuel et chiffré
  * - Accordéon interactif : Pourquoi c'est important + Piste d'action conforme AMF */
-import { Card, Dot } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { Card, Dot, FadeInView } from '@/components/ui';
+import { C, FONT, RADIUS, useStyles } from '@/constants/theme';
 import type { Insight, InsightCategory } from '@/lib/diversification';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,7 +27,7 @@ function makeStyles() {
     },
     title: {
       color: C.text,
-      fontSize: 14,
+      fontSize: FONT.md,
       fontWeight: '700',
       flexShrink: 1,
     },
@@ -35,18 +35,18 @@ function makeStyles() {
       backgroundColor: C.cardAlt,
       paddingHorizontal: 8,
       paddingVertical: 3,
-      borderRadius: 6,
+      borderRadius: RADIUS.sm,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
     },
     categoryText: {
       color: C.textDim,
-      fontSize: 11,
+      fontSize: FONT.xs,
       fontWeight: '600',
     },
     observation: {
       color: C.text,
-      fontSize: 13,
+      fontSize: FONT.sm,
       lineHeight: 19,
     },
     toggleBtn: {
@@ -58,7 +58,7 @@ function makeStyles() {
     },
     toggleText: {
       color: C.accent,
-      fontSize: 12,
+      fontSize: FONT.sm,
       fontWeight: '600',
     },
     expandedContainer: {
@@ -71,7 +71,7 @@ function makeStyles() {
     sectionBox: {
       backgroundColor: C.cardAlt,
       padding: 10,
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       borderLeftWidth: 3,
     },
     sectionBoxWhy: {
@@ -81,7 +81,7 @@ function makeStyles() {
       borderLeftColor: C.positive,
     },
     sectionLabel: {
-      fontSize: 11,
+      fontSize: FONT.xs,
       fontWeight: '700',
       textTransform: 'uppercase',
       letterSpacing: 0.5,
@@ -95,7 +95,7 @@ function makeStyles() {
     },
     sectionContent: {
       color: C.text,
-      fontSize: 12,
+      fontSize: FONT.sm,
       lineHeight: 18,
     },
   });
@@ -132,14 +132,20 @@ export function InsightCard({ insight }: { insight: Insight }) {
 
       {hasAccordion && (
         <>
-          <Pressable style={styles.toggleBtn} onPress={() => setExpanded((prev) => !prev)}>
+          <Pressable
+            style={({ pressed }) => [styles.toggleBtn, pressed && { opacity: 0.65 }]}
+            onPress={() => setExpanded((prev) => !prev)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityState={{ expanded }}
+          >
             <Text style={styles.toggleText}>
               {expanded ? t('diversification.replier') : t('diversification.comprendre_agir')}
             </Text>
           </Pressable>
 
           {expanded && (
-            <View style={styles.expandedContainer}>
+            <FadeInView style={styles.expandedContainer}>
               {insight.whyKey && (
                 <View style={[styles.sectionBox, styles.sectionBoxWhy]}>
                   <Text style={[styles.sectionLabel, styles.labelWhy]}>
@@ -157,7 +163,7 @@ export function InsightCard({ insight }: { insight: Insight }) {
                   <Text style={styles.sectionContent}>{t(insight.actionKey, insight.params)}</Text>
                 </View>
               )}
-            </View>
+            </FadeInView>
           )}
         </>
       )}

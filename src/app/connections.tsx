@@ -1,6 +1,6 @@
 /** Connexions externes (Binance, Kraken, Enable Banking, Trade Republic, Google Gemini IA). */
 import { Button, Card, Empty, SectionTitle } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
 import { deleteGeminiApiKey, getGeminiApiKey } from '@/lib/aiCounsel';
 import { confirmAction, notify } from '@/lib/confirm';
 import { syncConnection } from '@/lib/connectors';
@@ -16,14 +16,14 @@ import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    webWarn: { color: C.warning, fontSize: 13, lineHeight: 18 },
-    connLabel: { color: C.text, fontSize: 16, fontWeight: '600' },
-    connSub: { color: C.textDim, fontSize: 13, marginTop: 2 },
-    connError: { color: C.negative, fontSize: 12, marginTop: 6 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    webWarn: { color: C.warning, fontSize: FONT.sm, lineHeight: 18 },
+    connLabel: { color: C.text, fontSize: FONT.lg, fontWeight: '600' },
+    connSub: { color: C.textDim, fontSize: FONT.sm, marginTop: 2 },
+    connError: { color: C.negative, fontSize: FONT.sm, marginTop: 6 },
     connButtons: { flexDirection: 'row', gap: 8, marginTop: 12 },
-    addHint: { color: C.textDim, fontSize: 13, marginBottom: 10, lineHeight: 18 },
-    addNote: { color: C.textFaint, fontSize: 12, marginTop: 8, lineHeight: 17 },
+    addHint: { color: C.textDim, fontSize: FONT.sm, marginBottom: 10, lineHeight: 18 },
+    addNote: { color: C.textFaint, fontSize: FONT.sm, marginTop: 8, lineHeight: 17 },
   });
 }
 

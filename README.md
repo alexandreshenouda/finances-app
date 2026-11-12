@@ -67,6 +67,40 @@ pour le détail des contraintes.
 
 ## Fonctionnalités
 
+**Navigation : 5 onglets**
+- **Synthèse** · **Patrimoine** (rubriques *Comptes*, *Immobilier*, *Emprunts*) · **Budget**
+  (rubriques *Vue d'ensemble*, *Postes*) ·
+  **Analyse** (rubriques *Diversification*, *IA*) · **Paramètres**. Les rubriques d'un onglet se
+  choisissent par des puces en haut de l'écran ; Immobilier, Emprunts, Diversification et IA
+  restent masquables dans **Paramètres → Affichage**.
+- **Rafraîchir** les cours et synchronisations : icône dans l'en-tête de la Synthèse (à côté de
+  l'œil), ou tirer vers le bas sur mobile. La confirmation s'efface seule, un avertissement reste.
+- **États vides guidés** : une rubrique sans donnée affiche une icône, une explication et le
+  bouton d'ajout correspondant.
+
+**Budget & capacité d'épargne**
+- **Entrées / sorties récurrentes** : saisie des revenus, des dépenses (marquées *vitales* ou non)
+  et des **versements d'épargne programmés**, par catégorie, en mensuel, trimestriel ou annuel
+  (tout est ramené au mois). Les **mensualités des prêts** de la rubrique Emprunts sont comptées
+  automatiquement (désactivable).
+- **Capacité d'épargne** (revenus − dépenses), taux d'épargne, reste non affecté après l'épargne
+  programmée, répartition des revenus et dépenses par poste.
+- **Épargne théorique vs épargne réelle** : la capacité est comparée à la variation moyenne
+  constatée de vos comptes sur 3 mois, 6 mois ou 1 an (performance des marchés incluse), avec
+  une lecture de l'écart.
+- **Repère 50 / 30 / 20** (besoins / envies / épargne) et **effort mensuel demandé par vos
+  objectifs datés** rapporté à votre capacité.
+- **Graphes de répartition des dépenses** (anneau) : vital / envies ou par catégorie.
+- **Postes repliables** : revenus, dépenses et épargne se replient, avec un affichage en liste
+  ou groupé par catégorie (sous-total par catégorie, elle-même repliable).
+- **Conseils budget** intégrés aux autres recommandations (rubrique Diversification, filtre
+  « Budget », et bas de la rubrique Vue d'ensemble du Budget) : budget déficitaire, taux d'épargne faible ou bon,
+  dépenses vitales ou non vitales trop lourdes, taux d'effort des crédits (repère HCSF 35 %),
+  épargne programmée supérieure à la capacité ou capacité non programmée, épargne réelle
+  inférieure au budget, objectifs hors de portée, épargne de précaution à réaligner.
+- Les dépenses vitales et revenus du budget peuvent être **repris en un tap** dans l'objectif
+  « Épargne de précaution ».
+
 **Vue d'ensemble**
 - **Patrimoine net ou brut** : la synthèse totalise comptes + immobilier, avec un basculement
   **Net** (actifs − crédits) / **Brut**, et une case pour **inclure ou non les biens immobiliers**
@@ -113,7 +147,7 @@ pour le détail des contraintes.
   frais de gestion TER) et des actions individuelles (pays, secteur) par simple saisie de l'ISIN.
 
 **Analyse de titres & Conseiller IA (InvestCounsel)**
-- **Onglet IA dédié & accès direct depuis vos lignes détenues** : cliquez sur n'importe quelle ligne détenue dans un compte pour ouvrir sa fiche complète (`holding-detail`) intégrant l'analyse **InvestCounsel AI**, ou ouvrez directement l'onglet **IA** pour rechercher et analyser tout ticker ou code ISIN mondial (actions, ETF, fonds) :
+- **Rubrique IA dédiée (onglet Analyse) & accès direct depuis vos lignes détenues** : cliquez sur n'importe quelle ligne détenue dans un compte pour ouvrir sa fiche complète (`holding-detail`) intégrant l'analyse **InvestCounsel AI**, ou ouvrez directement la rubrique **IA** pour rechercher et analyser tout ticker ou code ISIN mondial (actions, ETF, fonds) :
   - **Recherche universelle Ticker & ISIN** : résolution automatique des codes ISIN (ex. `FR0000121014`, `IE00B4L5Y983`), watchlist personnalisable et accès en un clic à toutes les lignes détenues en portefeuille ;
   - **Graphique interactif multi-échelle & Cône de projection 12M** : historique `1D`, `1W`, `1M`, `1Y`, `5Y` avec moyennes mobiles (`SMA 20`, `SMA 50`, `SMA 200`, `EMA 20`) et cône statistique log-normal à 12 mois (scénarios *Bear*, *Base*, *Bull* + cibles Gemini) ;
   - **Score algorithmique 7 facteurs (0–100) & Télémétrie technique** : tendance séculaire (`SMA 200`), alignement `SMA 50/200` (*Golden/Death Cross*), momentum court terme (`EMA 20`), `RSI(14)`, impulsion `MACD(12,26,9)`, positionnement dans le canal 52 semaines, tonalité des actualités, volatilité annualisée, *max drawdown*, `ATR(14)`, ratio de Sharpe et pivots `S1/S2/R1/R2` ;
@@ -133,19 +167,19 @@ pour le détail des contraintes.
 - **Trésorerie dormante & Adéquation aux objectifs** : détection des liquidités excédentaires sur compte courant à transférer vers des livrets garantis (Livret A, LDDS), et contrôle de l'adéquation entre l'échéance des projets court/long terme et la volatilité des actifs.
 - **Épargne de précaution** : invitation à la définir si elle manque, alerte si les dépenses vitales dépassent les revenus, comparaison de la durée choisie avec la durée suggérée (cible trop faible ou très prudente), et suivi du matelas réel (livrets + comptes courants) : insuffisant, en cours de constitution — avec un **plan chiffré** (la moitié de la marge mensuelle après dépenses vitales, et le délai pour atteindre la cible) quand les revenus sont connus — ou excédentaire.
 - **Rééquilibrage par les flux entrants (*Cash-flow rebalancing*)** : recommandation de rééquilibrer par l'orientation des futurs versements réguliers (DCA) plutôt que par des arbitrages imposables.
-- **Diversification sectorielle & géographique** : onglet dédié comparant votre patrimoine à un profil de référence (Prudent, Équilibré, Dynamique) et alertant sur les concentrations excessives.
+- **Diversification sectorielle & géographique** : rubrique de l'onglet **Analyse** comparant votre patrimoine à un profil de référence (Prudent, Équilibré, Dynamique) et alertant sur les concentrations excessives.
 - **Classification multi-sources** : JustETF (scraping temps réel pour ETFs UCITS et actions) → Yahoo Finance (secteur actions) → table locale de repli (`referenceEtfs.ts`).
 
 **Immobilier & crédits**
-- **Immobilier** : onglet dédié pour les biens physiques (appartement, maison, terrain…) —
+- **Immobilier** : rubrique de l'onglet **Patrimoine** pour les biens physiques (appartement, maison, terrain…) —
   - **valeur estimée** réévaluée automatiquement via un indice national des prix des logements
     (INSEE, embarqué pour un fonctionnement hors-ligne), avec surcharge manuelle possible ;
   - **plus-value latente** (valeur − prix de revient), en € et en % ;
   - **quote-part détenue** (SCI / indivision) sur un bien ou un compte immobilier : le montant
     complet reste affiché, mais seule votre part est comptée dans le patrimoine.
-- **Emprunts** : onglet dédié regroupant tous les prêts — crédits immobiliers (toujours
+- **Emprunts** : rubrique de l'onglet **Patrimoine** regroupant tous les prêts — crédits immobiliers (toujours
   rattachables à un bien) et **prêts conso** (sans rattachement), créables et modifiables
-  depuis l'onglet ; les prêts conso sont déduits du patrimoine net. Échéancier d'amortissement
+  depuis la rubrique ; les prêts conso sont déduits du patrimoine net. Échéancier d'amortissement
   calculé (mensualité, capital restant dû, coût total, temps restant), en mensualités
   **constantes** ou **échelonnées par paliers** (différé total/partiel géré), avec courbe du
   capital restant dû.
@@ -169,7 +203,15 @@ pour le détail des contraintes.
   instantanément tous les montants (les pourcentages de répartition et de performance restent
   visibles).
 - **Personnalisation de l'affichage** : choix de la période par défaut des graphiques et de
-  la variation, visibilité configurable des onglets (Immobilier, Emprunts, Diversification, IA).
+  la variation, visibilité configurable des rubriques (Immobilier, Emprunts, Diversification, IA).
+- **Accessibilité & confort** : boutons, puces, lignes et cases exposent leur rôle et leur état
+  aux lecteurs d'écran ; zones tactiles d'au moins 44 px ; transitions discrètes (barres de
+  progression, changement de rubrique, détail des conseils) ; sur grand écran (web, Electron,
+  tablette) le contenu est centré sur 720 px de large.
+- **Design system** : tailles de police, rayons et espacements viennent de tokens partagés
+  (`FONT`, `RADIUS`, `SPACE` dans `src/constants/theme.ts`) ; les listes (comptes, postes du
+  budget, menus) partagent une même ligne (`ListRow`) qui réagit à l'appui ; les montants sont
+  en chiffres à chasse fixe et le texte secondaire respecte un contraste ≥ 4,5:1.
 - **Multi-devises** : comptes et lignes en EUR (défaut), USD ou CHF — saisie dans la devise
   d'origine, affichage et courbes convertis en € avec les taux BCE
   ([frankfurter.dev](https://frankfurter.dev), rafraîchis à chaque mise à jour, derniers taux
@@ -434,21 +476,22 @@ signingConfig dans le Gradle généré, et le workflow vérifie ensuite avec
 
 ```
 src/
-  app/                 écrans (expo-router) : onglets Synthèse / Comptes / Immobilier /
-                       Emprunts / Diversification / IA / Paramètres (connexions, sauvegarde,
-                       affichage, entretien de l'historique, reclassification globale des lignes),
-                       détail de compte et de bien, formulaires (compte, ligne, bien, prêt),
-                       flux Enable Banking.
+  app/                 écrans (expo-router) : 5 onglets — Synthèse / Patrimoine (Comptes,
+                       Immobilier, Emprunts) / Budget / Analyse (Diversification, IA) /
+                       Paramètres (connexions, sauvegarde, affichage, entretien de l'historique,
+                       reclassification globale des lignes) —, détail de compte et de bien,
+                       formulaires (compte, ligne, bien, prêt, flux de budget), flux Enable Banking.
                        `holding-detail` : écran de détail d'une ligne détenue — données de marché,
                        analyse complète InvestCounsel AI intégrée (`StockCounselView`), répartition
                        sectorielle, géographique, top positions cliquables, TER, source de
                        classification (JustETF / Yahoo / CoinGecko / référence locale).
-  components/          LineChart (SVG), StockCounselView, AllocationBar, PieChart, ProgressBar, ThemedDialog, primitives UI
+  components/          sections/ (rubriques des onglets Patrimoine et Analyse), LineChart (SVG), StockCounselView, AllocationBar, PieChart, ProgressBar, ThemedDialog, primitives UI
   lib/
-    types.ts           modèle : Account, Holding, Snapshot, Connection, Property, Loan
+    types.ts           modèle : Account, Holding, Snapshot, Connection, Property, Loan, BudgetItem
     store.ts           store zustand persisté (AsyncStorage)
     secure.ts          secrets (expo-secure-store, repli localStorage sur web)
     aiCounsel.ts       moteur InvestCounsel AI : données Yahoo multi-échelle, indicateurs techniques, cône de projection et API Gemini
+    budget.ts          budget récurrent : capacité d'épargne, épargne constatée, repère 50/30/20
     portfolio.ts       valorisation comptes + construction des séries temporelles
     realestate.ts      estimation des biens, amortissement des crédits (constant/paliers)
     prices/            Yahoo Finance, CoinGecko, JustETF scraper (ETFs & actions) & indice INSEE

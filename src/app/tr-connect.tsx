@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Field } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
 import { notify } from '@/lib/confirm';
 import { loadCredentials, persistExternalAccounts } from '@/lib/connectors';
 import {
@@ -34,11 +34,11 @@ interface TrCredentials {
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    warn: { color: C.warning, fontSize: 13, lineHeight: 18 },
-    err: { color: C.negative, fontSize: 13, lineHeight: 18 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    warn: { color: C.warning, fontSize: FONT.sm, lineHeight: 18 },
+    err: { color: C.negative, fontSize: FONT.sm, lineHeight: 18 },
     status: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    statusText: { flex: 1, color: C.text, fontSize: 14, lineHeight: 20 },
+    statusText: { flex: 1, color: C.text, fontSize: FONT.md, lineHeight: 20 },
   });
 }
 

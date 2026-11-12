@@ -3,7 +3,7 @@
  * personnalisée au sens de la réglementation. */
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { C, useStyles } from '@/constants/theme';
+import { C, FONT, RADIUS, useStyles } from '@/constants/theme';
 
 function makeStyles() {
   return StyleSheet.create({
@@ -11,12 +11,12 @@ function makeStyles() {
       backgroundColor: C.cardAlt,
       borderLeftWidth: 3,
       borderLeftColor: C.warning,
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       padding: 12,
       marginBottom: 16,
     },
-    title: { color: C.warning, fontSize: 12, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-    text: { color: C.textDim, fontSize: 12, lineHeight: 17 },
+    title: { color: C.warning, fontSize: FONT.sm, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+    text: { color: C.textDim, fontSize: FONT.sm, lineHeight: 17 },
   });
 }
 

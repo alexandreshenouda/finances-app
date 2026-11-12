@@ -8,7 +8,8 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, Slider } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
+import { budgetLines, budgetSummary } from '@/lib/budget';
 import { confirmAction } from '@/lib/confirm';
 import { formatDuration, formatMoney, formatPct } from '@/lib/format';
 import { objectiveProgress, suggestPrecaution } from '@/lib/objectives';
@@ -38,13 +39,13 @@ const SECURITY_MONTHS_WARNING = 8;
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
-    warning: { color: C.negative, fontSize: 12, lineHeight: 17, marginTop: 4, marginBottom: 8 },
-    previewLine: { color: C.text, fontSize: 14, marginTop: 4 },
-    suggestionAmount: { color: C.text, fontSize: 15, fontWeight: '600', marginBottom: 6 },
-    suggestionText: { color: C.textDim, fontSize: 13, lineHeight: 18, marginBottom: 4 },
-    suggestionOk: { color: C.positive, fontSize: 13, marginTop: 4 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    label: { color: C.textDim, fontSize: FONT.sm, marginBottom: 6 },
+    warning: { color: C.negative, fontSize: FONT.sm, lineHeight: 17, marginTop: 4, marginBottom: 8 },
+    previewLine: { color: C.text, fontSize: FONT.md, marginTop: 4 },
+    suggestionAmount: { color: C.text, fontSize: FONT.md, fontWeight: '600', marginBottom: 6 },
+    suggestionText: { color: C.textDim, fontSize: FONT.sm, lineHeight: 18, marginBottom: 4 },
+    suggestionOk: { color: C.positive, fontSize: FONT.sm, marginTop: 4 },
   });
 }
 
@@ -61,6 +62,14 @@ export default function ObjectiveForm() {
   const upsertObjective = useStore((s) => s.upsertObjective);
   const deleteObjective = useStore((s) => s.deleteObjective);
   const existing = objectives.find((o) => o.id === objectiveId);
+  const budgetItems = useStore((s) => s.budgetItems);
+  const loans = useStore((s) => s.loans);
+  const budgetIncludeLoans = useStore((s) => s.budgetIncludeLoans);
+  // Dépenses vitales et revenus déjà saisis dans l'onglet Budget : repris en un tap.
+  const budget = useMemo(
+    () => budgetSummary(budgetLines(budgetItems, { loans, rates, includeLoans: budgetIncludeLoans })),
+    [budgetItems, loans, rates, budgetIncludeLoans]
+  );
 
   const hasOtherEpargne = objectives.some((o) => o.category === 'epargne_precaution' && o.id !== existing?.id);
   const availableCategories = OBJECTIVE_CATEGORY_ORDER.filter((c) => c !== 'epargne_precaution' || !hasOtherEpargne);
@@ -189,6 +198,16 @@ export default function ObjectiveForm() {
                 placeholder={t('objectiveForm.revenus_placeholder')}
                 hint={t('objectiveForm.revenus_hint')}
               />
+              {budget.essential > 0 && (
+                <Button
+                  title={t('objectiveForm.reprendre_budget')}
+                  variant="secondary"
+                  onPress={() => {
+                    setMonthlyExpenses(String(Math.round(budget.essential)));
+                    if (budget.income > 0) setMonthlyIncome(String(Math.round(budget.income)));
+                  }}
+                />
+              )}
             </Card>
             {suggestion && (
               <Card>

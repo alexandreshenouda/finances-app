@@ -233,6 +233,35 @@ describe('objectifs', () => {
   });
 });
 
+describe('budget', () => {
+  it('crée, met à jour en place et supprime un flux récurrent', () => {
+    const created = S().upsertBudgetItem({
+      kind: 'income',
+      label: 'Salaire',
+      amount: 2500,
+      frequency: 'monthly',
+      category: 'salaire',
+    });
+    expect(created.id).toBeTruthy();
+    expect(created.createdAt).toBeTruthy();
+
+    const updated = S().upsertBudgetItem({ ...created, amount: 2600 });
+    expect(updated.createdAt).toBe(created.createdAt);
+    expect(S().budgetItems).toEqual([{ ...created, amount: 2600 }]);
+
+    S().deleteBudgetItem(created.id);
+    expect(S().budgetItems).toEqual([]);
+  });
+
+  it('compte les mensualités de prêts par défaut, réglage modifiable et remis à zéro', () => {
+    expect(S().budgetIncludeLoans).toBe(true);
+    S().setBudgetIncludeLoans(false);
+    expect(S().budgetIncludeLoans).toBe(false);
+    S().resetAll();
+    expect(S().budgetIncludeLoans).toBe(true);
+  });
+});
+
 describe('lignes', () => {
   it('prend une source de prix manuelle par défaut et se met à jour en place', () => {
     const h = S().upsertHolding({ accountId: 'a', name: 'ETF', quantity: 2 });
@@ -320,6 +349,17 @@ describe('import / export / remise à zéro', () => {
     objectives: [objective()],
     savedProjections: [
       { id: 'p', name: 'P', createdAt: '2024-01-01T00:00:00.000Z', settings: DEFAULT_PROJECTION_SETTINGS },
+    ],    budgetItems: [
+      {
+        id: 'b',
+        kind: 'expense',
+        label: 'Loyer',
+        amount: 900,
+        frequency: 'monthly',
+        category: 'logement',
+        essential: true,
+        createdAt: '2024-01-01T00:00:00.000Z',
+      },
     ],
   };
 
@@ -339,6 +379,7 @@ describe('import / export / remise à zéro', () => {
       loans: [],
       objectives: [],
       savedProjections: [],
+      budgetItems: [],
     });
   });
 
@@ -357,6 +398,7 @@ describe('import / export / remise à zéro', () => {
       loans: [],
       objectives: [],
       savedProjections: [],
+      budgetItems: [],
     });
     expect(S()).toMatchObject({ privacyMode: false, theme: 'or', chartMode: 'value', language: 'fr' });
   });

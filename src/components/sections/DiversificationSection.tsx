@@ -1,8 +1,8 @@
-/** Diversification : avertissement légal, comparaison à un profil de référence, suggestions. */
+/** Rubrique Diversification (onglet Analyse) : avertissement légal, comparaison à un profil de référence, suggestions. */
 import { InsightCard } from '@/components/InsightCard';
 import { LegalDisclaimer } from '@/components/LegalDisclaimer';
 import { Button, Card, Chips, Empty, ProgressBar, SectionTitle } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
 import { computeAllocationComparison, computeClassificationBreakdown, computeInsights } from '@/lib/diversification';
 import { formatEur, formatPct } from '@/lib/format';
 import { accountCurrentValue, accountShare } from '@/lib/portfolio';
@@ -33,20 +33,20 @@ function gapColor(actualPct: number, targetPct: number): string {
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40, gap: 10 },
+    content: { padding: 16, paddingBottom: 40, gap: 10, ...CONTENT },
     row: { paddingVertical: 10 },
     rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
     rowHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-    rowLabel: { color: C.text, fontSize: 14, fontWeight: '600' },
-    rowValues: { color: C.textDim, fontSize: 12 },
-    excluded: { color: C.textFaint, fontSize: 12, marginTop: 12, lineHeight: 16 },
-    cardTitle: { color: C.text, fontSize: 15, fontWeight: '700', marginBottom: 10 },
-    coverage: { color: C.textDim, fontSize: 12, marginBottom: 8 },
-    classifyMessage: { color: C.textFaint, fontSize: 12, marginTop: 10, lineHeight: 16 },
+    rowLabel: { color: C.text, fontSize: FONT.md, fontWeight: '600' },
+    rowValues: { color: C.textDim, fontSize: FONT.sm },
+    excluded: { color: C.textFaint, fontSize: FONT.sm, marginTop: 12, lineHeight: 16 },
+    cardTitle: { color: C.text, fontSize: FONT.md, fontWeight: '700', marginBottom: 10 },
+    coverage: { color: C.textDim, fontSize: FONT.sm, marginBottom: 8 },
+    classifyMessage: { color: C.textFaint, fontSize: FONT.sm, marginTop: 10, lineHeight: 16 },
   });
 }
 
-export default function Diversification() {
+export function DiversificationSection() {
   const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const accounts = useStore((s) => s.accounts);
@@ -59,6 +59,8 @@ export default function Diversification() {
   const houseIndex = useStore((s) => s.houseIndex);
   const patrimoineNet = useStore((s) => s.patrimoineNet);
   const showRealEstate = useStore((s) => s.showRealEstate);
+  const budgetItems = useStore((s) => s.budgetItems);
+  const budgetIncludeLoans = useStore((s) => s.budgetIncludeLoans);
   const riskProfile = useStore((s) => s.riskProfile);
   const setRiskProfile = useStore((s) => s.setRiskProfile);
   // Re-render au changement de mode confidentialité ; aussi dépendance du memo des
@@ -151,9 +153,19 @@ export default function Diversification() {
 
   const insights = useMemo(
     () =>
-      computeInsights({ accounts: active, holdings, snapshots, byType, totalValue, rates, objectives, riskProfile }),
+      computeInsights({
+        accounts: active,
+        holdings,
+        snapshots,
+        byType,
+        totalValue,
+        rates,
+        objectives,
+        riskProfile,
+        budget: { items: budgetItems, loans, includeLoans: budgetIncludeLoans },
+      }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- privacyMode : voir plus haut
-    [active, holdings, snapshots, byType, totalValue, rates, objectives, riskProfile, privacyMode]
+    [active, holdings, snapshots, byType, totalValue, rates, objectives, riskProfile, budgetItems, loans, budgetIncludeLoans, privacyMode]
   );
 
   const [selectedCategory, setSelectedCategory] = useState<string>('all');

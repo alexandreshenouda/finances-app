@@ -3,6 +3,7 @@
 import type {
   Account,
   AccountType,
+  BudgetItem,
   FxRates,
   Holding,
   Loan,
@@ -75,6 +76,19 @@ export function objective(over: Partial<Objective> = {}): Objective {
   return {
     id: over.id ?? nextId('obj'),
     category: 'projet_long_terme',
+    createdAt: '2020-01-01T00:00:00.000Z',
+    ...over,
+  };
+}
+
+export function budgetItem(over: Partial<BudgetItem> = {}): BudgetItem {
+  return {
+    id: over.id ?? nextId('bud'),
+    kind: 'expense',
+    label: 'Flux test',
+    amount: 100,
+    frequency: 'monthly',
+    category: 'autre_depense',
     createdAt: '2020-01-01T00:00:00.000Z',
     ...over,
   };

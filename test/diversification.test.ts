@@ -3,12 +3,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   computeAllocationComparison,
+  computeBudgetInsights,
   computeClassificationBreakdown,
   computeInsights,
   type Insight,
 } from '@/lib/diversification';
-import type { AccountType, Objective, RiskProfile } from '@/lib/types';
-import { RATES, account, holding, objective } from './factories';
+import { formatEur, formatPct, todayKey } from '@/lib/format';
+import i18next from '@/lib/i18n';
+import type { Account, AccountType, BudgetItem, Loan, Objective, RiskProfile, Snapshot } from '@/lib/types';
+import { RATES, account, budgetItem, holding, loan, objective, snapshot } from './factories';
 
 const byType = (entries: Partial<Record<AccountType, number>>) =>
   new Map(Object.entries(entries) as [AccountType, number][]);
@@ -636,5 +639,234 @@ describe('computeInsights — adéquation horizon / risque', () => {
       objectives: [projet],
     });
     expect(find(list, 'horizon-long-inflation')?.severity).toBe('info');
+  });
+});
+
+describe('computeBudgetInsights — conseils budget', () => {
+  const TODAY = '2024-07-01';
+  const base = {
+    loans: [] as Loan[],
+    includeLoans: true,
+    accounts: [] as Account[],
+    holdings: [],
+    snapshots: [] as Snapshot[],
+    rates: RATES,
+    objectives: [] as Objective[],
+    today: TODAY,
+  };
+  const income = (amount: number) => budgetItem({ kind: 'income', amount, category: 'salaire' });
+  const vital = (amount: number) => budgetItem({ amount, category: 'logement', essential: true });
+  const wants = (amount: number) => budgetItem({ amount, category: 'loisirs' });
+  const saving = (amount: number) => budgetItem({ kind: 'saving', amount, category: 'versement_epargne' });
+  const run = (budgetItems: BudgetItem[], over: Partial<typeof base> = {}) =>
+    computeBudgetInsights({ ...base, ...over, budgetItems });
+  const byId = (list: Insight[], id: string) => list.find((i) => i.id === id);
+
+  it('invite à compléter un budget vide, sans revenus ou sans dépenses', () => {
+    for (const items of [[], [income(3000)], [vital(900)]]) {
+      const res = run(items);
+      expect(res.map((i) => i.id)).toEqual(['budget-missing']);
+      expect(res[0]).toMatchObject({ severity: 'info', category: 'budget' });
+    }
+  });
+
+  it('signale un budget déficitaire, sans y ajouter les alertes de ratio', () => {
+    const res = run([income(2000), vital(1800), wants(500)]);
+    expect(byId(res, 'budget-deficit')).toMatchObject({
+      severity: 'warning',
+      params: { income: formatEur(2000), expenses: formatEur(2300), gap: formatEur(300) },
+    });
+    expect(byId(res, 'budget-savings-rate-low')).toBeUndefined();
+    expect(byId(res, 'budget-essential-heavy')).toBeUndefined();
+  });
+
+  it('qualifie le taux d’épargne : alerte sous 5 %, info sous 10 %, positif dès 20 %', () => {
+    expect(byId(run([income(2000), vital(1920)]), 'budget-savings-rate-low')?.severity).toBe('warning'); // 4 %
+    expect(byId(run([income(2000), vital(1840)]), 'budget-savings-rate-low')?.severity).toBe('info'); // 8 %
+    const neutral = run([income(2000), vital(900), wants(800)]); // 15 %
+    expect(byId(neutral, 'budget-savings-rate-low')).toBeUndefined();
+    expect(byId(neutral, 'budget-savings-rate-good')).toBeUndefined();
+    expect(byId(run([income(2000), vital(900), wants(700)]), 'budget-savings-rate-good')).toMatchObject({
+      severity: 'positive',
+      params: { pct: formatPct(20), capacity: formatEur(400) },
+    });
+  });
+
+  it('signale des dépenses vitales lourdes (info dès 60 %, alerte dès 70 %)', () => {
+    expect(byId(run([income(2000), vital(1100)]), 'budget-essential-heavy')).toBeUndefined(); // 55 %
+    expect(byId(run([income(2000), vital(1300)]), 'budget-essential-heavy')?.severity).toBe('info'); // 65 %
+    expect(byId(run([income(2000), vital(1500)]), 'budget-essential-heavy')).toMatchObject({
+      severity: 'warning',
+      params: { pct: formatPct(75), amount: formatEur(1500) },
+    });
+  });
+
+  it('signale des dépenses non vitales au-delà de 35 % des revenus', () => {
+    expect(byId(run([income(2000), vital(500), wants(700)]), 'budget-wants-heavy')).toBeUndefined(); // 35 %
+    expect(byId(run([income(2000), vital(500), wants(800)]), 'budget-wants-heavy')?.params).toEqual({
+      pct: formatPct(40),
+      amount: formatEur(800),
+    });
+  });
+
+  it('calcule le taux d’effort à partir des mensualités de prêts (info dès 30 %, alerte dès 35 %)', () => {
+    // Prêt à taux zéro : mensualité = capital / durée, sans dépendre du moteur d'amortissement.
+    const zeroRate = (monthly: number) =>
+      loan({ principal: monthly * 120, annualRate: 0, termMonths: 120, startDate: '2024-01-01' });
+    const items = [income(3000), vital(300)];
+    expect(byId(run(items, { loans: [zeroRate(800)] }), 'budget-debt-ratio')).toBeUndefined(); // 26,7 %
+    expect(byId(run(items, { loans: [zeroRate(960)] }), 'budget-debt-ratio')?.severity).toBe('info'); // 32 %
+    expect(byId(run(items, { loans: [zeroRate(1200)] }), 'budget-debt-ratio')).toMatchObject({
+      severity: 'warning',
+      params: { pct: formatPct(40), amount: formatEur(1200) },
+    });
+    // Option désactivée : les prêts ne pèsent plus sur le budget.
+    expect(byId(run(items, { loans: [zeroRate(1200)], includeLoans: false }), 'budget-debt-ratio')).toBeUndefined();
+  });
+
+  it('compare l’épargne programmée à la capacité', () => {
+    const over = run([income(2000), vital(1500), saving(700)]);
+    expect(byId(over, 'budget-overcommitted')).toMatchObject({
+      severity: 'warning',
+      params: { planned: formatEur(700), capacity: formatEur(500), gap: formatEur(200) },
+    });
+    expect(byId(over, 'budget-unallocated')).toBeUndefined();
+
+    // 500 € de capacité, 100 € programmés : 400 € (80 %) non affectés.
+    expect(byId(run([income(2000), vital(1500), saving(100)]), 'budget-unallocated')?.params).toEqual({
+      amount: formatEur(400),
+      pct: formatPct(80),
+    });
+    // 300 € programmés : il ne reste que 40 % non affectés, sous le seuil de 50 %.
+    expect(byId(run([income(2000), vital(1500), saving(300)]), 'budget-unallocated')).toBeUndefined();
+    // Petite capacité : sous le plancher de 100 €, rien à signaler.
+    expect(byId(run([income(2000), vital(1920)]), 'budget-unallocated')).toBeUndefined();
+  });
+
+  it('compare la capacité à l’épargne constatée sur 6 mois', () => {
+    const acc = account({ type: 'livret' });
+    const items = [income(2000), vital(1000)]; // capacité 1 000 €/mois
+    // Fenêtre 2024-01-01 → 2024-07-01 : 182 jours.
+    const months = 182 / (365.25 / 12);
+    const history = (monthly: number): Snapshot[] => [
+      snapshot({ accountId: acc.id, date: '2024-01-01', value: 10_000 }),
+      snapshot({ accountId: acc.id, date: '2024-07-01', value: 10_000 + monthly * months }),
+    ];
+    const at = (monthly: number) =>
+      byId(run(items, { accounts: [acc], snapshots: history(monthly) }), 'budget-actual-below');
+
+    expect(at(950)).toBeUndefined(); // dans la tolérance de 10 %
+    expect(at(1400)).toBeUndefined(); // au-dessus : pas un conseil
+    expect(at(800)?.severity).toBe('info');
+    expect(at(600)).toMatchObject({
+      severity: 'warning',
+      params: { capacity: formatEur(1000), actual: formatEur(600), gap: formatEur(400) },
+    });
+    // Sans historique suffisant, pas de comparaison.
+    expect(byId(run(items, { accounts: [acc] }), 'budget-actual-below')).toBeUndefined();
+  });
+
+  it('signale des objectifs datés plus exigeants que la capacité d’épargne', () => {
+    const acc = account({ type: 'livret', cashBalance: 0 });
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + 10);
+    const goal = (targetAmount: number) =>
+      objective({ category: 'projet_court_terme', targetAmount, deadline: todayKey(d) });
+    const items = [income(2000), vital(1500)]; // capacité 500 €/mois
+
+    expect(byId(run(items, { accounts: [acc], objectives: [goal(4000)] }), 'budget-objectives-gap')).toBeUndefined();
+    expect(byId(run(items, { accounts: [acc], objectives: [goal(8000)] }), 'budget-objectives-gap')).toMatchObject({
+      severity: 'warning',
+      params: { effort: formatEur(800), capacity: formatEur(500), gap: formatEur(300) },
+    });
+    // Budget déficitaire : la capacité retenue est plancher à 0.
+    const deficit = run([income(1000), vital(1200)], { accounts: [acc], objectives: [goal(8000)] });
+    expect(byId(deficit, 'budget-objectives-gap')?.params).toMatchObject({ capacity: formatEur(0), gap: formatEur(800) });
+  });
+
+  it('détecte une épargne de précaution fondée sur des dépenses vitales différentes du budget', () => {
+    const precaution = (monthlyExpenses: number) =>
+      objective({ category: 'epargne_precaution', securityMonths: 3, monthlyExpenses });
+    const items = [income(3000), vital(1000)];
+    expect(byId(run(items, { objectives: [precaution(1100)] }), 'budget-precaution-mismatch')).toBeUndefined();
+    expect(byId(run(items, { objectives: [precaution(1500)] }), 'budget-precaution-mismatch')?.params).toEqual({
+      declared: formatEur(1500),
+      essential: formatEur(1000),
+    });
+    expect(byId(run(items, { objectives: [precaution(700)] }), 'budget-precaution-mismatch')).toBeDefined();
+  });
+
+  it('chaque conseil pointe vers des textes existants', () => {
+    const acc = account({ type: 'livret' });
+    const all = [
+      ...run([]),
+      ...run([income(2000), vital(1800), wants(500)]),
+      ...run([income(2000), vital(1500), wants(420)]),
+      ...run([income(2000), vital(900), wants(700)]),
+      ...run([income(2000), vital(1500), saving(700)]),
+      ...run([income(3000), vital(300)], {
+        loans: [loan({ principal: 144_000, annualRate: 0, termMonths: 120, startDate: '2024-01-01' })],
+      }),
+      ...run([income(2000), vital(1000), wants(750)], {
+        accounts: [acc],
+        snapshots: [
+          snapshot({ accountId: acc.id, date: '2024-01-01', value: 1000 }),
+          snapshot({ accountId: acc.id, date: '2024-07-01', value: 1000 }),
+        ],
+        objectives: [
+          objective({ category: 'epargne_precaution', securityMonths: 3, monthlyExpenses: 3000 }),
+          objective({ category: 'projet_court_terme', targetAmount: 9_000_000, deadline: '2999-01-01' }),
+        ],
+      }),
+    ];
+    const ids = new Set(all.map((i) => i.id));
+    expect(ids.size).toBe(12);
+    for (const i of all) {
+      for (const key of [i.titleKey, i.observationKey, i.whyKey!, i.actionKey!]) {
+        expect(i18next.exists(key), key).toBe(true);
+      }
+      expect(i18next.exists(`diversification.category_${i.category}`)).toBe(true);
+    }
+  });
+});
+
+describe('computeInsights — intégration du budget', () => {
+  const acc = account({ type: 'livret', cashBalance: 5000 });
+  const input = {
+    accounts: [acc],
+    holdings: [],
+    snapshots: [],
+    byType: new Map<AccountType, number>([['livret', 5000]]),
+    totalValue: 5000,
+    rates: RATES,
+    objectives: [],
+    riskProfile: 'equilibre' as const,
+  };
+  const deficit = [
+    budgetItem({ kind: 'income', amount: 1000, category: 'salaire' }),
+    budgetItem({ amount: 1500, category: 'logement', essential: true }),
+  ];
+
+  it('n’émet aucun conseil budget quand le budget n’est pas fourni', () => {
+    expect(computeInsights(input).some((i) => i.category === 'budget')).toBe(false);
+  });
+
+  it('mêle les conseils budget aux autres, triés par sévérité', () => {
+    const res = computeInsights({ ...input, budget: { items: deficit, loans: [], includeLoans: true } });
+    expect(res.some((i) => i.id === 'budget-deficit')).toBe(true);
+    expect(res.some((i) => i.category !== 'budget')).toBe(true);
+    const ranks = res.map((i) => ['warning', 'info', 'positive'].indexOf(i.severity));
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+    // Budget vide mais patrimoine saisi : invitation à le compléter.
+    const empty = computeInsights({ ...input, budget: { items: [], loans: [], includeLoans: true } });
+    expect(empty.some((i) => i.id === 'budget-missing')).toBe(true);
+  });
+
+  it('sans patrimoine, ne garde que les conseils d’un budget déjà saisi', () => {
+    const noWealth = { ...input, accounts: [], byType: new Map<AccountType, number>(), totalValue: 0 };
+    expect(computeInsights({ ...noWealth, budget: { items: [], loans: [], includeLoans: true } })).toEqual([]);
+    const res = computeInsights({ ...noWealth, budget: { items: deficit, loans: [], includeLoans: true } });
+    expect(res.map((i) => i.id)).toEqual(['budget-deficit']);
   });
 });

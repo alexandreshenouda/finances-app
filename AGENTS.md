@@ -7,6 +7,66 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 
 # Architecture notes & constraints (read before touching related code)
 
+## Navigation: 5 tabs maximum (user rule)
+The tab bar holds **at most 5 tabs**: `index` (Synthèse), `patrimoine`, `budget`, `analyse`,
+`settings`. Do **not** add a 6th tab — a new area goes inside an existing tab as a *section*.
+- `patrimoine.tsx` and `analyse.tsx` are thin hosts: a `SectionSwitcher` (chips, hidden when a
+  single section is visible) over the section components in `src/components/sections/`
+  (`AccountsSection`, `RealEstateSection`, `LoansSection`, `DiversificationSection`; the AI
+  section is `StockCounselView` in a ScrollView, kept mounted once opened so switching sections
+  doesn't drop a running analysis). Each section owns its `ScrollView`.
+- `store.showImmobilierTab` / `showEmpruntsTab` / `showDiversificationTab` / `showAiTab` now
+  toggle **sections**, not tabs (names kept so the persisted setting survives). The Analyse tab
+  is hidden (`href: null`) only when both of its sections are off.
+- Deep link to the AI analysis of a ticker: `router.navigate({ pathname: '/analyse', params:
+  { section: 'ai', symbol, isin, name, holdingId } })` — the old `/ai` route no longer exists.
+
+## Budget tab (`src/lib/budget.ts`, `src/app/(tabs)/budget.tsx`, `src/app/budget-form.tsx`)
+- The tab has two sections behind a `SectionSwitcher`: **Vue d'ensemble** (`synthese`: capacity,
+  split, theoretical vs actual savings, 50/30/20, objectives, categories, advice) and **Postes**
+  (`postes`: the three item groups + the "include loans" option). With no item the switcher is
+  hidden and the Postes section is shown directly under an `EmptyState`.
+- **Postes** view: `Liste` / `Par catégorie` (`Segmented`, local state, default by category). Each
+  kind group folds via its `GroupHeader` (`onPress` + `expanded`), each category via a `ListRow`
+  with `expanded`; folded keys live in one `collapsed` set (`kind` or `kind:category`).
+- **Expense charts** (Vue d'ensemble): `DonutChart` (generic donut exported from `PieChart.tsx`,
+  which `PieChart` now wraps) switching between vital / wants and by category. Category colors
+  reuse `ACCOUNT_TYPE_COLORS` values (theme-aware); categories beyond the palette are summed
+  into a grey "autres" slice.
+- `BudgetItem` (`types.ts`): `kind` (`income` / `expense` / `saving`), `amount` in EUR per
+  `frequency` (`monthly` / `quarterly` / `yearly`), `category` (`BUDGET_CATEGORIES[kind]`), and
+  `essential` (dépense vitale, expenses only; pre-ticked from `BUDGET_ESSENTIAL_DEFAULT`).
+  Stored in `store.budgetItems`, included in `exportData()` / `importData()` / `resetAll()`.
+- Everything is derived from `budgetLines()` → `budgetSummary()`; reuse them, don't re-sum in
+  the UI. A `saving` item is **not** an expense: capacity = income − expenses, and scheduled
+  savings are only compared against it (`unallocated`).
+- `store.budgetIncludeLoans` (default on) appends `loanBudgetLines()` — the current payment
+  (insurance included) of every started, unfinished loan — as essential `credit` expenses
+  flagged `auto` (read-only rows). Users who typed their loan payments by hand turn it off.
+- `actualSavings()` = change in account values (ownership share applied) between the window
+  start and today, per month. It **includes market performance** and excludes real estate /
+  loan principal — the UI says so; keep that note. Accounts with no snapshot at or before the
+  window start are skipped (their first value would look like savings) and counted in
+  `skippedAccounts`; under `ACTUAL_SAVINGS_MIN_DAYS` no monthly figure is returned. Day counts
+  are computed in UTC (see the timezone note in the tests section).
+- `budgetRule()` is the 50/30/20 benchmark (needs = essential, wants = other expenses, savings
+  = capacity); `objectivesMonthlyEffort()` sums `objectiveProgress().monthlyContribution`.
+- `objective-form.tsx` offers "Reprendre les montants de mon budget" (essential expenses →
+  `monthlyExpenses`, income → `monthlyIncome`) when the budget has essential expenses.
+- **Budget advice** lives with the other insights: `computeBudgetInsights()` in
+  `diversification.ts` (category `'budget'`, keys `diversification.budget_*`, thresholds in the
+  exported `BUDGET_*` constants). Ids: `budget-missing`, `budget-deficit`,
+  `budget-savings-rate-low` / `-good`, `budget-essential-heavy`, `budget-wants-heavy`,
+  `budget-debt-ratio` (credit payments / income, 35 % = HCSF ceiling), `budget-overcommitted`,
+  `budget-unallocated`, `budget-actual-below` (6-month window), `budget-objectives-gap`,
+  `budget-precaution-mismatch`. `computeInsights()` takes an optional `budget` input and merges
+  them (without it, no budget insight — existing callers/tests unchanged; with no wealth entered
+  it returns only the insights of a non-empty budget). They are rendered both in the
+  Diversification section and at the bottom of the Budget tab's Vue d'ensemble section — one function, two places; the
+  Budget tab's `useMemo` also lists `privacyMode` (params are pre-formatted with `formatEur`).
+- Same non-CIF stance as the diversification engine: arithmetic diagnostics and benchmarks
+  only, no product recommendation.
+
 ## `experiments.reactCompiler` MUST stay `false` in app.json
 Privacy mode (see below) masks money via a module-level flag read outside React's data
 flow. The React Compiler memoizes JSX on visible deps only, can't see that flag, and
@@ -46,12 +106,13 @@ by type). Helpers: `ownershipShare(property)` and `accountShare(account)`
 per-account `weights` map for this.
 
 ## Loans: immo (attached to a Property) vs conso (no property)
-`Loan.propertyId` is now **optional** — absent means a standalone "prêt conso". A
-dedicated **Emprunts** tab (`src/app/(tabs)/loans.tsx`) lists both kinds; the shared
+`Loan.propertyId` is now **optional** — absent means a standalone "prêt conso". The
+**Emprunts** section of the Patrimoine tab (`src/components/sections/LoansSection.tsx`) lists
+both kinds; the shared
 rendering (progress, stats, phases, schedule chart) lives in
 `src/components/LoanCard.tsx`, reused as-is by the property detail screen — don't
 duplicate that card again. `loan-form.tsx` only shows the attachment picker
-(bien/conso) when opened without a `propertyId` param (i.e. from the Emprunts tab);
+(bien/conso) when opened without a `propertyId` param (i.e. from the Emprunts section);
 opened from a property, attachment stays fixed to that property (no functionality was
 removed from the real-estate flow). Conso debt is deducted from net worth via
 `consoDebtEur()` regardless of the "show real estate" toggle.
@@ -79,6 +140,45 @@ closed-form.
   non-existent `objectiveCategories.*` in `ProjectionCard`).
 - Tests run in French (i18next default), so existing assertions on French messages
   stay valid after moving a literal into the locale files.
+
+## Design tokens & shared list primitives (`src/constants/theme.ts`, `src/components/ui.tsx`)
+- **No raw `fontSize` / `borderRadius` numbers in screens.** Use `FONT` (`xs` 12, `sm` 13, `md` 15,
+  `lg` 17, `xl` 22, `hero` 32) and `RADIUS` (`xs` 4, `sm` 8, `md` 14, `pill`). `SPACE` (4/8/12/16/24)
+  is used by the shared primitives; older screens still carry literal paddings. A true circle is
+  `RADIUS.pill`, not half its size. SVG text (`fontSize={…}` props in charts) is outside this scale.
+- **Amounts** spread `...TABULAR` (`fontVariant: ['tabular-nums']`) in their text style so digits
+  keep a fixed width in columns.
+- **Lists**: `ListCard` + `ListRow` (title / subtitle / value / valueSub / left / chevron, `last`
+  on the final row) and `GroupHeader` (dot + uppercase title + total). Don't re-create local
+  `row` / `rowBorder` / `chevron` styles. `Chevron` is the SVG replacement for the `›` glyph.
+- **Press feedback**: `ListRow` and `Card onPress={…}` switch to `C.cardAlt` while pressed, chips
+  and checkboxes dim. A whole-card link is `<Card onPress>`, not a `Pressable` wrapping a `Card`.
+- **`Segmented` vs `Chips`**: `Segmented` switches between *views of the same data* (Net/Brut,
+  Valeur/Performance, Barre/Camembert); `Chips` stays for filters, value pickers and the
+  `SectionSwitcher`. `Pill` is the tinted badge (period delta); its background is
+  `withAlpha(color, 0.14)` — use `withAlpha` instead of hand-written `rgba(...)` literals.
+- **`EmptyState`** (icon + text + optional CTA) is the empty state of a whole screen/section; when
+  it carries the "add" action, don't also render the regular add button. `Empty` stays for small
+  inline "nothing here" lines inside a card.
+- **Line icons** for menu rows and empty states live in `TabIcons.tsx` next to the tab icons
+  (`connexions`, `sauvegarde`, `affichage`, `langue`, `historique`, `developpeur`, `objectif`,
+  `rafraichir`) — same 24 viewBox / stroke 2 style.
+- **Screen width**: every screen's scroll `content` style spreads `...CONTENT` (full width, capped
+  at `CONTENT_MAX_WIDTH` = 720, centered) so cards and charts don't stretch on web / Electron /
+  tablets. New screens must do the same; `SectionSwitcher` aligns its chips on the same column.
+- **Touch targets & accessibility**: `Button` / `ListRow` / menu items are ≥ `TOUCH_MIN` (44) high;
+  chips and segments are 36 px tall plus `hitSlop`. The primitives set `accessibilityRole`,
+  `accessibilityState` (`selected` / `checked` / `disabled` / `expanded`) and labels — a custom
+  `Pressable` in a screen must set them itself (icon-only buttons need an `accessibilityLabel`).
+- **Motion** uses `react-native-reanimated` (works on web, Babel plugin comes with
+  `babel-preset-expo`): `ProgressBar` animates its fill, `FadeInView` fades content in (give it a
+  `key` per section to replay). Keep it to `MOTION_MS` (220 ms) transitions; Reanimated follows the
+  system "reduce motion" setting by default. `ui.tsx` therefore imports Reanimated — keep it out
+  of `src/lib` (the Vitest stubs don't cover it).
+- **Modal scrim** is `SCRIM` from `theme.ts`. Figures in the AI screen use `...TABULAR`, not
+  `fontFamily: 'monospace'` (kept only for inline code in the Markdown renderer).
+- **Contrast**: `textFaint` is tuned to ≥ 4.5:1 on `bg` and `card` in both themes (it carries
+  12–13 px text). Re-check the ratio if either palette changes.
 
 ## Tab icons & general UI theme
 User rule: **all** UI added to this app (icons, screens, charts) must reuse the palette
@@ -138,6 +238,13 @@ and relative performance over time (in %).
 - The tooltip also shows `SeriesPoint.rawValue` (the currency amount behind the %), set by
   `toPerformanceSeries`.
 - Under privacy mode, percentages remain visible while currency amounts are masked.
+
+## Synthèse header refresh
+The Synthèse screen overrides `headerRight` with `navigation.setOptions` to put a refresh icon
+next to `PrivacyToggle` (there is no full-width refresh button any more; `RefreshControl` is a
+no-op on web, so the icon is the only web entry point). The sync message is `{ text, ok }`:
+success is shown in `C.positive` and clears itself after `SUCCESS_MESSAGE_MS`; a warning/error
+stays in `C.warning` until the next refresh.
 
 ## Period chips
 `PERIODS` includes `1J`/`1S` (day/week) in addition to the longer spans. Only
@@ -226,9 +333,9 @@ savings plans, PEA ceiling usage, etc.:
   3. Yahoo Finance search (`searchYahooSymbol`) by ISIN/symbol for stock sector.
   4. Local fallback table (`referenceEtfs.ts`) for common ETFs offline.
   5. ISIN country prefix fallback for legal domicile.
-- **Retry cooldown**: when all sources fail to find sector/country data for an ISIN, `Holding.classificationRetryAfter` (ISO timestamp) is set 7 days in the future. The `needsClassification(h)` helper (exported from `classification.ts`) checks this field before queuing a holding — preventing repeated HTTP scrapes on every Diversification screen focus. The same helper is used both by `classifyHoldings()` and by the `useFocusEffect` in `diversification.tsx` so the logic stays in one place.
+- **Retry cooldown**: when all sources fail to find sector/country data for an ISIN, `Holding.classificationRetryAfter` (ISO timestamp) is set 7 days in the future. The `needsClassification(h)` helper (exported from `classification.ts`) checks this field before queuing a holding — preventing repeated HTTP scrapes on every Diversification screen focus. The same helper is used both by `classifyHoldings()` and by the `useFocusEffect` in `DiversificationSection.tsx` so the logic stays in one place.
 - Network errors (transient failures) are **not** cooled down — those holdings remain eligible for the next focus so they retry automatically when connectivity is restored. This relies on the scrapers telling "unreachable" apart from "not found": `fetchJustEtf*` return `null` only for a missing/non-profile page (HTTP 4xx, or a page a web proxy actually relayed) and **throw `JustEtfUnavailableError`** on fetch failure, timeout, HTTP 429/5xx or when no CORS proxy relayed anything — such failures are never stored in the JustETF session cache. `searchYahooSymbol` likewise returns `[]` for an unknown query but **throws** when the search is unreachable. Don't turn those throws back into `null`/`[]`: an offline Diversification visit would then put every unclassified holding on the 7-day cooldown (that regression existed until the scrapers were fixed).
-- **Force re-classification**: triggered via the "Classer mes lignes" button in the Diversification tab or "Reclassifier toutes les lignes" in Paramètres → Avancé (`classifyHoldings({ forceAll: true })`). This wipes the in-memory JustETF cache via `clearJustEtfCache()` and re-queries JustETF / Yahoo for all holdings regardless of existing classification.
+- **Force re-classification**: triggered via the "Classer mes lignes" button in the Diversification section or "Reclassifier toutes les lignes" in Paramètres → Avancé (`classifyHoldings({ forceAll: true })`). This wipes the in-memory JustETF cache via `clearJustEtfCache()` and re-queries JustETF / Yahoo for all holdings regardless of existing classification.
 - `CountryCode` in `src/lib/types.ts` covers major global markets (`FR`, `DE`, `IT`, `ES`, `NL`, `BE`, `LU`, `IE`, `GB`, `CH`, `SE`, `DK`, `NO`, `FI`, `AT`, `PT`, `GR`, `IS` for Western Europe; `PL`, `CZ`, `HU`, `RO`, `TR` for Eastern Europe; `US`, `CA`, `MX`, `BR`, `CL`, `CO`, `PE`, `AR` for the Americas; `JP`, `AU`, `NZ`, `SG`, `HK` for developed Asia-Pacific; `CN`, `TW`, `KR`, `IN`, `TH`, `MY`, `ID`, `PH`, `VN`, `PK` for Emerging Asia; `SA`, `AE`, `QA`, `KW`, `BH`, `OM`, `IL`, `EG`, `MA` for Middle-East/North Africa; `ZA`, `NG`, `KE` for Sub-Saharan Africa; `autre` for everything else).
 
 ## Diversification & Fiscal Advice Engine (`src/lib/diversification.ts`, `src/components/InsightCard.tsx`)
@@ -236,7 +343,7 @@ savings plans, PEA ceiling usage, etc.:
 - `Account.openingDate` (ISO `YYYY-MM-DD`) tracks tax wrapper opening date, enabling automated computation of seniority and tax milestones for PEA (5-year mark for capital gains tax exemption and partial withdrawals) and Assurance-Vie (8-year mark for annual capital gains tax allowances: 4,600 € / 9,200 €).
 - Look-through overlap detection crosses the `topHoldings` from JustETF and direct stocks to detect hidden mega-cap concentration across multiple funds.
 - Fee audit combines `Holding.feesPct` and `Account.fees.managementPct` to calculate weighted annual costs and alert on expensive actively managed funds.
-- Cards in `InsightCard.tsx` support accordion expansion (`whyKey` and `actionKey`) and category filtering chips in `diversification.tsx`.
+- Cards in `InsightCard.tsx` support accordion expansion (`whyKey` and `actionKey`) and category filtering chips in `DiversificationSection.tsx`.
 
 ## Épargne de précaution : suggestion & conseils (`src/lib/objectives.ts`, `src/lib/diversification.ts`)
 - The `epargne_precaution` objective stores `securityMonths`, `monthlyExpenses` and optional
@@ -259,7 +366,7 @@ savings plans, PEA ceiling usage, etc.:
   whose action becomes `cash_cushion_plan_action` when the margin is known. `idleCashAudit`'s
   threshold also accepts one month of income on the current account.
 - Insight params are pre-formatted with `formatEur` at compute time, so the `useMemo` of
-  `computeInsights` in `diversification.tsx` lists `privacyMode` as a dependency — keep it,
+  `computeInsights` in `DiversificationSection.tsx` lists `privacyMode` as a dependency — keep it,
   or toggling the eye leaves amounts unmasked in the cards.
 
 ## Wealth Projection Engine (`src/lib/projection.ts`, `src/components/ProjectionCard.tsx`)
@@ -272,10 +379,10 @@ savings plans, PEA ceiling usage, etc.:
 - **Saved scenarios**: multiple projection scenarios (`SavedProjection`: name, description, settings) can be saved, updated, and reloaded.
 - Persisted in `store.projectionSettings` and `store.savedProjections` across app sessions, and included in `exportData()` / `importData()`. All holding classifications (`sectorWeights`, `countryWeights`, `topHoldings`, `feesPct`) and `objectives` are also fully covered in export/import.
 
-## InvestCounsel AI & Stock Insights (`src/lib/aiCounsel.ts`, `src/components/StockCounselView.tsx`, `src/app/(tabs)/ai.tsx`)
+## InvestCounsel AI & Stock Insights (`src/lib/aiCounsel.ts`, `src/components/StockCounselView.tsx`, `src/app/(tabs)/analyse.tsx`)
 - **Dual entry points**:
-  1. Dedicated **IA** tab (`src/app/(tabs)/ai.tsx`, visibility toggled via `store.showAiTab` in **Paramètres → Affichage**) with universal ticker/ISIN search, user watchlist (`store.aiWatchlist`), popular presets, and quick-select chips for all detained portfolio holdings.
-  2. **Detained holdings integration**: clicking any holding row in an account (`src/app/account/[id].tsx`) opens `src/app/holding-detail.tsx`, which embeds `<StockCounselView embedded ... />` for that holding (automatically resolving Yahoo ticker from `symbol`, `isin`, or `name`) and provides a button to open it in the full IA tab (as well as an edit button for manual holdings).
+  1. **IA** section of the Analyse tab (`src/app/(tabs)/analyse.tsx`, visibility toggled via `store.showAiTab` in **Paramètres → Affichage**) with universal ticker/ISIN search, user watchlist (`store.aiWatchlist`), popular presets, and quick-select chips for all detained portfolio holdings.
+  2. **Detained holdings integration**: clicking any holding row in an account (`src/app/account/[id].tsx`) opens `src/app/holding-detail.tsx`, which embeds `<StockCounselView embedded ... />` for that holding (automatically resolving Yahoo ticker from `symbol`, `isin`, or `name`) and provides a button to open it in the full IA section (as well as an edit button for manual holdings).
 - **Pure logic in `src/lib/aiCounsel.ts`**:
   - Multi-timeframe Yahoo Finance fetch (`1D`, `1W`, `1M`, `1Y`, `5Y`) with automatic ISIN-to-ticker resolution and web proxy routing (`/__yahoo` middleware in `metro.config.js` / `electron/main.js`, with `allorigins.win` fallback) — never calling `query1/query2.finance.yahoo.com` directly from a browser or `corsproxy.io` (which now returns 401/403).
   - `computeTechnicalAnalytics`: calculates moving averages (`SMA 20/50/200`, `EMA 20`), `RSI(14)`, `MACD(12,26,9)`, annualized volatility, max drawdown, `ATR(14)`, Sharpe estimate, 52W positioning, pivot levels (`S1/S2/R1/R2`), a 7-factor algorithmic sentiment score (`0–100`), and a 12-month log-normal drift & volatility cone (`quantProjections` for `3M`/`6M`/`1Y` and `futureCone`).

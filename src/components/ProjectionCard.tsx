@@ -7,8 +7,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { LineChart } from '@/components/LineChart';
-import { Button, Card, Checkbox, Chips, Field } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { Button, Card, Checkbox, Chips, Field, Segmented } from '@/components/ui';
+import { C, FONT, RADIUS, SCRIM, useStyles } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
 import { formatDate, formatDuration, formatEur, formatPct } from '@/lib/format';
 import {
@@ -57,13 +57,13 @@ function makeStyles() {
       marginBottom: 8,
     },
     titleRow: { flex: 1, marginRight: 8 },
-    title: { color: C.textDim, fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '600' },
-    horizonBadge: { color: C.accent, fontSize: 13, fontWeight: '600', marginTop: 2 },
+    title: { color: C.textDim, fontSize: FONT.sm, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: '600' },
+    horizonBadge: { color: C.accent, fontSize: FONT.sm, fontWeight: '600', marginTop: 2 },
     headlineRow: { marginVertical: 4 },
-    projectedTotal: { color: C.text, fontSize: 32, fontWeight: '700' },
+    projectedTotal: { color: C.text, fontSize: FONT.hero, fontWeight: '700' },
     deltaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4 },
-    deltaText: { fontSize: 14, fontWeight: '600' },
-    debtNote: { color: C.textFaint, fontSize: 12, marginTop: 4 },
+    deltaText: { fontSize: FONT.md, fontWeight: '600' },
+    debtNote: { color: C.textFaint, fontSize: FONT.sm, marginTop: 4 },
     chartControls: {
       marginTop: 10,
       marginBottom: 6,
@@ -84,32 +84,32 @@ function makeStyles() {
       flex: 1,
       minWidth: '45%',
       backgroundColor: C.cardAlt,
-      borderRadius: 10,
+      borderRadius: RADIUS.sm,
       padding: 10,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
     },
-    metricLabel: { color: C.textFaint, fontSize: 11, marginBottom: 2 },
-    metricVal: { color: C.text, fontSize: 15, fontWeight: '600' },
+    metricLabel: { color: C.textFaint, fontSize: FONT.xs, marginBottom: 2 },
+    metricVal: { color: C.text, fontSize: FONT.md, fontWeight: '600' },
     controlsSection: {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: C.border,
       paddingTop: 12,
       marginTop: 8,
     },
-    controlLabel: { color: C.textDim, fontSize: 13, fontWeight: '600', marginBottom: 8 },
+    controlLabel: { color: C.textDim, fontSize: FONT.sm, fontWeight: '600', marginBottom: 8 },
     rateRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
     customRateInput: { width: 100 },
     cagrBadge: {
       backgroundColor: C.cardAlt,
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       padding: 8,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
       marginBottom: 10,
     },
-    cagrText: { color: C.accent, fontSize: 13, fontWeight: '600' },
-    cagrSub: { color: C.textFaint, fontSize: 11, marginTop: 2 },
+    cagrText: { color: C.accent, fontSize: FONT.sm, fontWeight: '600' },
+    cagrSub: { color: C.textFaint, fontSize: FONT.xs, marginTop: 2 },
     advancedToggle: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -119,7 +119,7 @@ function makeStyles() {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: C.border,
     },
-    advancedToggleText: { color: C.accent, fontSize: 13, fontWeight: '600' },
+    advancedToggleText: { color: C.accent, fontSize: FONT.sm, fontWeight: '600' },
     advancedPanel: { marginTop: 8 },
     checkboxWrap: { marginVertical: 6 },
     objectivesSection: {
@@ -130,18 +130,18 @@ function makeStyles() {
     },
     objectiveItem: {
       backgroundColor: C.cardAlt,
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       padding: 8,
       marginBottom: 6,
       borderLeftWidth: 3,
       borderLeftColor: C.accent,
     },
     objectiveReached: { borderLeftColor: C.positive },
-    objectiveTitle: { color: C.text, fontSize: 13, fontWeight: '600' },
-    objectiveSubtitle: { color: C.textDim, fontSize: 11, marginTop: 2 },
+    objectiveTitle: { color: C.text, fontSize: FONT.sm, fontWeight: '600' },
+    objectiveSubtitle: { color: C.textDim, fontSize: FONT.xs, marginTop: 2 },
     disclaimer: {
       color: C.textFaint,
-      fontSize: 11,
+      fontSize: FONT.xs,
       fontStyle: 'italic',
       marginTop: 10,
       textAlign: 'center',
@@ -162,7 +162,7 @@ function makeStyles() {
     },
     scenariosLabel: {
       color: C.textDim,
-      fontSize: 12,
+      fontSize: FONT.sm,
       fontWeight: '600',
       textTransform: 'uppercase',
       letterSpacing: 0.5,
@@ -172,14 +172,14 @@ function makeStyles() {
       alignItems: 'center',
       paddingVertical: 4,
       paddingHorizontal: 8,
-      borderRadius: 6,
+      borderRadius: RADIUS.sm,
       backgroundColor: C.cardAlt,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
     },
     saveBtnSmallText: {
       color: C.accent,
-      fontSize: 12,
+      fontSize: FONT.sm,
       fontWeight: '600',
     },
     scenariosScroll: {
@@ -189,7 +189,7 @@ function makeStyles() {
     },
     scenarioCard: {
       backgroundColor: C.cardAlt,
-      borderRadius: 10,
+      borderRadius: RADIUS.sm,
       paddingVertical: 8,
       paddingHorizontal: 10,
       borderWidth: 1,
@@ -209,7 +209,7 @@ function makeStyles() {
     },
     scenarioName: {
       color: C.text,
-      fontSize: 13,
+      fontSize: FONT.sm,
       fontWeight: '600',
       flex: 1,
     },
@@ -219,12 +219,12 @@ function makeStyles() {
     },
     scenarioDesc: {
       color: C.textFaint,
-      fontSize: 11,
+      fontSize: FONT.xs,
       marginTop: 2,
     },
     scenarioParam: {
       color: C.textDim,
-      fontSize: 10,
+      fontSize: FONT.xs,
       marginTop: 3,
     },
     scenarioActions: {
@@ -237,11 +237,11 @@ function makeStyles() {
     },
     scenarioIconText: {
       color: C.textFaint,
-      fontSize: 13,
+      fontSize: FONT.sm,
     },
     modalBackdrop: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.72)',
+      backgroundColor: SCRIM,
       justifyContent: 'center',
       alignItems: 'center',
       padding: 20,
@@ -250,7 +250,7 @@ function makeStyles() {
       width: '100%',
       maxWidth: 380,
       backgroundColor: C.card,
-      borderRadius: 16,
+      borderRadius: RADIUS.md,
       borderWidth: 1,
       borderColor: C.border,
       padding: 20,
@@ -262,13 +262,13 @@ function makeStyles() {
     },
     modalTitle: {
       color: C.text,
-      fontSize: 17,
+      fontSize: FONT.lg,
       fontWeight: '700',
       marginBottom: 12,
     },
     summaryTag: {
       backgroundColor: C.cardAlt,
-      borderRadius: 8,
+      borderRadius: RADIUS.sm,
       padding: 8,
       marginBottom: 12,
       borderWidth: StyleSheet.hairlineWidth,
@@ -276,7 +276,7 @@ function makeStyles() {
     },
     summaryTagText: {
       color: C.textDim,
-      fontSize: 12,
+      fontSize: FONT.sm,
       lineHeight: 16,
     },
     modalButtons: {
@@ -456,7 +456,7 @@ export function ProjectionCard({
           <Text style={styles.title}>{t('projection.title')}</Text>
           <Text style={styles.horizonBadge}>{t('projection.dans_horizon', { years: settings.horizonYears })}</Text>
         </View>
-        <Chips
+        <Segmented
           options={WORTH_MODES}
           value={settings.net ? 'net' : 'brut'}
           onChange={(v) => {
@@ -559,7 +559,7 @@ export function ProjectionCard({
           style={{ marginBottom: 6 }}
         />
         <View style={styles.chartModeRow}>
-          <Chips
+          <Segmented
             options={CHART_MODES}
             value={chartMode}
             onChange={setChartMode}
