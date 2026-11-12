@@ -212,14 +212,18 @@ pour le détail des contraintes.
   (`FONT`, `RADIUS`, `SPACE` dans `src/constants/theme.ts`) ; les listes (comptes, postes du
   budget, menus) partagent une même ligne (`ListRow`) qui réagit à l'appui ; les montants sont
   en chiffres à chasse fixe et le texte secondaire respecte un contraste ≥ 4,5:1.
+- **Versements, dividendes et plafond du PEA** (comptes Trade Republic) : chaque synchronisation
+  rapatrie ~13 mois d'opérations du compte espèces de chaque enveloppe.
+  - *Versements nets* (dépôts − retraits) : affichés sur la fiche du compte et, dans le Budget,
+    à côté de l'épargne constatée — qui, elle, inclut la performance des marchés.
 - **Multi-devises** : comptes et lignes en EUR (défaut), USD ou CHF — saisie dans la devise
   d'origine, affichage et courbes convertis en € avec les taux BCE
   ([frankfurter.dev](https://frankfurter.dev), rafraîchis à chaque mise à jour, derniers taux
   conservés hors ligne).
 - **Export / import** JSON (sans les identifiants) : sauvegarde intégrale incluant comptes,
   lignes (avec ventilations sectorielles, géographiques, top holdings et frais issus de JustETF),
-  historique des snapshots, biens immobiliers, crédits, objectifs d'épargne et scénarios de
-  projection sauvegardés. Presse-papiers partout, et fichier (partage / sélecteur de documents) sur
+  historique des snapshots, biens immobiliers, crédits, objectifs d'épargne, scénarios de
+  projection sauvegardés et flux constatés (versements, dividendes). Presse-papiers partout, et fichier (partage / sélecteur de documents) sur
   Android. Les exports antérieurs restent rétro-compatibles.
 
 ## Lancer l'app
@@ -296,7 +300,8 @@ vivent dans `test/`, un par module de `src/lib` :
 | `test/store.test.ts` | store persisté : CRUD, suppressions en cascade, import/export, réhydratation, synchronisation masquage/langue/thème |
 | `test/connectors.test.ts` | orchestrateur de synchro (identifiants, comptes liés, lignes, snapshot) |
 | `test/binance.test.ts`, `test/kraken.test.ts`, `test/enablebanking.test.ts` | connecteurs : signatures HMAC / JWT RS256 revérifiées avec `node:crypto`, valorisation EUR, erreurs |
-| `test/traderepublic.test.ts` | login v2 à approbation push, protocole WebSocket (faux serveur), enveloppes CTO/PEA/Private Equity |
+| `test/traderepublic.test.ts` | login v2 à approbation push, protocole WebSocket (faux serveur), enveloppes CTO/PEA/Private Equity, historique des opérations (pagination, catégories), plafond du PEA |
+| `test/cashflows.test.ts`, `test/appLock.test.ts` | versements nets, synthèse des dividendes (12 mois, rendement sur prix de revient), plafond du PEA ; règles de verrouillage de l'app |
 | `test/aiCounsel.test.ts` | recherche Yahoo & résolution ISIN, indicateurs techniques (SMA/EMA/RSI/MACD/volatilité/pivots/cône 12M), score 7 facteurs et comité d'investissement Gemini (REST + fallback de modèles) |
 | `test/debugLog.test.ts`, `test/confirm.test.ts`, `test/secure.test.ts`, `test/i18n.test.ts` | journal de debug (dont `tracedFetch` : traçage et masquage des secrets des requêtes réseau), dialogues thématisés, stockage des secrets (natif / web), détection de langue, parité des clés fr/en/de et messages de `src/lib` traduits |
 

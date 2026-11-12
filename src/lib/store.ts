@@ -16,6 +16,7 @@ import {
   DEFAULT_PROJECTION_SETTINGS,
   type Account,
   type BudgetItem,
+  type CashFlow,
   type ChartMode,
   type Connection,
   type FxRates,
@@ -41,6 +42,7 @@ export interface AppData {
   objectives: Objective[];
   savedProjections?: SavedProjection[];
   budgetItems?: BudgetItem[];
+  cashFlows?: CashFlow[];
 }
 
 interface AppState extends AppData {
@@ -143,6 +145,11 @@ interface AppState extends AppData {
   /** Compter automatiquement les mensualités des prêts de l'app dans les dépenses du budget. Défaut : oui. */
   budgetIncludeLoans: boolean;
   setBudgetIncludeLoans: (v: boolean) => void;
+
+  /** Versements, retraits, dividendes et intérêts constatés (connecteurs). */
+  cashFlows: CashFlow[];
+  /** Ajoute des flux à un compte ; un flux déjà connu (même `externalId`) est remplacé, pas dupliqué. */
+  mergeCashFlows: (accountId: string, flows: Omit<CashFlow, 'id' | 'accountId'>[]) => void;
 
   upsertHolding: (h: Partial<Holding> & { accountId: string; name: string; quantity: number }) => Holding;
   deleteHolding: (id: string) => void;
@@ -288,6 +295,7 @@ export const useStore = create<AppState>()(
           accounts: s.accounts.filter((a) => a.id !== id),
           holdings: s.holdings.filter((h) => h.accountId !== id),
           snapshots: s.snapshots.filter((sn) => sn.accountId !== id),
+          cashFlows: s.cashFlows.filter((f) => f.accountId !== id),
         })),
 
       upsertProperty: (p) => {
@@ -369,6 +377,16 @@ export const useStore = create<AppState>()(
       budgetIncludeLoans: true,
       setBudgetIncludeLoans: (v) => set({ budgetIncludeLoans: v }),
 
+      cashFlows: [],
+      mergeCashFlows: (accountId, flows) =>
+        set((s) => {
+          const incoming = new Set(flows.map((f) => f.externalId).filter(Boolean));
+          const kept = s.cashFlows.filter(
+            (f) => !(f.accountId === accountId && f.externalId && incoming.has(f.externalId))
+          );
+          return { cashFlows: [...kept, ...flows.map((f) => ({ ...f, id: uid(), accountId }))] };
+        }),
+
       upsertHolding: (h) => {
         const existing = h.id ? get().holdings.find((x) => x.id === h.id) : undefined;
         const holding: Holding = {
@@ -416,6 +434,7 @@ export const useStore = create<AppState>()(
           objectives: [],
           savedProjections: [],
           budgetItems: [],
+          cashFlows: [],
           budgetIncludeLoans: true,
           patrimoineNet: true,
           showRealEstate: true,
@@ -474,6 +493,7 @@ export const useStore = create<AppState>()(
           objectives: data.objectives ?? [],
           savedProjections: data.savedProjections ?? [],
           budgetItems: data.budgetItems ?? [],
+          cashFlows: data.cashFlows ?? [],
         }),
     }),
     {
@@ -513,6 +533,7 @@ export const useStore = create<AppState>()(
         savedProjections: s.savedProjections,
         budgetItems: s.budgetItems,
         budgetIncludeLoans: s.budgetIncludeLoans,
+        cashFlows: s.cashFlows,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) state.hydrated = true;
@@ -537,7 +558,7 @@ useStore.subscribe((s) => {
 useStore.subscribe((s) => setTheme(s.theme));
 
 export function exportData(): AppData {
-  const { accounts, holdings, snapshots, connections, properties, loans, objectives, savedProjections, budgetItems } =
+  const { accounts, holdings, snapshots, connections, properties, loans, objectives, savedProjections, budgetItems, cashFlows } =
     useStore.getState();
-  return { accounts, holdings, snapshots, connections, properties, loans, objectives, savedProjections, budgetItems };
+  return { accounts, holdings, snapshots, connections, properties, loans, objectives, savedProjections, budgetItems, cashFlows };
 }

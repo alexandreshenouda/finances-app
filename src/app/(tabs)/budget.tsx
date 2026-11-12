@@ -35,6 +35,7 @@ import {
   type BudgetLine,
   type SavingsPeriod,
 } from '@/lib/budget';
+import { netContributions } from '@/lib/cashflows';
 import { computeBudgetInsights } from '@/lib/diversification';
 import { formatEur, formatPct } from '@/lib/format';
 import { useStore } from '@/lib/store';
@@ -99,6 +100,7 @@ export default function Budget() {
   const accounts = useStore((s) => s.accounts);
   const holdings = useStore((s) => s.holdings);
   const snapshots = useStore((s) => s.snapshots);
+  const cashFlows = useStore((s) => s.cashFlows);
   const objectives = useStore((s) => s.objectives);
   const rates = useStore((s) => s.fxRates);
   // Re-render au changement de mode confidentialité ; aussi dépendance du memo des conseils,
@@ -125,6 +127,11 @@ export default function Budget() {
   const summary = useMemo(() => budgetSummary(lines), [lines]);
   const rule = useMemo(() => budgetRule(summary), [summary]);
   const actual = useMemo(() => actualSavings(accounts, snapshots, period), [accounts, snapshots, period]);
+  // Versements nets constatés (connecteurs) sur la même fenêtre : l'effort d'épargne sans la performance.
+  const contributions = useMemo(
+    () => (actual.from ? netContributions(cashFlows, accounts, actual.from) : undefined),
+    [cashFlows, accounts, actual.from]
+  );
   const effort = useMemo(
     () => objectivesMonthlyEffort(objectives, { accounts, holdings, snapshots, rates }),
     [objectives, accounts, holdings, snapshots, rates]
@@ -152,7 +159,7 @@ export default function Budget() {
   const splitTotal = split.reduce((a, s) => a + s.value, 0);
 
   const comparison = actual.monthly !== undefined && hasData ? compareSavings(summary.capacity, actual.monthly) : undefined;
-  const gaugeMax = Math.max(Math.abs(summary.capacity), Math.abs(actual.monthly ?? 0), 1);
+  const gaugeMax = Math.max(Math.abs(summary.capacity), Math.abs(actual.monthly ?? 0), Math.abs(contributions?.monthly ?? 0), 1);
   const signColor = (v: number) => (v >= 0 ? C.positive : C.negative);
 
   const ruleColor = (key: string, pct: number, target: number) => {
@@ -308,6 +315,15 @@ export default function Budget() {
                   ) : (
                     <Text style={styles.verdict}>{t('budget.reel_insuffisant')}</Text>
                   )}
+                  {contributions?.monthly !== undefined && (
+                    <View style={styles.gaugeRow}>
+                      <View style={styles.gaugeHead}>
+                        <Text style={styles.gaugeLabel}>{t('budget.reel_versements')}</Text>
+                        <Text style={styles.gaugeValue}>{perMonth(contributions.monthly)}</Text>
+                      </View>
+                      <ProgressBar ratio={Math.abs(contributions.monthly) / gaugeMax} color={signColor(contributions.monthly)} />
+                    </View>
+                  )}
                   {comparison && (
                     <Text
                       style={[
@@ -321,6 +337,9 @@ export default function Budget() {
                   <Text style={styles.note}>
                     {t('budget.reel_note')}
                     {actual.skippedAccounts > 0 ? ` ${t('budget.reel_comptes_ignores', { count: actual.skippedAccounts })}` : ''}
+                    {contributions?.monthly !== undefined
+                      ? ` ${t('budget.reel_versements_note', { count: contributions.trackedAccountIds.length })}`
+                      : ''}
                   </Text>
                 </Card>
               )}

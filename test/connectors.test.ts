@@ -67,6 +67,24 @@ describe('persistExternalAccounts', () => {
     ],
   });
 
+  it('enregistre les flux et le plafond PEA remontés par le connecteur, sans doublon à la resynchro', () => {
+    const conn = connection('traderepublic');
+    const pea = result({
+      type: 'pea',
+      cashFlows: [
+        { externalId: 'tx-1', date: '2024-03-01', kind: 'deposit', amountEur: 500, label: 'Virement' },
+        { externalId: 'tx-2', date: '2024-03-05', kind: 'dividend', amountEur: 12.5, isin: 'FR0010756098' },
+      ],
+    });
+    persistExternalAccounts(conn, pea);
+    persistExternalAccounts(conn, pea);
+    const [acc] = accountsOf(conn.id);
+    expect(S().cashFlows.map((f) => [f.accountId, f.externalId, f.kind, f.amount, f.isin])).toEqual([
+      [acc.id, 'tx-1', 'deposit', 500, undefined],
+      [acc.id, 'tx-2', 'dividend', 12.5, 'FR0010756098'],
+    ]);
+  });
+
   it('crée le compte lié, ses lignes (cours « exchange ») et le snapshot EUR du jour', () => {
     const conn = connection('binance');
     persistExternalAccounts(conn, result());

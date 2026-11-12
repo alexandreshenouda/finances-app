@@ -68,6 +68,20 @@ export function persistExternalAccounts(conn: Connection, result: SyncResult): v
       externalId: ext.externalId,
     });
 
+    if (ext.cashFlows && ext.cashFlows.length > 0) {
+      useStore.getState().mergeCashFlows(
+        account.id,
+        ext.cashFlows.map((f) => ({
+          externalId: f.externalId,
+          date: f.date,
+          kind: f.kind,
+          amount: f.amountEur,
+          label: f.label,
+          isin: f.isin,
+        }))
+      );
+    }
+
     const state2 = useStore.getState();
     for (const h of state2.holdings.filter((h) => h.accountId === account.id)) {
       state2.deleteHolding(h.id);

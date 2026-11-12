@@ -180,10 +180,45 @@ describe('comptes', () => {
     S().recordSnapshot(a.id, 100, 'manual', '2024-01-01');
     S().recordSnapshot(b.id, 200, 'manual', '2024-01-01');
 
+    S().mergeCashFlows(a.id, [{ date: '2024-01-02', kind: 'deposit', amount: 100, externalId: 'x' }]);
+    S().mergeCashFlows(b.id, [{ date: '2024-01-02', kind: 'deposit', amount: 50, externalId: 'x' }]);
+
     S().deleteAccount(a.id);
+    expect(S().cashFlows.map((f) => f.accountId)).toEqual([b.id]);
     expect(S().accounts.map((x) => x.id)).toEqual([b.id]);
     expect(S().holdings.map((h) => h.accountId)).toEqual([b.id]);
     expect(S().snapshots.map((s) => s.accountId)).toEqual([b.id]);
+  });
+});
+
+describe('flux (versements, dividendes)', () => {
+  it('remplace un flux déjà connu au lieu de le dupliquer, compte par compte', () => {
+    S().mergeCashFlows('acc', [
+      { date: '2024-01-02', kind: 'deposit', amount: 100, externalId: 'tx-1' },
+      { date: '2024-01-03', kind: 'dividend', amount: 5, externalId: 'tx-2', isin: 'FR0000120271' },
+    ]);
+    // Resynchronisation : tx-1 corrigé, tx-3 nouveau ; tx-2 absent de la fenêtre est conservé.
+    S().mergeCashFlows('acc', [
+      { date: '2024-01-02', kind: 'deposit', amount: 120, externalId: 'tx-1' },
+      { date: '2024-01-09', kind: 'withdrawal', amount: 30, externalId: 'tx-3' },
+    ]);
+    // Même identifiant chez un autre compte : flux distinct.
+    S().mergeCashFlows('autre', [{ date: '2024-01-02', kind: 'deposit', amount: 1, externalId: 'tx-1' }]);
+
+    const flows = S().cashFlows;
+    expect(flows.filter((f) => f.accountId === 'acc').map((f) => [f.externalId, f.amount]).sort()).toEqual([
+      ['tx-1', 120],
+      ['tx-2', 5],
+      ['tx-3', 30],
+    ]);
+    expect(flows.filter((f) => f.accountId === 'autre')).toHaveLength(1);
+    expect(new Set(flows.map((f) => f.id)).size).toBe(flows.length);
+  });
+
+  it('garde les flux sans identifiant externe (aucun dédoublonnage possible)', () => {
+    S().mergeCashFlows('acc', [{ date: '2024-01-02', kind: 'deposit', amount: 100 }]);
+    S().mergeCashFlows('acc', [{ date: '2024-01-02', kind: 'deposit', amount: 100 }]);
+    expect(S().cashFlows).toHaveLength(2);
   });
 });
 
@@ -361,6 +396,7 @@ describe('import / export / remise à zéro', () => {
         createdAt: '2024-01-01T00:00:00.000Z',
       },
     ],
+    cashFlows: [{ id: 'f', accountId: 'a', date: '2024-02-01', kind: 'dividend', amount: 12.5, isin: 'FR0000120271', externalId: 'tx-1' }],
   };
 
   it('restitue à l’export exactement ce qui a été importé', () => {
@@ -380,6 +416,7 @@ describe('import / export / remise à zéro', () => {
       objectives: [],
       savedProjections: [],
       budgetItems: [],
+      cashFlows: [],
     });
   });
 
@@ -399,6 +436,7 @@ describe('import / export / remise à zéro', () => {
       objectives: [],
       savedProjections: [],
       budgetItems: [],
+      cashFlows: [],
     });
     expect(S()).toMatchObject({ privacyMode: false, theme: 'or', chartMode: 'value', language: 'fr' });
   });

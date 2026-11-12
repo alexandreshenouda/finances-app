@@ -644,7 +644,9 @@
     "aucun_proxy": "no CORS proxy available",
     "coingecko_id_inconnu": "{{name}}: unknown CoinGecko id \"{{symbol}}\"",
     "resolution_isin": "{{name}}: ISIN lookup {{isin}} → {{message}}",
-    "aucun_ticker_yahoo": "{{name}}: no Yahoo ticker found for ISIN {{isin}}"
+    "aucun_ticker_yahoo": "{{name}}: no Yahoo ticker found for ISIN {{isin}}",
+    "tr_historique_indisponible": "Trade Republic transaction history unavailable ({{message}}): deposits and dividends not updated",
+    "tr_versements_non_reconnus": "Trade Republic deposit categories not recognised: deposits not imported (see the debug log)"
   },
   "objectives": {
     "a_epargner": "Save {{amount}}/month",
@@ -1311,7 +1313,10 @@
     "inclure_prets": "Count my loan payments",
     "inclure_prets_note": "Monthly payments (insurance included) of ongoing loans from the Loans section are added to essential expenses. Uncheck if you already entered them manually.",
     "avertissement": "Indicative calculations based on your entries; they do not constitute personalised financial advice.",
-    "conseils": "Insights"
+    "conseils": "Insights",
+    "reel_versements": "Observed net deposits",
+    "reel_versements_note_one": "Net deposits (deposits − withdrawals, no market performance) only cover {{count}} synced account with a transaction history.",
+    "reel_versements_note_other": "Net deposits (deposits − withdrawals, no market performance) only cover the {{count}} synced accounts with a transaction history."
   },
   "budgetForm": {
     "titre_new": "New recurring item",
@@ -1329,5 +1334,12 @@
     "supprimer_bouton": "Delete this item",
     "supprimer_titre": "Delete item",
     "supprimer_confirm": "Delete “{{name}}” from the budget?"
+  },
+  "flows": {
+    "versements_titre": "Deposits over 12 months",
+    "versements": "Deposits",
+    "retraits": "Withdrawals",
+    "versements_nets": "Net deposits",
+    "note_historique": "Net amounts received on the account, as reported by the sync; each sync imports roughly the last 13 months of history."
   }
 }

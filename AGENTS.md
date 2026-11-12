@@ -423,6 +423,41 @@ tag would clobber each other. Keep it that way if you add a third.
   release asset must be directly installable; `production` still yields an AAB.
 - Use `node_modules/.bin/expo` in CI too, matching the local convention below.
 
+## Cash flows: deposits, dividends, PEA ceiling (`src/lib/cashflows.ts`, `src/components/AccountFlows.tsx`)
+- `CashFlow` (`types.ts`): `kind` `deposit` / `withdrawal` / `dividend` / `interest`, `amount` in
+  EUR **always positive**, optional `isin` and `externalId`. Stored in `store.cashFlows`
+  (export / import / reset / deleted with the account). `mergeCashFlows(accountId, flows)` replaces
+  a flow with the same `externalId` — a resync never duplicates, and flows older than the
+  connector's window are kept.
+- Connectors feed them through `ExternalAccount.cashFlows` / `peaDepositsEur` / `peaCeilingEur`;
+  `persistExternalAccounts` writes them. Only Trade Republic does today.
+- Everything is derived in `cashflows.ts` — reuse, don't re-sum in the UI:
+  `netContributions()` (deposits − withdrawals on `]from; to]`; `trackedAccountIds` = accounts
+  that have a deposit history — an untracked account is *unknown*, not zero),
+  `dividendSummary()` (12 rolling months, per year, per ISIN, yield on cost of holdings still
+  held) and `peaCeilingStatus()` (`Account.peaDeposits` vs `Account.peaCeiling ?? PEA_CEILING_EUR`).
+- The Budget tab shows net contributions next to `actualSavings()` over the same window: the
+  former has no market performance, the latter does. Keep both notes.
+- `AccountFlows` (account detail) displays money → it carries the `privacyMode` subscription.
+
+### Trade Republic: timeline history & PEA utilization
+Derived from the web bundle (same method as above), **not verified against a live account**:
+- REST, same cookies/headers as `/api/v2/auth/account`: `GET /api/v2/timeline/transactions`
+  with `pageSize`, `categoryIds` (comma-joined), `cashAccountNumbers[]`, `isins[]`, `olderThan`
+  (cursor) → `{ items, cursors: { after } }`. Item: `id`, `title`, `timestamp`, `status`
+  (`CANCELED`), `amount: { value, currency }` (positive = money in), `action: { type:
+  'instrumentDetail', payload: <isin> }`. Other endpoints under `/api/v2/timeline`:
+  `transaction-categories`, `search`, `activity-log`, `actions`, `inbox/open|closed`. The WS
+  `timelineTransactions` topic is still in the enum but the web client no longer uses it.
+- `categoryIds=INCOME` is hardcoded in the web client (per-instrument return screen): an INCOME
+  item with an ISIN is a `dividend`, without one it is `interest`, a negative one is skipped.
+- **Deposit category ids are server data** (`/transaction-categories`), absent from the bundle.
+  `TRANSFER_CATEGORY_PATTERN` matches them by id / label; when nothing matches, no deposit is
+  imported and a warning says so (`errors.tr_versements_non_reconnus`) — the raw list is in the
+  debug log, fix the pattern from it rather than guessing. Deposit vs withdrawal is the sign.
+- History is best-effort: any failure adds a warning, never fails the sync. Window =
+  `HISTORY_DAYS` (400), `HISTORY_MAX_PAGES` × `HISTORY_PAGE_SIZE` per envelope and category group.
+
 ## Debug log & network requests (`src/lib/debugLog.ts`)
 - **Every HTTP request in `src/lib` goes through `tracedFetch(tag, url, init)`, never a bare
   `fetch`** — a bare call is invisible in Paramètres → Outils développeur (this is how the FRED /
@@ -432,8 +467,8 @@ tag would clobber each other. Keep it that way if you add a third.
   logged at `error` level. It calls the global `fetch`, so `test/http.ts` `mockFetch` still works.
 - Headers and bodies are never logged (API keys, JWTs); secret query params (`key`, `signature`,
   `token`…) are masked by `redactUrl` — extend `SECRET_PARAMS` if a new API puts a secret in its URL.
-- Trade Republic keeps its own hand-written logs (redacted bodies, WebSocket frames) on bare
-  `fetch`; don't wrap it too or every call shows twice. Don't add a `logDebug('GET …')` next to a
+- Trade Republic keeps its own hand-written logs (redacted bodies, WebSocket frames, timeline
+  `trGetJson`) on bare `fetch`; don't wrap it too or every call shows twice. Don't add a `logDebug('GET …')` next to a
   `tracedFetch` either. Tags: `fx`, `immobilier` (FRED index, geocoding, DVF), `yahoo`, `justetf`,
   `coingecko`, `binance`, `kraken`, `enablebanking`, `aiCounsel` (Yahoo charts), `gemini`.
 

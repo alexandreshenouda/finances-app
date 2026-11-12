@@ -644,7 +644,9 @@
     "aucun_proxy": "aucun proxy CORS disponible",
     "coingecko_id_inconnu": "{{name}} : id CoinGecko « {{symbol}} » inconnu",
     "resolution_isin": "{{name}} : résolution ISIN {{isin}} → {{message}}",
-    "aucun_ticker_yahoo": "{{name}} : aucun ticker Yahoo trouvé pour l'ISIN {{isin}}"
+    "aucun_ticker_yahoo": "{{name}} : aucun ticker Yahoo trouvé pour l'ISIN {{isin}}",
+    "tr_historique_indisponible": "Historique des opérations Trade Republic indisponible ({{message}}) : versements et dividendes non mis à jour",
+    "tr_versements_non_reconnus": "Catégories de versements Trade Republic non reconnues : versements non importés (voir le journal de debug)"
   },
   "objectives": {
     "a_epargner": "À épargner {{amount}}/mois",
@@ -1311,7 +1313,10 @@
     "inclure_prets": "Compter les mensualités de mes prêts",
     "inclure_prets_note": "Les mensualités (assurance incluse) des prêts en cours de la rubrique Emprunts sont ajoutées aux dépenses vitales. Décochez si vous les avez déjà saisies à la main.",
     "avertissement": "Calculs indicatifs fondés sur vos saisies ; ils ne constituent pas un conseil financier personnalisé.",
-    "conseils": "Conseils"
+    "conseils": "Conseils",
+    "reel_versements": "Versements nets constatés",
+    "reel_versements_note_one": "Les versements nets (dépôts − retraits, sans performance) ne couvrent que {{count}} compte synchronisé disposant d'un historique d'opérations.",
+    "reel_versements_note_other": "Les versements nets (dépôts − retraits, sans performance) ne couvrent que les {{count}} comptes synchronisés disposant d'un historique d'opérations."
   },
   "budgetForm": {
     "titre_new": "Nouveau flux récurrent",
@@ -1329,5 +1334,12 @@
     "supprimer_bouton": "Supprimer ce flux",
     "supprimer_titre": "Supprimer le flux",
     "supprimer_confirm": "Supprimer « {{name}} » du budget ?"
+  },
+  "flows": {
+    "versements_titre": "Versements sur 12 mois",
+    "versements": "Versements",
+    "retraits": "Retraits",
+    "versements_nets": "Versements nets",
+    "note_historique": "Montants nets reçus sur le compte, tels que remontés par la synchronisation ; l'historique importé couvre environ 13 mois glissants à chaque synchronisation."
   }
 }

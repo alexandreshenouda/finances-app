@@ -644,7 +644,9 @@
     "aucun_proxy": "kein CORS-Proxy verfügbar",
     "coingecko_id_inconnu": "{{name}}: unbekannte CoinGecko-ID „{{symbol}}“",
     "resolution_isin": "{{name}}: ISIN-Auflösung {{isin}} → {{message}}",
-    "aucun_ticker_yahoo": "{{name}}: kein Yahoo-Ticker für ISIN {{isin}} gefunden"
+    "aucun_ticker_yahoo": "{{name}}: kein Yahoo-Ticker für ISIN {{isin}} gefunden",
+    "tr_historique_indisponible": "Trade-Republic-Transaktionsverlauf nicht verfügbar ({{message}}): Einzahlungen und Dividenden nicht aktualisiert",
+    "tr_versements_non_reconnus": "Einzahlungskategorien von Trade Republic nicht erkannt: Einzahlungen nicht importiert (siehe Debug-Protokoll)"
   },
   "objectives": {
     "a_epargner": "{{amount}}/Monat sparen",
@@ -1311,7 +1313,10 @@
     "inclure_prets": "Meine Kreditraten mitzählen",
     "inclure_prets_note": "Die Monatsraten (inkl. Versicherung) laufender Kredite aus dem Bereich Kredite werden den notwendigen Ausgaben hinzugefügt. Abwählen, wenn Sie sie bereits manuell erfasst haben.",
     "avertissement": "Unverbindliche Berechnungen auf Basis Ihrer Eingaben; sie stellen keine individuelle Finanzberatung dar.",
-    "conseils": "Hinweise"
+    "conseils": "Hinweise",
+    "reel_versements": "Festgestellte Netto-Einzahlungen",
+    "reel_versements_note_one": "Netto-Einzahlungen (Einzahlungen − Auszahlungen, ohne Wertentwicklung) decken nur {{count}} synchronisiertes Konto mit Transaktionsverlauf ab.",
+    "reel_versements_note_other": "Netto-Einzahlungen (Einzahlungen − Auszahlungen, ohne Wertentwicklung) decken nur die {{count}} synchronisierten Konten mit Transaktionsverlauf ab."
   },
   "budgetForm": {
     "titre_new": "Neuer wiederkehrender Posten",
@@ -1329,5 +1334,12 @@
     "supprimer_bouton": "Diesen Posten löschen",
     "supprimer_titre": "Posten löschen",
     "supprimer_confirm": "„{{name}}“ aus dem Budget löschen?"
+  },
+  "flows": {
+    "versements_titre": "Einzahlungen über 12 Monate",
+    "versements": "Einzahlungen",
+    "retraits": "Auszahlungen",
+    "versements_nets": "Netto-Einzahlungen",
+    "note_historique": "Auf dem Konto eingegangene Nettobeträge laut Synchronisierung; jede Synchronisierung importiert etwa die letzten 13 Monate."
   }
 }
