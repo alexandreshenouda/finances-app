@@ -1,6 +1,6 @@
 /** Tests des flux constatés : versements nets, dividendes, plafond PEA (`src/lib/cashflows.ts`). */
 import { describe, expect, it } from 'vitest';
-import { netContributions, PEA_CEILING_NEAR_RATIO, peaCeilingStatus } from '@/lib/cashflows';
+import { dividendSummary, netContributions, PEA_CEILING_NEAR_RATIO, peaCeilingStatus } from '@/lib/cashflows';
 import type { CashFlow, CashFlowKind } from '@/lib/types';
 import { account, holding, RATES } from './factories';
 
@@ -57,6 +57,64 @@ describe('netContributions', () => {
   it('un compte suivi sans mouvement dans la fenêtre vaut zéro, pas « inconnu »', () => {
     const r = netContributions([flow('cto', '2020-01-01', 'deposit', 100)], [cto], '2024-01-01', '2024-03-31');
     expect(r).toMatchObject({ net: 0, monthly: 0, trackedAccountIds: ['cto'] });
+  });
+});
+
+describe('dividendSummary', () => {
+  const today = '2024-06-30';
+  const cto = account({ id: 'cto' });
+  const TOTAL = 'FR0000120271';
+  const holdings = [
+    holding({ accountId: 'cto', name: 'TotalEnergies', isin: TOTAL, quantity: 100, buyPrice: 50 }), // 5 000 €
+    holding({ accountId: 'cto', name: 'Apple', isin: 'US0378331005', quantity: 10, buyPrice: 100, currency: 'USD' }), // 1 000 $ = 800 €
+    holding({ accountId: 'cto', name: 'Sans PRU', quantity: 3 }),
+    holding({ accountId: 'autre', name: 'Hors périmètre', quantity: 1, buyPrice: 9_999 }),
+  ];
+  const flows = [
+    flow('cto', '2024-05-01', 'dividend', 79, { isin: TOTAL, label: 'Dividende' }),
+    flow('cto', '2024-02-01', 'dividend', 66, { isin: TOTAL }),
+    flow('cto', '2024-03-01', 'dividend', 29, { label: 'Coupon inconnu' }),
+    flow('cto', '2023-06-30', 'dividend', 500, { isin: TOTAL }), // il y a pile 366 jours : hors 12 mois
+    flow('cto', '2022-05-01', 'dividend', 40, { isin: TOTAL }),
+    flow('cto', '2024-04-01', 'interest', 12),
+    flow('cto', '2023-01-01', 'interest', 99), // trop ancien
+    flow('cto', '2024-04-01', 'deposit', 1_000),
+    flow('cto', '2024-07-15', 'dividend', 1_000, { isin: TOTAL }), // dans le futur
+    flow('autre', '2024-05-01', 'dividend', 1_000),
+  ];
+
+  it('totalise 12 mois glissants, par année et par titre, et rapporte au prix de revient', () => {
+    const s = dividendSummary(flows, holdings, [cto], RATES, today);
+    expect(s.last12m).toBe(79 + 66 + 29);
+    expect(s.interest12m).toBe(12);
+    expect(s.byYear).toEqual([
+      { year: '2024', total: 174 },
+      { year: '2023', total: 500 },
+      { year: '2022', total: 40 },
+    ]);
+    expect(s.byIsin).toEqual([
+      { isin: TOTAL, label: 'TotalEnergies', total: 145 },
+      { isin: 'Coupon inconnu', label: 'Coupon inconnu', total: 29 },
+    ]);
+    expect(s.costBasis).toBe(100 * 50 + 10 * 100 * RATES.USD);
+    expect(s.yieldOnCostPct).toBeCloseTo((174 / 5_800) * 100, 9);
+  });
+
+  it('applique la quote-part du compte', () => {
+    const moitie = account({ id: 'cto', ownershipPct: 50 });
+    const s = dividendSummary(flows, holdings, [moitie], RATES, today);
+    expect(s.last12m).toBe(87);
+    expect(s.costBasis).toBe(2_900);
+    expect(s.yieldOnCostPct).toBeCloseTo(3, 9);
+  });
+
+  it('ne calcule pas de rendement sans prix de revient, et nomme un titre vendu par son libellé', () => {
+    const s = dividendSummary([flow('cto', '2024-05-01', 'dividend', 10, { isin: TOTAL }), flow('cto', '2024-05-02', 'dividend', 5)], [], [cto], RATES, today);
+    expect(s).toMatchObject({ last12m: 15, costBasis: 0, yieldOnCostPct: undefined });
+    expect(s.byIsin).toEqual([
+      { isin: TOTAL, label: TOTAL, total: 10 },
+      { isin: '?', label: '?', total: 5 },
+    ]);
   });
 });
 

@@ -1352,6 +1352,12 @@
     "versements": "Versements",
     "retraits": "Retraits",
     "versements_nets": "Versements nets",
+    "dividendes_titre": "Dividendes et intérêts reçus",
+    "dividendes_12m": "Dividendes sur 12 mois",
+    "rendement_pru": "{{pct}} du prix de revient des lignes détenues",
+    "interets_12m": "Intérêts sur 12 mois",
+    "dividendes_annee": "Dividendes {{year}}",
+    "payeurs_titre": "Principaux payeurs (12 mois)",
     "note_historique": "Montants nets reçus sur le compte, tels que remontés par la synchronisation ; l'historique importé couvre environ 13 mois glissants à chaque synchronisation."
   },
   "lock": {

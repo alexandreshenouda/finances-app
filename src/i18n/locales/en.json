@@ -1352,6 +1352,12 @@
     "versements": "Deposits",
     "retraits": "Withdrawals",
     "versements_nets": "Net deposits",
+    "dividendes_titre": "Dividends and interest received",
+    "dividendes_12m": "Dividends over 12 months",
+    "rendement_pru": "{{pct}} of the cost basis of current holdings",
+    "interets_12m": "Interest over 12 months",
+    "dividendes_annee": "Dividends {{year}}",
+    "payeurs_titre": "Top payers (12 months)",
     "note_historique": "Net amounts received on the account, as reported by the sync; each sync imports roughly the last 13 months of history."
   },
   "lock": {

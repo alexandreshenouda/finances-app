@@ -220,6 +220,8 @@ pour le détail des contraintes.
   rapatrie ~13 mois d'opérations du compte espèces de chaque enveloppe.
   - *Versements nets* (dépôts − retraits) : affichés sur la fiche du compte et, dans le Budget,
     à côté de l'épargne constatée — qui, elle, inclut la performance des marchés.
+  - *Dividendes et intérêts reçus* : total sur 12 mois, par année, principaux titres payeurs et
+    rendement sur prix de revient des lignes détenues.
   - *Plafond de versements du PEA* : cumul versé / 150 000 € avec barre de progression ; pour un
     PEA non synchronisé, le cumul se saisit dans la fiche du compte. Le conseil « plafond du
     PEA » s'appuie sur ce cumul plutôt que sur la valorisation du plan.

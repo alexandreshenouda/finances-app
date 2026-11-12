@@ -65,6 +65,82 @@ export function netContributions(
   };
 }
 
+// ─── Dividendes ─────────────────────────────────────────────────────────────
+
+export interface DividendSummary {
+  /** Dividendes reçus sur les 12 derniers mois (EUR). */
+  last12m: number;
+  /** Intérêts reçus sur les 12 derniers mois (EUR) — hors dividendes. */
+  interest12m: number;
+  /** Total par année civile, la plus récente d'abord. */
+  byYear: { year: string; total: number }[];
+  /** Titres payeurs sur 12 mois, du plus gros au plus petit. */
+  byIsin: { isin: string; label: string; total: number }[];
+  /** Prix de revient des lignes détenues dont le PRU est connu (EUR). */
+  costBasis: number;
+  /** Dividendes 12 mois / prix de revient, en % ; absent sans prix de revient. */
+  yieldOnCostPct?: number;
+}
+
+/**
+ * Synthèse des dividendes d'un ensemble de comptes. Le rendement sur prix de revient
+ * rapporte les dividendes des 12 derniers mois au coût d'acquisition des lignes encore
+ * détenues (PRU × quantité) : il sous-estime le rendement si des titres payeurs ont été
+ * vendus entre-temps, et l'ignore pour les lignes sans PRU.
+ */
+export function dividendSummary(
+  flows: CashFlow[],
+  holdings: Holding[],
+  accounts: Account[],
+  rates: FxRates,
+  today: string = todayKey()
+): DividendSummary {
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  const yearAgo = addDays(today, -365);
+  const names = new Map<string, string>();
+  for (const h of holdings) if (h.isin && byId.has(h.accountId)) names.set(h.isin, h.name);
+
+  let last12m = 0;
+  let interest12m = 0;
+  const years = new Map<string, number>();
+  const payers = new Map<string, { label: string; total: number }>();
+  for (const f of flows) {
+    const account = byId.get(f.accountId);
+    if (!account || f.date > today) continue;
+    const amount = f.amount * accountShare(account);
+    const recent = f.date > yearAgo;
+    if (f.kind === 'interest') {
+      if (recent) interest12m += amount;
+      continue;
+    }
+    if (f.kind !== 'dividend') continue;
+    const year = f.date.slice(0, 4);
+    years.set(year, (years.get(year) ?? 0) + amount);
+    if (!recent) continue;
+    last12m += amount;
+    const key = f.isin ?? f.label ?? '?';
+    const entry = payers.get(key) ?? { label: (f.isin && names.get(f.isin)) || f.label || key, total: 0 };
+    entry.total += amount;
+    payers.set(key, entry);
+  }
+
+  let costBasis = 0;
+  for (const h of holdings) {
+    const account = byId.get(h.accountId);
+    if (!account || h.buyPrice === undefined) continue;
+    costBasis += toEur(h.buyPrice * h.quantity, holdingCurrency(h, account), rates) * accountShare(account);
+  }
+
+  return {
+    last12m,
+    interest12m,
+    byYear: [...years].map(([year, total]) => ({ year, total })).sort((a, b) => b.year.localeCompare(a.year)),
+    byIsin: [...payers].map(([isin, v]) => ({ isin, ...v })).sort((a, b) => b.total - a.total),
+    costBasis,
+    yieldOnCostPct: costBasis > 0 ? (last12m / costBasis) * 100 : undefined,
+  };
+}
+
 // ─── Plafond du PEA ─────────────────────────────────────────────────────────
 
 export interface PeaCeilingStatus {

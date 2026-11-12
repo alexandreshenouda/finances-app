@@ -1352,6 +1352,12 @@
     "versements": "Einzahlungen",
     "retraits": "Auszahlungen",
     "versements_nets": "Netto-Einzahlungen",
+    "dividendes_titre": "Erhaltene Dividenden und Zinsen",
+    "dividendes_12m": "Dividenden über 12 Monate",
+    "rendement_pru": "{{pct}} des Einstandswerts der gehaltenen Positionen",
+    "interets_12m": "Zinsen über 12 Monate",
+    "dividendes_annee": "Dividenden {{year}}",
+    "payeurs_titre": "Größte Zahler (12 Monate)",
     "note_historique": "Auf dem Konto eingegangene Nettobeträge laut Synchronisierung; jede Synchronisierung importiert etwa die letzten 13 Monate."
   },
   "lock": {
