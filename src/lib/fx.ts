@@ -2,6 +2,7 @@
  * Taux de change → EUR. Source : api.frankfurter.app (taux BCE, gratuit, CORS ok).
  * Les derniers taux connus sont persistés dans le store pour fonctionner hors ligne.
  */
+import { tracedFetch } from './debugLog';
 import i18next from './i18n';
 import { useStore } from './store';
 import { CURRENCIES, type Currency, type FxRates } from './types';
@@ -21,7 +22,7 @@ export function convert(amount: number, from: Currency, to: Currency, rates: FxR
 export async function refreshFxRates(): Promise<{ ok: boolean; error?: string }> {
   const symbols = CURRENCIES.filter((c) => c !== 'EUR');
   try {
-    const res = await fetch(`https://api.frankfurter.dev/v1/latest?base=EUR&symbols=${symbols.join(',')}`);
+    const res = await tracedFetch('fx', `https://api.frankfurter.dev/v1/latest?base=EUR&symbols=${symbols.join(',')}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = (await res.json()) as { rates?: Record<string, number> };
     const next: FxRates = { ...useStore.getState().fxRates, EUR: 1 };

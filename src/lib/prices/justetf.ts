@@ -5,7 +5,7 @@
  * positions (top holdings), les frais de gestion (TER) et les métadonnées d'actions.
  */
 import { Platform } from 'react-native';
-import { logDebug } from '../debugLog';
+import { logDebug, tracedFetch } from '../debugLog';
 import i18next from '../i18n';
 import type { CountryCode, SectorKey } from '../types';
 import { normalizeSector } from './sectors';
@@ -331,7 +331,7 @@ async function fetchWithTimeout(
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
+    const res = await tracedFetch(TAG, url, { ...options, signal: controller.signal });
     clearTimeout(id);
     return res;
   } catch (e) {
@@ -350,7 +350,6 @@ async function fetchHtml(url: string, timeoutMs = 4500): Promise<string | null> 
     let res: Response;
     let html: string;
     try {
-      logDebug(TAG, `GET ${url}`);
       res = await fetchWithTimeout(
         url,
         {
@@ -368,7 +367,6 @@ async function fetchHtml(url: string, timeoutMs = 4500): Promise<string | null> 
       throw new JustEtfUnavailableError(err?.message ?? String(err));
     }
     if (!res.ok) {
-      logDebug(TAG, `GET ${url} → HTTP ${res.status}`);
       if (isTransientStatus(res.status)) throw new JustEtfUnavailableError(`HTTP ${res.status}`);
       return null;
     }

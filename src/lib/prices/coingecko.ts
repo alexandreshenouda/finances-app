@@ -1,4 +1,5 @@
 /** Cours crypto via l'API publique CoinGecko (gratuite, CORS ok), multi-devises. */
+import { tracedFetch } from '../debugLog';
 import i18next from '../i18n';
 import type { Currency } from '../types';
 
@@ -11,7 +12,7 @@ export async function fetchCoinGeckoPrices(ids: string[]): Promise<CoinGeckoPric
   const out: CoinGeckoPrices = new Map();
   if (ids.length === 0) return out;
   const url = `${BASE}/simple/price?ids=${encodeURIComponent(ids.join(','))}&vs_currencies=eur,usd,chf`;
-  const res = await fetch(url);
+  const res = await tracedFetch('coingecko', url);
   if (!res.ok) throw new Error(`CoinGecko HTTP ${res.status}`);
   const json = (await res.json()) as Record<string, { eur?: number; usd?: number; chf?: number }>;
   for (const [id, v] of Object.entries(json)) {
@@ -29,7 +30,7 @@ const NOISY_CATEGORY = /index|holdings|ecosystem/i;
  * `undefined` si le coin n'a aucune catégorie exploitable. */
 export async function fetchCoinGeckoCategory(id: string): Promise<string | undefined> {
   const url = `${BASE}/coins/${encodeURIComponent(id)}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false`;
-  const res = await fetch(url);
+  const res = await tracedFetch('coingecko', url);
   if (!res.ok) throw new Error(i18next.t('errors.http_pour', { source: 'CoinGecko', status: res.status, target: id }));
   const json = (await res.json()) as { categories?: unknown };
   const categories = Array.isArray(json.categories) ? json.categories.filter((c): c is string => typeof c === 'string') : [];

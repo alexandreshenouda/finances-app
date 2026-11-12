@@ -215,7 +215,7 @@ in via resvg's font option loading Liberation Sans
 tabs): `connections.tsx`, `backup.tsx`, `display-settings.tsx` (default period for
 charts/+/- value, `store.defaultPeriod`, and default chart mode `store.chartMode`),
 `erase-history.tsx` (delete snapshots before a date or between two dates, per-account
-or all — for fixing bad manual entries), `dev-tools.tsx` (connector debug log), a
+or all — for fixing bad manual entries), `dev-tools.tsx` (debug log: every network request + raw connector traffic), a
 "reclassify all holdings" action (`classifyHoldings({ forceAll: true })` clearing the
 JustETF in-memory cache), and a "wipe all data" action with confirmation (`store.resetAll()`).
 
@@ -422,6 +422,20 @@ tag would clobber each other. Keep it that way if you add a third.
 - `eas.json`'s `preview` profile carries `android.buildType: apk` because a
   release asset must be directly installable; `production` still yields an AAB.
 - Use `node_modules/.bin/expo` in CI too, matching the local convention below.
+
+## Debug log & network requests (`src/lib/debugLog.ts`)
+- **Every HTTP request in `src/lib` goes through `tracedFetch(tag, url, init)`, never a bare
+  `fetch`** — a bare call is invisible in Paramètres → Outils développeur (this is how the FRED /
+  DVF / geocoding, FX, CoinGecko, Binance, Kraken, Enable Banking and Gemini calls went missing).
+  With the log off it is a plain pass-through; with it on, one entry per finished request:
+  method, URL, HTTP status (or the network error) and duration; non-2xx and thrown errors are
+  logged at `error` level. It calls the global `fetch`, so `test/http.ts` `mockFetch` still works.
+- Headers and bodies are never logged (API keys, JWTs); secret query params (`key`, `signature`,
+  `token`…) are masked by `redactUrl` — extend `SECRET_PARAMS` if a new API puts a secret in its URL.
+- Trade Republic keeps its own hand-written logs (redacted bodies, WebSocket frames) on bare
+  `fetch`; don't wrap it too or every call shows twice. Don't add a `logDebug('GET …')` next to a
+  `tracedFetch` either. Tags: `fx`, `immobilier` (FRED index, geocoding, DVF), `yahoo`, `justetf`,
+  `coingecko`, `binance`, `kraken`, `enablebanking`, `aiCounsel` (Yahoo charts), `gemini`.
 
 ## Verification workflow
 - `node_modules` is **not present by default** — run `npm install` first, before any

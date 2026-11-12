@@ -6,6 +6,7 @@ import { hmac } from '@noble/hashes/hmac.js';
 import { sha256, sha512 } from '@noble/hashes/sha2.js';
 import { utf8ToBytes } from '@noble/hashes/utils.js';
 import { fromUint8Array, toUint8Array } from 'js-base64';
+import { tracedFetch } from '../debugLog';
 import i18next from '../i18n';
 import type { ExternalAccount, ExternalHolding, SyncResult } from './types';
 
@@ -25,7 +26,7 @@ async function privatePost(path: string, creds: KrakenCredentials): Promise<any>
   ]);
   const signature = fromUint8Array(hmac(sha512, toUint8Array(creds.apiSecret), message));
 
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await tracedFetch('kraken', `${BASE}${path}`, {
     method: 'POST',
     headers: {
       'API-Key': creds.apiKey,
@@ -54,7 +55,7 @@ async function fetchTickerEur(assets: string[]): Promise<Map<string, number>> {
   const out = new Map<string, number>();
   const pairs = assets.map((a) => `${a === 'BTC' ? 'XBT' : a}EUR`).join(',');
   if (!pairs) return out;
-  const res = await fetch(`${BASE}/0/public/Ticker?pair=${encodeURIComponent(pairs)}`);
+  const res = await tracedFetch('kraken', `${BASE}/0/public/Ticker?pair=${encodeURIComponent(pairs)}`);
   if (!res.ok) throw new Error(`Kraken ticker HTTP ${res.status}`);
   const json = await res.json();
   const result = json.result ?? {};

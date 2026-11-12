@@ -19,6 +19,7 @@
  *    pratique), c'est l'infrastructure du gouvernement qui sert son propre outil
  *    phare de visualisation DVF : bien plus susceptible de rester en ligne.
  */
+import { tracedFetch } from '../debugLog';
 import i18next from '../i18n';
 import type { LocalEstimate, PropertyGeo, PropertyKind } from '../types';
 
@@ -33,7 +34,7 @@ export const LOCAL_MODE_KINDS: PropertyKind[] = ['appartement', 'maison'];
 async function fetchJsonOrThrow(url: string, unavailableMessage: string): Promise<any> {
   let res: Response;
   try {
-    res = await fetch(url);
+    res = await tracedFetch('immobilier', url);
   } catch {
     throw new Error(unavailableMessage);
   }

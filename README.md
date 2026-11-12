@@ -298,7 +298,7 @@ vivent dans `test/`, un par module de `src/lib` :
 | `test/binance.test.ts`, `test/kraken.test.ts`, `test/enablebanking.test.ts` | connecteurs : signatures HMAC / JWT RS256 revérifiées avec `node:crypto`, valorisation EUR, erreurs |
 | `test/traderepublic.test.ts` | login v2 à approbation push, protocole WebSocket (faux serveur), enveloppes CTO/PEA/Private Equity |
 | `test/aiCounsel.test.ts` | recherche Yahoo & résolution ISIN, indicateurs techniques (SMA/EMA/RSI/MACD/volatilité/pivots/cône 12M), score 7 facteurs et comité d'investissement Gemini (REST + fallback de modèles) |
-| `test/debugLog.test.ts`, `test/confirm.test.ts`, `test/secure.test.ts`, `test/i18n.test.ts` | journal de debug, dialogues thématisés, stockage des secrets (natif / web), détection de langue, parité des clés fr/en/de et messages de `src/lib` traduits |
+| `test/debugLog.test.ts`, `test/confirm.test.ts`, `test/secure.test.ts`, `test/i18n.test.ts` | journal de debug (dont `tracedFetch` : traçage et masquage des secrets des requêtes réseau), dialogues thématisés, stockage des secrets (natif / web), détection de langue, parité des clés fr/en/de et messages de `src/lib` traduits |
 
 Les valeurs de référence des crédits sont recalculées dans les tests par la **formule fermée
 de l'annuité**, indépendamment de la simulation mois par mois de `realestate.ts` : les deux

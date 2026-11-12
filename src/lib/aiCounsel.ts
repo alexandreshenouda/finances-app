@@ -3,7 +3,7 @@
  * et comité d'investissement institutionnel Gemini pour actions, ETF et fonds.
  */
 import { Platform } from 'react-native';
-import { logDebug } from './debugLog';
+import { logDebug, tracedFetch } from './debugLog';
 import i18next from './i18n';
 import { deleteSecret, GEMINI_SECRET_KEY, getSecret, setSecret } from './secure';
 
@@ -436,7 +436,8 @@ export async function fetchAvailableGeminiModels(apiKey?: string): Promise<Gemin
   const key = (apiKey ?? (await getGeminiApiKey())).trim();
   if (!key) return [];
 
-  const res = await fetch(
+  const res = await tracedFetch(
+    'gemini',
     `https://generativelanguage.googleapis.com/v1beta/models?pageSize=100&key=${encodeURIComponent(key)}`
   );
   if (!res.ok) {
@@ -475,9 +476,8 @@ export async function fetchAvailableGeminiModels(apiKey?: string): Promise<Gemin
 // ─── Yahoo Finance Market Data & Multi-Timeframe Fetch ───────────────────────
 
 async function fetchYahooJson(url: string): Promise<any> {
-  logDebug(TAG, `GET ${url}`);
   if (Platform.OS !== 'web') {
-    const res = await fetch(url, {
+    const res = await tracedFetch(TAG, url, {
       headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
     });
     if (!res.ok) {
@@ -498,8 +498,7 @@ async function fetchYahooJson(url: string): Promise<any> {
   let lastErr: any;
   for (const proxyUrl of webProxies) {
     try {
-      logDebug(TAG, `GET (web proxy) ${proxyUrl}`);
-      const res = await fetch(proxyUrl);
+      const res = await tracedFetch(TAG, proxyUrl);
       if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
       const text = await res.text();
       if (text.trimStart().startsWith('<')) {
@@ -1545,7 +1544,7 @@ export async function generateGeminiInvestmentCounsel(
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       modelId
     )}:generateContent?key=${encodeURIComponent(apiKey)}`;
-    const res = await fetch(url, {
+    const res = await tracedFetch('gemini', url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

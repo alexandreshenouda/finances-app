@@ -10,6 +10,7 @@
  * Elle est rafraîchie en ligne depuis FRED (série BIS, gratuit, sans clé) ;
  * l'échec (CORS sur Web, hors-ligne…) est silencieux et conserve le seed.
  */
+import { tracedFetch } from '../debugLog';
 import i18next from '../i18n';
 import { useStore } from '../store';
 import type { HousePricePoint } from '../types';
@@ -91,7 +92,7 @@ const FRED_CSV = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=QFRN628BIS'
  */
 export async function refreshHouseIndex(): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await fetch(FRED_CSV);
+    const res = await tracedFetch('immobilier', FRED_CSV);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const csv = await res.text();
     const points: HousePricePoint[] = [];

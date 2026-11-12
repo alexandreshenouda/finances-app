@@ -12,6 +12,7 @@
  * Authentification API : JWT RS256 signé avec la clé privée de l'application.
  */
 import { KJUR } from 'jsrsasign';
+import { tracedFetch } from '../debugLog';
 import i18next from '../i18n';
 import type { ExternalAccount, SyncResult } from './types';
 
@@ -57,7 +58,7 @@ async function api(
   path: string,
   init?: { method?: string; body?: unknown }
 ): Promise<any> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await tracedFetch('enablebanking', `${BASE}${path}`, {
     method: init?.method ?? 'GET',
     headers: {
       Authorization: `Bearer ${makeJwt(creds)}`,

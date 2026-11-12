@@ -3,7 +3,7 @@
  * Tickers au format Yahoo : "WPEA.PA" (Euronext Paris), "AAPL", "CW8.PA"…
  * Bloqué par CORS dans un navigateur — fonctionne dans l'app Android.
  */
-import { logDebug } from '../debugLog';
+import { logDebug, tracedFetch } from '../debugLog';
 import i18next from '../i18n';
 
 const BASE = 'https://query1.finance.yahoo.com/v8/finance/chart';
@@ -15,7 +15,7 @@ interface YahooQuote {
 }
 
 async function fetchQuote(symbol: string): Promise<YahooQuote> {
-  const res = await fetch(`${BASE}/${encodeURIComponent(symbol)}?range=5d&interval=1d`, {
+  const res = await tracedFetch(TAG, `${BASE}/${encodeURIComponent(symbol)}?range=5d&interval=1d`, {
     headers: { 'User-Agent': 'Mozilla/5.0' },
   });
   if (!res.ok) throw new Error(i18next.t('errors.http_pour', { source: 'Yahoo', status: res.status, target: symbol }));
@@ -86,11 +86,10 @@ import { Platform } from 'react-native';
 
 export async function searchYahooSymbol(query: string): Promise<YahooSearchMatch[]> {
   const url = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`;
-  logDebug(TAG, `GET ${url}`);
 
   /** Corps JSON de la recherche, ou erreur explicite si elle n'a pas abouti. */
   const getJson = async (target: string, init?: RequestInit): Promise<any> => {
-    const res = await fetch(target, init);
+    const res = await tracedFetch(TAG, target, init);
     if (!res.ok) throw new Error(i18next.t('errors.yahoo_recherche_http', { status: res.status, query }));
     return res.json();
   };
@@ -103,7 +102,6 @@ export async function searchYahooSymbol(query: string): Promise<YahooSearchMatch
     // Sur le web l'appel direct est bloqué par CORS : on retente via un proxy.
     if (Platform.OS !== 'web') throw err;
     const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-    logDebug(TAG, `GET (proxy) ${proxyUrl}`);
     try {
       json = await getJson(proxyUrl);
     } catch (proxyErr: any) {

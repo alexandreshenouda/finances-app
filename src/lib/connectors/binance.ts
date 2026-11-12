@@ -6,6 +6,7 @@
 import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js';
+import { tracedFetch } from '../debugLog';
 import i18next from '../i18n';
 import type { ExternalAccount, ExternalHolding, SyncResult } from './types';
 
@@ -25,7 +26,7 @@ interface Balance {
 async function signedGet(path: string, creds: BinanceCredentials): Promise<any> {
   const query = `timestamp=${Date.now()}&recvWindow=15000`;
   const signature = bytesToHex(hmac(sha256, utf8ToBytes(creds.apiSecret), utf8ToBytes(query)));
-  const res = await fetch(`${BASE}${path}?${query}&signature=${signature}`, {
+  const res = await tracedFetch('binance', `${BASE}${path}?${query}&signature=${signature}`, {
     headers: { 'X-MBX-APIKEY': creds.apiKey },
   });
   if (!res.ok) {
@@ -37,7 +38,7 @@ async function signedGet(path: string, creds: BinanceCredentials): Promise<any> 
 
 /** Tous les prix spot en une requête publique : symbole (ex : BTCEUR) → prix. */
 async function fetchAllTickers(): Promise<Map<string, number>> {
-  const res = await fetch(`${BASE}/api/v3/ticker/price`);
+  const res = await tracedFetch('binance', `${BASE}/api/v3/ticker/price`);
   if (!res.ok) throw new Error(`Binance tickers HTTP ${res.status}`);
   const list = (await res.json()) as { symbol: string; price: string }[];
   const map = new Map<string, number>();
