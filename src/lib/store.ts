@@ -151,6 +151,10 @@ interface AppState extends AppData {
   /** Ajoute des flux à un compte ; un flux déjà connu (même `externalId`) est remplacé, pas dupliqué. */
   mergeCashFlows: (accountId: string, flows: Omit<CashFlow, 'id' | 'accountId'>[]) => void;
 
+  /** Verrouillage de l'app par biométrie / code de l'appareil. Réglage de l'appareil : non exporté. */
+  appLock: boolean;
+  setAppLock: (v: boolean) => void;
+
   upsertHolding: (h: Partial<Holding> & { accountId: string; name: string; quantity: number }) => Holding;
   deleteHolding: (id: string) => void;
 
@@ -387,6 +391,9 @@ export const useStore = create<AppState>()(
           return { cashFlows: [...kept, ...flows.map((f) => ({ ...f, id: uid(), accountId }))] };
         }),
 
+      appLock: false,
+      setAppLock: (v) => set({ appLock: v }),
+
       upsertHolding: (h) => {
         const existing = h.id ? get().holdings.find((x) => x.id === h.id) : undefined;
         const holding: Holding = {
@@ -435,6 +442,7 @@ export const useStore = create<AppState>()(
           savedProjections: [],
           budgetItems: [],
           cashFlows: [],
+          appLock: false,
           budgetIncludeLoans: true,
           patrimoineNet: true,
           showRealEstate: true,
@@ -534,6 +542,7 @@ export const useStore = create<AppState>()(
         budgetItems: s.budgetItems,
         budgetIncludeLoans: s.budgetIncludeLoans,
         cashFlows: s.cashFlows,
+        appLock: s.appLock,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) state.hydrated = true;

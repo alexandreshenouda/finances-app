@@ -425,6 +425,7 @@ describe('import / export / remise à zéro', () => {
     S().setPrivacyMode(true);
     S().setThemePref('classique');
     S().setChartMode('percent');
+    S().setAppLock(true);
     S().resetAll();
     expect(exportData()).toEqual({
       accounts: [],
@@ -438,6 +439,7 @@ describe('import / export / remise à zéro', () => {
       budgetItems: [],
       cashFlows: [],
     });
+    expect(S().appLock).toBe(false);
     expect(S()).toMatchObject({ privacyMode: false, theme: 'or', chartMode: 'value', language: 'fr' });
   });
 });

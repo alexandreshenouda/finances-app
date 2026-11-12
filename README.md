@@ -202,6 +202,10 @@ pour le détail des contraintes.
 - **Mode confidentialité** : icône œil dans l'en-tête de chaque onglet pour masquer
   instantanément tous les montants (les pourcentages de répartition et de performance restent
   visibles).
+- **Verrouillage de l'app** (Android / iOS) : **Paramètres → Sécurité** protège l'ouverture de
+  l'app par l'empreinte, le visage ou le code de l'appareil (`expo-local-authentication`), y
+  compris au retour après plus d'une minute en arrière-plan. Réglage propre à l'appareil, absent
+  des sauvegardes ; indisponible sur le web / Electron.
 - **Personnalisation de l'affichage** : choix de la période par défaut des graphiques et de
   la variation, visibilité configurable des rubriques (Immobilier, Emprunts, Diversification, IA).
 - **Accessibilité & confort** : boutons, puces, lignes et cases exposent leur rôle et leur état

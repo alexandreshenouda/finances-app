@@ -1353,5 +1353,17 @@
     "retraits": "Auszahlungen",
     "versements_nets": "Netto-Einzahlungen",
     "note_historique": "Auf dem Konto eingegangene Nettobeträge laut Synchronisierung; jede Synchronisierung importiert etwa die letzten 13 Monate."
+  },
+  "lock": {
+    "titre": "Sicherheit",
+    "option": "App sperren (Biometrie oder Gerätecode)",
+    "option_note": "Die App verlangt beim Start und bei der Rückkehr nach mehr als einer Minute im Hintergrund Ihren Fingerabdruck, Ihr Gesicht oder den Gerätecode. Diese Einstellung gilt nur für dieses Gerät und ist nicht in Sicherungen enthalten.",
+    "invite": "Finances entsperren",
+    "invite_activer": "Bestätigen, um die App-Sperre zu aktivieren",
+    "invite_desactiver": "Bestätigen, um die App-Sperre zu deaktivieren",
+    "verrouillee": "Die App ist gesperrt.",
+    "deverrouiller": "Entsperren",
+    "indisponible_titre": "App-Sperre nicht verfügbar",
+    "indisponible_texte": "Auf diesem Gerät ist keine Bildschirmsperre (Code, Muster, Fingerabdruck oder Gesicht) eingerichtet. Richten Sie eine in den Systemeinstellungen ein und versuchen Sie es erneut."
   }
 }

@@ -464,6 +464,21 @@ Derived from the web bundle (same method as above), **not verified against a liv
 - History is best-effort: any failure adds a warning, never fails the sync. Window =
   `HISTORY_DAYS` (400), `HISTORY_MAX_PAGES` × `HISTORY_PAGE_SIZE` per envelope and category group.
 
+## App lock (`src/lib/appLock.ts`, `src/components/AppLockGate.tsx`)
+- `store.appLock` (persisted, **not exported** — it is a device setting; reset by `resetAll`).
+  Toggled in Paramètres → Sécurité, hidden on web. Turning it on *or* off requires a successful
+  `LocalAuthentication.authenticateAsync` (device passcode fallback allowed), and it cannot be
+  enabled when `getEnrolledLevelAsync()` is `NONE`.
+- `AppLockGate` (mounted in `_layout.tsx`) covers the app with a `Modal` — a `Modal` because an
+  absolutely-positioned view would sit *under* natively presented modal screens. It starts locked
+  until the store is hydrated, prompts on launch, and re-locks on return to foreground after
+  `APP_LOCK_GRACE_MS` in the background (`shouldRelock`).
+- `unlocksApp()` also lets the user in when the device reports no lock at all (`not_enrolled`,
+  `passcode_not_set`, `not_available`) — otherwise removing the screen lock would brick the app.
+- `expo-local-authentication` is imported by components only; keep it out of `src/lib` (no Vitest
+  stub). Its config plugin in `app.json` sets `NSFaceIDUsageDescription`; a new native build is
+  needed (not available in an old dev client).
+
 ## Debug log & network requests (`src/lib/debugLog.ts`)
 - **Every HTTP request in `src/lib` goes through `tracedFetch(tag, url, init)`, never a bare
   `fetch`** — a bare call is invisible in Paramètres → Outils développeur (this is how the FRED /

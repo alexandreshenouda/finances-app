@@ -38,7 +38,13 @@
       "expo-sharing",
       "expo-image",
       "expo-status-bar",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Autoriser $(PRODUCT_NAME) à utiliser Face ID pour déverrouiller l'app."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

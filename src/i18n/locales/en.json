@@ -1353,5 +1353,17 @@
     "retraits": "Withdrawals",
     "versements_nets": "Net deposits",
     "note_historique": "Net amounts received on the account, as reported by the sync; each sync imports roughly the last 13 months of history."
+  },
+  "lock": {
+    "titre": "Security",
+    "option": "Lock the app (biometrics or device passcode)",
+    "option_note": "The app asks for your fingerprint, face or device passcode on launch, and when you return after more than a minute in the background. This setting is specific to this device and is not included in backups.",
+    "invite": "Unlock Finances",
+    "invite_activer": "Confirm to enable the app lock",
+    "invite_desactiver": "Confirm to disable the app lock",
+    "verrouillee": "The app is locked.",
+    "deverrouiller": "Unlock",
+    "indisponible_titre": "App lock unavailable",
+    "indisponible_texte": "No screen lock (passcode, pattern, fingerprint or face) is set up on this device. Set one up in the system settings, then try again."
   }
 }

@@ -1353,5 +1353,17 @@
     "retraits": "Retraits",
     "versements_nets": "Versements nets",
     "note_historique": "Montants nets reçus sur le compte, tels que remontés par la synchronisation ; l'historique importé couvre environ 13 mois glissants à chaque synchronisation."
+  },
+  "lock": {
+    "titre": "Sécurité",
+    "option": "Verrouiller l'app (biométrie ou code de l'appareil)",
+    "option_note": "L'app demande votre empreinte, votre visage ou le code de l'appareil à l'ouverture, et au retour après plus d'une minute en arrière-plan. Réglage propre à cet appareil, non inclus dans les sauvegardes.",
+    "invite": "Déverrouiller Finances",
+    "invite_activer": "Confirmez pour activer le verrouillage",
+    "invite_desactiver": "Confirmez pour désactiver le verrouillage",
+    "verrouillee": "L'app est verrouillée.",
+    "deverrouiller": "Déverrouiller",
+    "indisponible_titre": "Verrouillage indisponible",
+    "indisponible_texte": "Aucun verrou d'écran (code, schéma, empreinte ou visage) n'est configuré sur cet appareil. Configurez-en un dans les réglages du système, puis réessayez."
   }
 }
