@@ -1,10 +1,10 @@
 /** Carte d'un prêt : mensualité, progression, stats d'amortissement, paliers, courbe. */
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { LineChart } from '@/components/LineChart';
-import { Card, ProgressBar } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { Card, Chevron, ProgressBar } from '@/components/ui';
+import { C, FONT, TABULAR, useStyles } from '@/constants/theme';
 import { formatDate, formatDuration, formatMoney, formatPct } from '@/lib/format';
 import { loanPhases, loanSchedule, loanStats } from '@/lib/realestate';
 import { ACCOUNT_TYPE_COLORS, type Currency, type Loan } from '@/lib/types';
@@ -12,18 +12,17 @@ import { ACCOUNT_TYPE_COLORS, type Currency, type Loan } from '@/lib/types';
 function makeStyles() {
   return StyleSheet.create({
     loanHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    loanName: { color: C.text, fontSize: 16, fontWeight: '600' },
-    loanSub: { color: C.textDim, fontSize: 12, marginTop: 2 },
-    chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
+    loanName: { color: C.text, fontSize: FONT.lg, fontWeight: '600' },
+    loanSub: { color: C.textDim, fontSize: FONT.sm, marginTop: 2 },
     progressWrap: { marginBottom: 12 },
     progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-    progressLabel: { color: C.textFaint, fontSize: 12 },
+    progressLabel: { color: C.textFaint, fontSize: FONT.sm, ...TABULAR },
     loanStatsGrid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
     stat: { width: '50%', paddingVertical: 6 },
-    statLabel: { color: C.textFaint, fontSize: 12 },
-    statValue: { color: C.text, fontSize: 15, fontWeight: '600', marginTop: 2 },
-    statSub: { color: C.textFaint, fontSize: 11, marginTop: 1 },
-    scheduleNote: { color: C.textFaint, fontSize: 11, textAlign: 'center' },
+    statLabel: { color: C.textFaint, fontSize: FONT.sm },
+    statValue: { color: C.text, fontSize: FONT.md, fontWeight: '600', marginTop: 2, ...TABULAR },
+    statSub: { color: C.textFaint, fontSize: FONT.xs, marginTop: 1 },
+    scheduleNote: { color: C.textFaint, fontSize: FONT.xs, textAlign: 'center' },
     phases: {
       marginBottom: 12,
       paddingTop: 8,
@@ -31,8 +30,8 @@ function makeStyles() {
       borderTopColor: C.border,
     },
     phaseRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
-    phaseLabel: { color: C.textDim, fontSize: 13 },
-    phaseValue: { color: C.text, fontSize: 13, fontWeight: '600' },
+    phaseLabel: { color: C.textDim, fontSize: FONT.sm },
+    phaseValue: { color: C.text, fontSize: FONT.sm, fontWeight: '600', ...TABULAR },
   });
 }
 
@@ -58,8 +57,7 @@ export function LoanCard({
   const paidRatio = loan.principal > 0 ? Math.max(0, st.paidPrincipal / loan.principal) : 0;
 
   return (
-    <Pressable onPress={onEdit}>
-      <Card>
+      <Card onPress={onEdit}>
         <View style={styles.loanHead}>
           <View style={{ flex: 1 }}>
             <Text style={styles.loanName}>{loan.name}</Text>
@@ -71,7 +69,7 @@ export function LoanCard({
               {st.stepped ? `  ·  ${t('loans.stepped')}` : ''}
             </Text>
           </View>
-          <Text style={styles.chevron}>›</Text>
+          <Chevron />
         </View>
 
         <View style={styles.progressWrap}>
@@ -107,7 +105,6 @@ export function LoanCard({
         <LineChart points={schedule} color={color} />
         <Text style={styles.scheduleNote}>{t('loanCard.courbe_note')}</Text>
       </Card>
-    </Pressable>
   );
 }
 

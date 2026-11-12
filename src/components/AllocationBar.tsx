@@ -1,7 +1,7 @@
 /** Répartition du patrimoine par type de compte : barre empilée + légende chiffrée. */
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { C, useStyles } from '@/constants/theme';
+import { C, FONT, RADIUS, TABULAR, useStyles } from '@/constants/theme';
 import { formatEur, formatPct } from '@/lib/format';
 import { ACCOUNT_TYPE_COLORS, ACCOUNT_TYPE_LABELS, ACCOUNT_TYPE_ORDER, type AccountType } from '@/lib/types';
 
@@ -10,16 +10,16 @@ function makeStyles() {
     bar: {
       flexDirection: 'row',
       height: 14,
-      borderRadius: 7,
+      borderRadius: RADIUS.pill,
       overflow: 'hidden',
       marginBottom: 12,
     },
     legend: { gap: 6 },
     legendRow: { flexDirection: 'row', alignItems: 'center' },
-    swatch: { width: 10, height: 10, borderRadius: 3, marginRight: 8 },
-    legendLabel: { color: C.text, fontSize: 14, flex: 1 },
-    legendValue: { color: C.text, fontSize: 14, fontWeight: '600' },
-    legendPct: { color: C.textFaint, fontSize: 12, fontWeight: '400' },
+    swatch: { width: 10, height: 10, borderRadius: RADIUS.xs, marginRight: 8 },
+    legendLabel: { color: C.text, fontSize: FONT.md, flex: 1 },
+    legendValue: { color: C.text, fontSize: FONT.md, fontWeight: '600', ...TABULAR },
+    legendPct: { color: C.textFaint, fontSize: FONT.sm, fontWeight: '400' },
   });
 }
 

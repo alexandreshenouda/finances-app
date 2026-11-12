@@ -19,7 +19,7 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
-import { C, useStyles } from '@/constants/theme';
+import { C, FONT, useStyles } from '@/constants/theme';
 import { formatDate, formatEur, formatPct } from '@/lib/format';
 import type { SeriesPoint } from '@/lib/portfolio';
 import type { ChartMode } from '@/lib/types';
@@ -31,10 +31,10 @@ const PAD_BOTTOM = 22;
 function makeStyles() {
   return StyleSheet.create({
     wrap: { width: '100%' },
-    emptyText: { color: C.textFaint, fontSize: 13, textAlign: 'center', paddingHorizontal: 16 },
+    emptyText: { color: C.textFaint, fontSize: FONT.sm, textAlign: 'center', paddingHorizontal: 16 },
     tooltipRow: { height: 20, marginBottom: 2 },
-    tooltipText: { color: C.textDim, fontSize: 13, textAlign: 'center' },
-    tooltipRaw: { color: C.textFaint, fontSize: 12 },
+    tooltipText: { color: C.textDim, fontSize: FONT.sm, textAlign: 'center' },
+    tooltipRaw: { color: C.textFaint, fontSize: FONT.sm },
     axisRow: {
       position: 'absolute',
       bottom: 0,
@@ -43,7 +43,7 @@ function makeStyles() {
       flexDirection: 'row',
       justifyContent: 'space-between',
     },
-    axisText: { color: C.textFaint, fontSize: 11 },
+    axisText: { color: C.textFaint, fontSize: FONT.xs },
   });
 }
 

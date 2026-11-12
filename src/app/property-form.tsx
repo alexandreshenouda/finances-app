@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, SectionTitle, SelectField } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
 import { formatEur, todayKey } from '@/lib/format';
 import { LOCAL_MODE_KINDS, fetchLocalEstimate, geocodeAddress } from '@/lib/prices/localValuation';
 import { useStore } from '@/lib/store';
@@ -37,9 +37,9 @@ function parseDate(s: string): string | undefined {
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
-    hint: { color: C.textFaint, fontSize: 12, lineHeight: 17 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    label: { color: C.textDim, fontSize: FONT.sm, marginBottom: 6 },
+    hint: { color: C.textFaint, fontSize: FONT.sm, lineHeight: 17 },
     localButton: { marginTop: 8, marginBottom: 4 },
     errorText: { color: C.negative },
   });

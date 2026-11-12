@@ -1,7 +1,7 @@
 /** Détail d'une ligne de portefeuille : secteurs, géographie, top holdings, TER, et analyse IA InvestCounsel. */
 import { StockCounselView } from '@/components/StockCounselView';
 import { Button, Card, ProgressBar, SectionTitle } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, RADIUS, useStyles } from '@/constants/theme';
 import { formatDate, formatEur, formatMoney, formatPct } from '@/lib/format';
 import { holdingCurrency, holdingPerfPct, holdingValueEur } from '@/lib/portfolio';
 import { useStore } from '@/lib/store';
@@ -13,43 +13,43 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40, gap: 2 },
-    name: { color: C.text, fontSize: 20, fontWeight: '700', marginBottom: 4 },
-    isin: { color: C.textFaint, fontSize: 13, fontFamily: 'monospace', marginBottom: 6 },
+    content: { padding: 16, paddingBottom: 40, gap: 2, ...CONTENT },
+    name: { color: C.text, fontSize: FONT.xl, fontWeight: '700', marginBottom: 4 },
+    isin: { color: C.textFaint, fontSize: FONT.sm, fontFamily: 'monospace', marginBottom: 6 },
     sourceBadge: {
       alignSelf: 'flex-start',
       backgroundColor: C.cardAlt,
-      borderRadius: 6,
+      borderRadius: RADIUS.sm,
       paddingHorizontal: 8,
       paddingVertical: 3,
       marginBottom: 4,
     },
-    sourceBadgeText: { color: C.textDim, fontSize: 12, fontWeight: '600' },
-    classifiedAt: { color: C.textFaint, fontSize: 12, marginBottom: 2 },
+    sourceBadgeText: { color: C.textDim, fontSize: FONT.sm, fontWeight: '600' },
+    classifiedAt: { color: C.textFaint, fontSize: FONT.sm, marginBottom: 2 },
     actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
     actionBtn: { flex: 1, minWidth: 150, marginVertical: 0 },
     // valeurs
     valueRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
     valueRowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
-    valueLabel: { color: C.textDim, fontSize: 14 },
-    valueText: { color: C.text, fontSize: 14, fontWeight: '600' },
-    gainText: { fontSize: 14, fontWeight: '600' },
+    valueLabel: { color: C.textDim, fontSize: FONT.md },
+    valueText: { color: C.text, fontSize: FONT.md, fontWeight: '600' },
+    gainText: { fontSize: FONT.md, fontWeight: '600' },
     // barres de répartition
     barRow: { paddingVertical: 10 },
     barBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
     barHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-    barLabel: { color: C.text, fontSize: 14, fontWeight: '500' },
-    barPct: { color: C.textDim, fontSize: 12 },
+    barLabel: { color: C.text, fontSize: FONT.md, fontWeight: '500' },
+    barPct: { color: C.textDim, fontSize: FONT.sm },
     // top holdings
     topRow: { paddingVertical: 8 },
     topBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border },
-    topName: { color: C.text, fontSize: 14 },
+    topName: { color: C.text, fontSize: FONT.md },
     topMeta: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 2 },
-    topIsin: { color: C.textFaint, fontSize: 12 },
-    topPct: { color: C.textDim, fontSize: 12, fontWeight: '600' },
+    topIsin: { color: C.textFaint, fontSize: FONT.sm },
+    topPct: { color: C.textDim, fontSize: FONT.sm, fontWeight: '600' },
     // pas de données
-    noData: { color: C.textFaint, fontSize: 14, textAlign: 'center', paddingVertical: 24 },
-    footnote: { color: C.textFaint, fontSize: 12, lineHeight: 18, marginTop: 4 },
+    noData: { color: C.textFaint, fontSize: FONT.md, textAlign: 'center', paddingVertical: 24 },
+    footnote: { color: C.textFaint, fontSize: FONT.sm, lineHeight: 18, marginTop: 4 },
     aiSectionWrap: { marginTop: 8, marginBottom: 8 },
   });
 }
@@ -88,8 +88,9 @@ export default function HoldingDetail() {
     }
     setAiLastSymbol(targetSymbol, targetIsin ?? null);
     router.navigate({
-      pathname: '/ai',
+      pathname: '/analyse',
       params: {
+        section: 'ai',
         symbol: targetSymbol,
         isin: targetIsin ?? '',
         name: targetName ?? targetSymbol,

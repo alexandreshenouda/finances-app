@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, Chips, Field, SelectField } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { C, CONTENT, FONT, RADIUS, useStyles } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { formatDuration, formatMoney, todayKey } from '@/lib/format';
 import { loanMonthlyPayment, loanStepPayments } from '@/lib/realestate';
@@ -34,22 +34,22 @@ type StepInput = { months: string; payment: string };
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    label: { color: C.textDim, fontSize: 13, marginBottom: 6 },
-    hint: { color: C.textFaint, fontSize: 12, lineHeight: 17, marginBottom: 8 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    label: { color: C.textDim, fontSize: FONT.sm, marginBottom: 6 },
+    hint: { color: C.textFaint, fontSize: FONT.sm, lineHeight: 17, marginBottom: 8 },
     stepCard: {
       backgroundColor: C.cardAlt,
-      borderRadius: 10,
+      borderRadius: RADIUS.sm,
       padding: 12,
       marginBottom: 10,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: C.border,
     },
     stepHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-    stepTitle: { color: C.textDim, fontSize: 13, fontWeight: '600' },
-    stepRemove: { color: C.negative, fontSize: 13 },
+    stepTitle: { color: C.textDim, fontSize: FONT.sm, fontWeight: '600' },
+    stepRemove: { color: C.negative, fontSize: FONT.sm },
     stepRow: { flexDirection: 'row' },
-    stepHint: { color: C.textFaint, fontSize: 12 },
+    stepHint: { color: C.textFaint, fontSize: FONT.sm },
   });
 }
 

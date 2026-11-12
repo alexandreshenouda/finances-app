@@ -7,11 +7,12 @@ import { useStore } from '@/lib/store';
 import { Tabs } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 
+/** Barre de navigation : 5 onglets au maximum (Synthèse, Patrimoine, Budget, Analyse,
+ *  Paramètres). Toute nouvelle rubrique se range dans un onglet existant via un
+ *  `SectionSwitcher` plutôt que d'ajouter un 6ᵉ onglet. */
 export default function TabsLayout() {
   const language = useStore((s) => s.language);
   const theme = useStore((s) => s.theme);
-  const showImmobilierTab = useStore((s) => s.showImmobilierTab);
-  const showEmpruntsTab = useStore((s) => s.showEmpruntsTab);
   const showDiversificationTab = useStore((s) => s.showDiversificationTab);
   const showAiTab = useStore((s) => s.showAiTab);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -51,47 +52,28 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="accounts"
+        name="patrimoine"
         options={{
-          title: t('tabs.comptes'),
-          tabBarLabel: t('tabs.comptes'),
+          title: t('tabs.patrimoine'),
+          tabBarLabel: t('tabs.patrimoine'),
           tabBarIcon: ({ color, focused }) => <TabIcon name="comptes" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="real-estate"
+        name="budget"
         options={{
-          href: showImmobilierTab ? undefined : null,
-          title: t('tabs.immobilier'),
-          tabBarLabel: t('tabs.immobilier'),
-          tabBarIcon: ({ color, focused }) => <TabIcon name="immobilier" color={color} focused={focused} />,
+          title: t('tabs.budget'),
+          tabBarLabel: t('tabs.budget'),
+          tabBarIcon: ({ color, focused }) => <TabIcon name="budget" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="loans"
+        name="analyse"
         options={{
-          href: showEmpruntsTab ? undefined : null,
-          title: t('tabs.emprunts'),
-          tabBarLabel: t('tabs.emprunts'),
-          tabBarIcon: ({ color, focused }) => <TabIcon name="emprunts" color={color} focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="diversification"
-        options={{
-          href: showDiversificationTab ? undefined : null,
-          title: t('tabs.diversification'),
-          tabBarLabel: t('tabs.diversification'),
+          href: showDiversificationTab || showAiTab ? undefined : null,
+          title: t('tabs.analyse'),
+          tabBarLabel: t('tabs.analyse'),
           tabBarIcon: ({ color, focused }) => <TabIcon name="diversification" color={color} focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="ai"
-        options={{
-          href: showAiTab ? undefined : null,
-          title: t('tabs.ai'),
-          tabBarLabel: t('tabs.ai'),
-          tabBarIcon: ({ color, focused }) => <TabIcon name="ai" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen

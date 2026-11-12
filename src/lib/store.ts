@@ -15,6 +15,7 @@ import {
   DEFAULT_FX_RATES,
   DEFAULT_PROJECTION_SETTINGS,
   type Account,
+  type BudgetItem,
   type ChartMode,
   type Connection,
   type FxRates,
@@ -39,6 +40,7 @@ export interface AppData {
   loans: Loan[];
   objectives: Objective[];
   savedProjections?: SavedProjection[];
+  budgetItems?: BudgetItem[];
 }
 
 interface AppState extends AppData {
@@ -62,7 +64,9 @@ interface AppState extends AppData {
   showRealEstate: boolean;
   setShowRealEstate: (v: boolean) => void;
 
-  /** Visibilité des onglets Immobilier / Emprunts dans la barre de navigation. Défaut : visibles. */
+  /** Visibilité des rubriques Immobilier / Emprunts (onglet Patrimoine) et Diversification / IA
+   *  (onglet Analyse). Les noms `show…Tab` datent d'avant le regroupement en 5 onglets ; ils sont
+   *  conservés pour ne pas perdre le réglage persisté. Défaut : visibles. */
   showImmobilierTab: boolean;
   setShowImmobilierTab: (v: boolean) => void;
   showEmpruntsTab: boolean;
@@ -129,6 +133,16 @@ interface AppState extends AppData {
 
   upsertObjective: (o: Partial<Objective> & { category: Objective['category'] }) => Objective;
   deleteObjective: (id: string) => void;
+
+  /** Budget : flux récurrents (revenus, dépenses, épargne programmée). */
+  budgetItems: BudgetItem[];
+  upsertBudgetItem: (
+    b: Partial<BudgetItem> & Pick<BudgetItem, 'kind' | 'label' | 'amount' | 'frequency' | 'category'>
+  ) => BudgetItem;
+  deleteBudgetItem: (id: string) => void;
+  /** Compter automatiquement les mensualités des prêts de l'app dans les dépenses du budget. Défaut : oui. */
+  budgetIncludeLoans: boolean;
+  setBudgetIncludeLoans: (v: boolean) => void;
 
   upsertHolding: (h: Partial<Holding> & { accountId: string; name: string; quantity: number }) => Holding;
   deleteHolding: (id: string) => void;
@@ -335,6 +349,26 @@ export const useStore = create<AppState>()(
 
       deleteObjective: (id) => set((s) => ({ objectives: s.objectives.filter((o) => o.id !== id) })),
 
+      budgetItems: [],
+      upsertBudgetItem: (b) => {
+        const existing = b.id ? get().budgetItems.find((x) => x.id === b.id) : undefined;
+        const item: BudgetItem = {
+          createdAt: new Date().toISOString(),
+          ...existing,
+          ...b,
+          id: existing?.id ?? b.id ?? uid(),
+        };
+        set((s) => ({
+          budgetItems: existing
+            ? s.budgetItems.map((x) => (x.id === item.id ? item : x))
+            : [...s.budgetItems, item],
+        }));
+        return item;
+      },
+      deleteBudgetItem: (id) => set((s) => ({ budgetItems: s.budgetItems.filter((b) => b.id !== id) })),
+      budgetIncludeLoans: true,
+      setBudgetIncludeLoans: (v) => set({ budgetIncludeLoans: v }),
+
       upsertHolding: (h) => {
         const existing = h.id ? get().holdings.find((x) => x.id === h.id) : undefined;
         const holding: Holding = {
@@ -381,6 +415,8 @@ export const useStore = create<AppState>()(
           loans: [],
           objectives: [],
           savedProjections: [],
+          budgetItems: [],
+          budgetIncludeLoans: true,
           patrimoineNet: true,
           showRealEstate: true,
           showImmobilierTab: true,
@@ -437,6 +473,7 @@ export const useStore = create<AppState>()(
           loans: data.loans ?? [],
           objectives: data.objectives ?? [],
           savedProjections: data.savedProjections ?? [],
+          budgetItems: data.budgetItems ?? [],
         }),
     }),
     {
@@ -474,6 +511,8 @@ export const useStore = create<AppState>()(
         theme: s.theme,
         projectionSettings: s.projectionSettings,
         savedProjections: s.savedProjections,
+        budgetItems: s.budgetItems,
+        budgetIncludeLoans: s.budgetIncludeLoans,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) state.hydrated = true;
@@ -498,6 +537,7 @@ useStore.subscribe((s) => {
 useStore.subscribe((s) => setTheme(s.theme));
 
 export function exportData(): AppData {
-  const { accounts, holdings, snapshots, connections, properties, loans, objectives, savedProjections } = useStore.getState();
-  return { accounts, holdings, snapshots, connections, properties, loans, objectives, savedProjections };
+  const { accounts, holdings, snapshots, connections, properties, loans, objectives, savedProjections, budgetItems } =
+    useStore.getState();
+  return { accounts, holdings, snapshots, connections, properties, loans, objectives, savedProjections, budgetItems };
 }

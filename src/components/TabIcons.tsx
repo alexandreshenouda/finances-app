@@ -4,7 +4,24 @@ import type { ColorValue } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import { C } from '@/constants/theme';
 
-export type TabName = 'synthese' | 'comptes' | 'immobilier' | 'emprunts' | 'diversification' | 'ai' | 'parametres';
+export type TabName =
+  | 'synthese'
+  | 'comptes'
+  | 'immobilier'
+  | 'emprunts'
+  | 'diversification'
+  | 'ai'
+  | 'budget'
+  | 'parametres'
+  // Icônes de lignes de menu / d'états vides (même style, pas des onglets).
+  | 'connexions'
+  | 'sauvegarde'
+  | 'affichage'
+  | 'langue'
+  | 'historique'
+  | 'developpeur'
+  | 'objectif'
+  | 'rafraichir';
 
 export function TabIcon({
   name,
@@ -59,6 +76,14 @@ export function TabIcon({
           <Circle cx={12} cy={12} r={1.6} fill={focused ? C.positive : color} />
         </>
       )}
+      {name === 'budget' && (
+        <>
+          <Path d="M8 19 V5" {...common} />
+          <Path d="M4 9 L8 5 L12 9" {...common} />
+          <Path d="M16 5 V19" {...common} />
+          <Path d="M12 15 L16 19 L20 15" {...common} />
+        </>
+      )}
       {name === 'parametres' && (
         <>
           <Path d="M3 6 H12.5" {...common} />
@@ -70,6 +95,60 @@ export function TabIcon({
           <Path d="M3 18 H8.5" {...common} />
           <Circle cx={12} cy={18} r={2.4} {...common} />
           <Path d="M15.5 18 H21" {...common} />
+        </>
+      )}
+      {name === 'connexions' && (
+        <>
+          <Path d="M10 14 a4 4 0 0 0 5.7 0 l3 -3 a4 4 0 0 0 -5.7 -5.7 l-1.2 1.2" {...common} />
+          <Path d="M14 10 a4 4 0 0 0 -5.7 0 l-3 3 a4 4 0 0 0 5.7 5.7 l1.2 -1.2" {...common} />
+        </>
+      )}
+      {name === 'sauvegarde' && (
+        <>
+          <Path d="M12 4 V15" {...common} />
+          <Path d="M7.5 10.5 L12 15 L16.5 10.5" {...common} />
+          <Path d="M4 17 V20 H20 V17" {...common} />
+        </>
+      )}
+      {name === 'affichage' && (
+        <>
+          <Circle cx={12} cy={12} r={8.5} {...common} />
+          <Path d="M12 3.5 V20.5" {...common} />
+          <Path d="M12 7 H18.5 M12 12 H20.5 M12 17 H18.5" {...common} />
+        </>
+      )}
+      {name === 'langue' && (
+        <>
+          <Circle cx={12} cy={12} r={8.5} {...common} />
+          <Path d="M3.5 12 H20.5" {...common} />
+          <Path d="M12 3.5 C8.5 7 8.5 17 12 20.5 C15.5 17 15.5 7 12 3.5 Z" {...common} />
+        </>
+      )}
+      {name === 'historique' && (
+        <>
+          <Path d="M4 12 a8 8 0 1 0 2.6 -5.9" {...common} />
+          <Path d="M4 4.5 V8.5 H8" {...common} />
+          <Path d="M12 8 V12 L15 14" {...common} />
+        </>
+      )}
+      {name === 'developpeur' && (
+        <>
+          <Path d="M8.5 7.5 L4 12 L8.5 16.5" {...common} />
+          <Path d="M15.5 7.5 L20 12 L15.5 16.5" {...common} />
+          <Path d="M13.5 5 L10.5 19" {...common} />
+        </>
+      )}
+      {name === 'objectif' && (
+        <>
+          <Circle cx={12} cy={12} r={8.5} {...common} />
+          <Circle cx={12} cy={12} r={4.5} {...common} />
+          <Circle cx={12} cy={12} r={1.4} fill={color} />
+        </>
+      )}
+      {name === 'rafraichir' && (
+        <>
+          <Path d="M20 12 a8 8 0 1 1 -2.6 -5.9" {...common} />
+          <Path d="M20 4.5 V8.5 H16" {...common} />
         </>
       )}
     </Svg>

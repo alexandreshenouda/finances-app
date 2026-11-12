@@ -1,15 +1,17 @@
 /** Synthèse : valeur totale, courbe par période, répartition par type, objectifs. */
-import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useNavigation, useRouter } from 'expo-router';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AllocationBar } from '@/components/AllocationBar';
 import { LineChart } from '@/components/LineChart';
 import { ObjectiveCard } from '@/components/ObjectiveCard';
 import { PieChart } from '@/components/PieChart';
+import { PrivacyToggle } from '@/components/PrivacyToggle';
 import { ProjectionCard } from '@/components/ProjectionCard';
-import { Button, Card, Checkbox, Chips, Empty, PeriodChips, SectionTitle } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { TabIcon } from '@/components/TabIcons';
+import { Button, Card, Checkbox, EmptyState, PeriodChips, Pill, SectionTitle, Segmented } from '@/components/ui';
+import { C, CONTENT, FONT, TABULAR, useStyles } from '@/constants/theme';
 import { syncAllConnections } from '@/lib/connectors';
 import { formatEur, formatPct } from '@/lib/format';
 import { accountCurrentValue, accountShare, seriesDelta, toPerformanceSeries } from '@/lib/portfolio';
@@ -21,11 +23,13 @@ import { CHART_MODES, type AccountType, type ChartMode, type Period } from '@/li
 
 const WORTH_MODES = ['net', 'brut'] as const;
 const ALLOC_VIEWS = ['barre', 'camembert'] as const;
+/** Durée d'affichage de la confirmation « synchronisé ». */
+const SUCCESS_MESSAGE_MS = 4000;
 
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
     totalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     allocHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     chartControls: {
@@ -34,15 +38,17 @@ function makeStyles() {
       alignItems: 'center',
       flexWrap: 'wrap',
       gap: 8,
-      marginBottom: 8,
+      marginTop: 12,
     },
+    deltaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 6 },
+    headerActions: { flexDirection: 'row', alignItems: 'center' },
+    headerButton: { marginRight: 16, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
     reToggle: { marginTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.border, paddingTop: 12 },
-    totalLabel: { color: C.textDim, fontSize: 14 },
-    worthNote: { color: C.textFaint, fontSize: 12, marginTop: 2 },
-    totalValue: { color: C.text, fontSize: 34, fontWeight: '700', marginTop: 2 },
-    delta: { fontSize: 14, fontWeight: '600', marginTop: 4 },
-    deltaPeriod: { color: C.textFaint, fontWeight: '400' },
-    message: { color: C.warning, fontSize: 13, marginBottom: 8, paddingHorizontal: 4 },
+    totalLabel: { color: C.textDim, fontSize: FONT.md },
+    worthNote: { color: C.textFaint, fontSize: FONT.sm, marginTop: 2 },
+    totalValue: { color: C.text, fontSize: FONT.hero, fontWeight: '700', marginTop: 2, ...TABULAR },
+    deltaPeriod: { color: C.textFaint, fontSize: FONT.sm },
+    message: { fontSize: FONT.sm, lineHeight: 18, marginBottom: 12, paddingHorizontal: 4 },
   });
 }
 
@@ -83,7 +89,9 @@ export default function Dashboard() {
   const period = periodOverride ?? defaultPeriod;
   const [allocView, setAllocView] = useState<(typeof ALLOC_VIEWS)[number]>('barre');
   const [refreshing, setRefreshing] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  // `ok` : confirmation discrète qui s'efface seule ; sinon l'avertissement reste affiché.
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const navigation = useNavigation();
 
   const active = useMemo(() => accounts.filter((a) => !a.archived), [accounts]);
   const series0 = useMemo(() => houseIndexSeries(), [houseIndex]);
@@ -143,7 +151,10 @@ export default function Dashboard() {
     return m;
   }, [active, holdings, snapshots, rates, reEquity, reGross, patrimoineNet]);
 
-  const onRefresh = async () => {
+  const refreshingRef = useRef(false);
+  const onRefresh = useCallback(async () => {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
     setRefreshing(true);
     setMessage(null);
     try {
@@ -153,15 +164,55 @@ export default function Dashboard() {
       const issues = [...prices.errors, ...sync.errors, ...sync.warnings, ...(idx.ok ? [] : [idx.error!])];
       setMessage(
         issues.length > 0
-          ? t('index.maj_partielle', { issues: issues.slice(0, 3).join(' · '), ellipsis: issues.length > 3 ? '…' : '' })
-          : t('index.synchronise')
+          ? {
+              ok: false,
+              text: t('index.maj_partielle', {
+                issues: issues.slice(0, 3).join(' · '),
+                ellipsis: issues.length > 3 ? '…' : '',
+              }),
+            }
+          : { ok: true, text: t('index.synchronise') }
       );
     } catch (e: any) {
-      setMessage(t('index.erreur', { message: e?.message ?? e }));
+      setMessage({ ok: false, text: t('index.erreur', { message: e?.message ?? e }) });
     } finally {
+      refreshingRef.current = false;
       setRefreshing(false);
     }
-  };
+  }, [hasRealEstate, t]);
+
+  // La confirmation de succès disparaît d'elle-même ; une erreur reste jusqu'au prochain essai.
+  useEffect(() => {
+    if (!message?.ok) return;
+    const timer = setTimeout(() => setMessage(null), SUCCESS_MESSAGE_MS);
+    return () => clearTimeout(timer);
+  }, [message]);
+
+  // Rafraîchir vit dans l'en-tête (à côté de l'œil) : le tirer-pour-rafraîchir n'existe pas
+  // sur le web, et un bouton pleine largeur sous la carte principale prenait trop de place.
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={onRefresh}
+            disabled={refreshing}
+            hitSlop={10}
+            style={({ pressed }) => [styles.headerButton, pressed && { opacity: 0.6 }]}
+            accessibilityRole="button"
+            accessibilityLabel={t('index.rafraichir')}
+          >
+            {refreshing ? (
+              <ActivityIndicator size="small" color={C.textDim} />
+            ) : (
+              <TabIcon name="rafraichir" color={C.textDim} size={24} />
+            )}
+          </Pressable>
+          <PrivacyToggle />
+        </View>
+      ),
+    });
+  }, [navigation, onRefresh, refreshing, styles, t]);
 
   const deltaColor = delta.abs >= 0 ? C.positive : C.negative;
 
@@ -171,11 +222,14 @@ export default function Dashboard() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.text} />}
     >
+      {message && (
+        <Text style={[styles.message, { color: message.ok ? C.positive : C.warning }]}>{message.text}</Text>
+      )}
       <Card>
         <View style={styles.totalHeader}>
           <Text style={styles.totalLabel}>{t('index.patrimoine_total')}</Text>
           {((hasRealEstate && showRealEstate) || consoDebt > 0) && (
-            <Chips
+            <Segmented
               options={WORTH_MODES}
               value={patrimoineNet ? 'net' : 'brut'}
               onChange={(v) => setPatrimoineNet(v === 'net')}
@@ -200,25 +254,22 @@ export default function Dashboard() {
           </Text>
         )}
         {series.length >= 2 && (
-          <Text style={[styles.delta, { color: deltaColor }]}>
-            {delta.abs >= 0 ? '+' : ''}
-            {formatEur(delta.abs)}
-            {delta.pct !== undefined ? `  (${formatPct(delta.pct, true)})` : ''}
-            <Text style={styles.deltaPeriod}>  {t('index.sur_periode', { period })}</Text>
-          </Text>
+          <View style={styles.deltaRow}>
+            <Pill
+              color={deltaColor}
+              text={`${delta.abs >= 0 ? '+' : ''}${formatEur(delta.abs)}${
+                delta.pct !== undefined ? `  ·  ${formatPct(delta.pct, true)}` : ''
+              }`}
+            />
+            <Text style={styles.deltaPeriod}>{t('index.sur_periode', { period })}</Text>
+          </View>
         )}
         <View style={{ height: 12 }} />
+        <LineChart points={displayPoints} mode={chartMode} />
         <View style={styles.chartControls}>
           <PeriodChips value={period} onChange={setPeriodOverride} style={{ marginBottom: 0 }} />
-          <Chips
-            options={CHART_MODES}
-            value={chartMode}
-            onChange={setChartMode}
-            labels={CHART_MODE_LABELS}
-            style={{ marginBottom: 0 }}
-          />
+          <Segmented options={CHART_MODES} value={chartMode} onChange={setChartMode} labels={CHART_MODE_LABELS} />
         </View>
-        <LineChart points={displayPoints} mode={chartMode} />
         {hasRealEstate && (
           <View style={styles.reToggle}>
             <Checkbox
@@ -230,13 +281,10 @@ export default function Dashboard() {
         )}
       </Card>
 
-      <Button title={t('index.rafraichir')} variant="secondary" onPress={onRefresh} loading={refreshing} />
-      {message && <Text style={styles.message}>{message}</Text>}
-
       <View style={styles.allocHeader}>
         <SectionTitle>{t('index.repartition')}</SectionTitle>
         {byType.size > 0 && (
-          <Chips options={ALLOC_VIEWS} value={allocView} onChange={setAllocView} labels={ALLOC_LABELS} />
+          <Segmented options={ALLOC_VIEWS} value={allocView} onChange={setAllocView} labels={ALLOC_LABELS} />
         )}
       </View>
       <Card>
@@ -247,7 +295,12 @@ export default function Dashboard() {
             <AllocationBar byType={byType} />
           )
         ) : (
-          <Empty text={t('index.repartition_vide')} />
+          <EmptyState
+            icon={<TabIcon name="comptes" color={C.textDim} size={30} />}
+            text={t('index.repartition_vide')}
+            actionLabel={t('accounts.ajouter')}
+            onAction={() => router.push('/account-form')}
+          />
         )}
       </Card>
 
@@ -256,23 +309,34 @@ export default function Dashboard() {
       </View>
       {objectives.length === 0 ? (
         <Card>
-          <Empty text={t('index.objectifs_vide')} />
+          <EmptyState
+            icon={<TabIcon name="objectif" color={C.textDim} size={30} />}
+            text={t('index.objectifs_vide')}
+            actionLabel={t('index.ajouter_objectif')}
+            onAction={() => router.push('/objective-form')}
+          />
         </Card>
       ) : (
-        objectives.map((o) => (
-          <ObjectiveCard
-            key={o.id}
-            objective={o}
-            objectives={objectives}
-            accounts={active}
-            holdings={holdings}
-            snapshots={snapshots}
-            rates={rates}
-            onPress={() => router.push({ pathname: '/objective-form', params: { objectiveId: o.id } })}
+        <>
+          {objectives.map((o) => (
+            <ObjectiveCard
+              key={o.id}
+              objective={o}
+              objectives={objectives}
+              accounts={active}
+              holdings={holdings}
+              snapshots={snapshots}
+              rates={rates}
+              onPress={() => router.push({ pathname: '/objective-form', params: { objectiveId: o.id } })}
+            />
+          ))}
+          <Button
+            title={t('index.ajouter_objectif')}
+            variant="secondary"
+            onPress={() => router.push('/objective-form')}
           />
-        ))
+        </>
       )}
-      <Button title={t('index.ajouter_objectif')} variant="secondary" onPress={() => router.push('/objective-form')} />
 
       <View style={[styles.allocHeader, { marginTop: 12 }]}>
         <SectionTitle>{t('projection.title')}</SectionTitle>

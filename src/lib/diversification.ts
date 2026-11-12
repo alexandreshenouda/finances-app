@@ -2,6 +2,7 @@
  * seuils sur les données déjà en mémoire (comptes, lignes, objectifs), triées par sévérité
  * puis par catégorie. Chaque `Insight` porte un triptyque complet (constat, pourquoi c'est
  * important, piste d'action conforme AMF). */
+import { actualSavings, budgetLines, budgetSummary, compareSavings, objectivesMonthlyEffort } from './budget';
 import { formatDate, formatDuration, formatEur, formatPct, monthsBetween, todayKey } from './format';
 import { cashAndLivretTotal, epargnePrecautionTarget, precautionBuildPlan, suggestPrecaution } from './objectives';
 import { accountCurrentValue, accountShare, holdingCurrency, holdingValueEur } from './portfolio';
@@ -13,9 +14,11 @@ import {
   type Account,
   type AccountType,
   type AllocationBucket,
+  type BudgetItem,
   type CountryCode,
   type FxRates,
   type Holding,
+  type Loan,
   type Objective,
   type RiskProfile,
   type SectorKey,
@@ -32,7 +35,8 @@ export type InsightCategory =
   | 'rebalancing'
   | 'liquidity'
   | 'horizon'
-  | 'risk';
+  | 'risk'
+  | 'budget';
 
 export interface Insight {
   id: string;
@@ -736,6 +740,184 @@ function precautionAdvice(
   return insights;
 }
 
+// ─── 8 bis. Budget récurrent (onglet Budget) ──────────────────────────────────────────
+
+/** Seuils des conseils budget. Taux d'épargne : repère 50/30/20 (20 %) et moitié de ce repère. */
+export const BUDGET_SAVINGS_RATE_LOW = 0.1;
+export const BUDGET_SAVINGS_RATE_CRITICAL = 0.05;
+export const BUDGET_SAVINGS_RATE_GOOD = 0.2;
+/** Poids des dépenses vitales dans les revenus : au-delà, peu de marge de manœuvre. */
+export const BUDGET_ESSENTIAL_HEAVY = 0.6;
+export const BUDGET_ESSENTIAL_CRITICAL = 0.7;
+/** Dépenses non vitales : repère 30 % des revenus, signalé avec 5 points de tolérance. */
+export const BUDGET_WANTS_HEAVY = 0.35;
+/** Taux d'effort (crédits / revenus) : 35 % est le plafond d'octroi retenu par le HCSF. */
+export const BUDGET_DEBT_RATIO_WATCH = 0.3;
+export const BUDGET_DEBT_RATIO_MAX = 0.35;
+/** Part de la capacité non programmée (et montant plancher) à partir de laquelle on le signale. */
+export const BUDGET_UNALLOCATED_SHARE = 0.5;
+export const BUDGET_UNALLOCATED_MIN = 100;
+/** Écart épargne constatée / capacité (en part de la capacité) qui passe en alerte. */
+export const BUDGET_ACTUAL_GAP_WARNING = 0.3;
+/** Écart toléré entre les dépenses vitales du budget et celles de l'épargne de précaution. */
+export const BUDGET_PRECAUTION_MISMATCH = 0.2;
+
+export interface BudgetAdviceInput {
+  budgetItems: BudgetItem[];
+  loans: Loan[];
+  includeLoans: boolean;
+  accounts: Account[];
+  holdings: Holding[];
+  snapshots: Snapshot[];
+  rates: FxRates;
+  objectives: Objective[];
+  /** Date de référence (défaut : aujourd'hui) — à fixer dans les tests. */
+  today?: string;
+}
+
+/** Conseils tirés du budget récurrent : budget incomplet, déficit, taux d'épargne, poids des
+ * dépenses vitales / non vitales, taux d'effort des crédits, épargne non programmée ou
+ * sur-programmée, écart avec l'épargne constatée (6 mois), objectifs hors de portée, et
+ * cohérence avec l'objectif d'épargne de précaution. Affichés dans la rubrique
+ * Diversification (catégorie « Budget ») et en bas de l'onglet Budget. */
+export function computeBudgetInsights(input: BudgetAdviceInput): Insight[] {
+  const { budgetItems, loans, includeLoans, accounts, holdings, snapshots, rates, objectives, today } = input;
+  const mk = (
+    id: string,
+    severity: InsightSeverity,
+    key: string,
+    params?: Record<string, string | number>
+  ): Insight => ({
+    id,
+    severity,
+    category: 'budget',
+    titleKey: `diversification.${key}_title`,
+    observationKey: `diversification.${key}`,
+    whyKey: `diversification.${key}_why`,
+    actionKey: `diversification.${key}_action`,
+    params,
+  });
+
+  const s = budgetSummary(budgetLines(budgetItems, { loans, rates, includeLoans, today }));
+  // Sans revenus ou sans dépenses, aucun ratio n'a de sens : on invite d'abord à compléter.
+  if (!(s.income > 0) || !(s.expenses > 0)) return [mk('budget-missing', 'info', 'budget_missing')];
+
+  const insights: Insight[] = [];
+  const pctOfIncome = (v: number) => formatPct((v / s.income) * 100);
+  const rate = s.capacity / s.income;
+
+  if (s.capacity < 0) {
+    insights.push(
+      mk('budget-deficit', 'warning', 'budget_deficit', {
+        income: formatEur(s.income),
+        expenses: formatEur(s.expenses),
+        gap: formatEur(-s.capacity),
+      })
+    );
+  } else if (rate < BUDGET_SAVINGS_RATE_LOW) {
+    insights.push(
+      mk('budget-savings-rate-low', rate < BUDGET_SAVINGS_RATE_CRITICAL ? 'warning' : 'info', 'budget_rate_low', {
+        pct: formatPct(rate * 100),
+        capacity: formatEur(s.capacity),
+      })
+    );
+  } else if (rate >= BUDGET_SAVINGS_RATE_GOOD) {
+    insights.push(
+      mk('budget-savings-rate-good', 'positive', 'budget_rate_good', {
+        pct: formatPct(rate * 100),
+        capacity: formatEur(s.capacity),
+      })
+    );
+  }
+
+  const essentialRatio = s.essential / s.income;
+  if (s.capacity >= 0 && essentialRatio >= BUDGET_ESSENTIAL_HEAVY) {
+    insights.push(
+      mk('budget-essential-heavy', essentialRatio >= BUDGET_ESSENTIAL_CRITICAL ? 'warning' : 'info', 'budget_essential_heavy', {
+        pct: formatPct(essentialRatio * 100),
+        amount: formatEur(s.essential),
+      })
+    );
+  }
+
+  if (s.discretionary / s.income > BUDGET_WANTS_HEAVY) {
+    insights.push(
+      mk('budget-wants-heavy', 'info', 'budget_wants_heavy', {
+        pct: pctOfIncome(s.discretionary),
+        amount: formatEur(s.discretionary),
+      })
+    );
+  }
+
+  const credit = s.byCategory.find((c) => c.category === 'credit')?.monthly ?? 0;
+  if (credit / s.income >= BUDGET_DEBT_RATIO_WATCH) {
+    insights.push(
+      mk('budget-debt-ratio', credit / s.income >= BUDGET_DEBT_RATIO_MAX ? 'warning' : 'info', 'budget_debt_ratio', {
+        pct: pctOfIncome(credit),
+        amount: formatEur(credit),
+      })
+    );
+  }
+
+  if (s.capacity >= 0 && s.plannedSavings > s.capacity) {
+    insights.push(
+      mk('budget-overcommitted', 'warning', 'budget_overcommitted', {
+        planned: formatEur(s.plannedSavings),
+        capacity: formatEur(s.capacity),
+        gap: formatEur(s.plannedSavings - s.capacity),
+      })
+    );
+  } else if (
+    s.capacity > 0 &&
+    s.unallocated >= Math.max(BUDGET_UNALLOCATED_MIN, s.capacity * BUDGET_UNALLOCATED_SHARE)
+  ) {
+    insights.push(
+      mk('budget-unallocated', 'info', 'budget_unallocated', {
+        amount: formatEur(s.unallocated),
+        pct: formatPct((s.unallocated / s.capacity) * 100),
+      })
+    );
+  }
+
+  const actual = actualSavings(accounts, snapshots, '6M', today).monthly;
+  if (s.capacity > 0 && actual !== undefined) {
+    const { gap, status } = compareSavings(s.capacity, actual);
+    if (status === 'below') {
+      insights.push(
+        mk('budget-actual-below', -gap >= s.capacity * BUDGET_ACTUAL_GAP_WARNING ? 'warning' : 'info', 'budget_actual_below', {
+          capacity: formatEur(s.capacity),
+          actual: formatEur(actual),
+          gap: formatEur(-gap),
+        })
+      );
+    }
+  }
+
+  const effort = objectivesMonthlyEffort(objectives, { accounts, holdings, snapshots, rates });
+  if (effort > Math.max(0, s.capacity)) {
+    insights.push(
+      mk('budget-objectives-gap', 'warning', 'budget_objectives_gap', {
+        effort: formatEur(effort),
+        capacity: formatEur(Math.max(0, s.capacity)),
+        gap: formatEur(effort - Math.max(0, s.capacity)),
+      })
+    );
+  }
+
+  const precaution = objectives.find((o) => o.category === 'epargne_precaution');
+  const declared = precaution?.monthlyExpenses ?? 0;
+  if (declared > 0 && s.essential > 0 && Math.abs(declared - s.essential) / s.essential > BUDGET_PRECAUTION_MISMATCH) {
+    insights.push(
+      mk('budget-precaution-mismatch', 'info', 'budget_precaution_mismatch', {
+        declared: formatEur(declared),
+        essential: formatEur(s.essential),
+      })
+    );
+  }
+
+  return insights.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+}
+
 // ─── 9. Répartition de référence & Rééquilibrage par les flux ─────────────────────────
 
 const BUCKET_TYPES: Record<AllocationBucket, AccountType[]> = {
@@ -995,9 +1177,25 @@ export function computeInsights(input: {
   rates: FxRates;
   objectives: Objective[];
   riskProfile: RiskProfile;
+  /** Budget récurrent ; absent = aucun conseil budget (les autres règles sont inchangées). */
+  budget?: { items: BudgetItem[]; loans: Loan[]; includeLoans: boolean };
 }): Insight[] {
-  const { accounts, holdings, snapshots, byType, totalValue, rates, objectives, riskProfile } = input;
-  if (totalValue <= 0) return [];
+  const { accounts, holdings, snapshots, byType, totalValue, rates, objectives, riskProfile, budget } = input;
+  const bySeverity = (list: Insight[]) => list.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+  const budgetInsights = budget
+    ? computeBudgetInsights({
+        budgetItems: budget.items,
+        loans: budget.loans,
+        includeLoans: budget.includeLoans,
+        accounts,
+        holdings,
+        snapshots,
+        rates,
+        objectives,
+      })
+    : [];
+  // Sans patrimoine saisi, seuls les conseils budget ont un sens — et seulement si un budget existe.
+  if (totalValue <= 0) return budget && budget.items.length > 0 ? bySeverity(budgetInsights) : [];
 
   const accountsById = new Map(accounts.map((a) => [a.id, a]));
 
@@ -1020,6 +1218,7 @@ export function computeInsights(input: {
     ...assuranceVieFiscalAdvice(accounts, holdings, snapshots, rates, totalValue),
     ...horizonRiskAdequacy(objectives, byType, totalValue),
     ...precautionAdvice(accounts, holdings, snapshots, rates, objectives),
+    ...budgetInsights,
   ];
 
   const all = [...singleChecks.filter((x): x is Insight => x !== null), ...multiChecks];
@@ -1038,5 +1237,5 @@ export function computeInsights(input: {
     ];
   }
 
-  return all.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+  return bySeverity(all);
 }

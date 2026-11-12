@@ -1,10 +1,11 @@
-/** Liste des biens immobiliers : valeur estimée, plus-value, dette, temps restant. */
+/** Rubrique Immobilier (onglet Patrimoine) : biens, valeur estimée, plus-value, dette, temps restant. */
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, Empty, SectionTitle } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { TabIcon } from '@/components/TabIcons';
+import { Button, Card, Chevron, EmptyState, SectionTitle } from '@/components/ui';
+import { C, CONTENT, FONT, TABULAR, useStyles } from '@/constants/theme';
 import { formatDuration, formatEur, formatPct } from '@/lib/format';
 import { houseIndexSeries } from '@/lib/prices/houseIndex';
 import { loanStats, propertyDebtEur, propertyGainEur, realEstateTotals } from '@/lib/realestate';
@@ -14,18 +15,17 @@ import { PROPERTY_KIND_LABELS } from '@/lib/types';
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
-    totalLabel: { color: C.textDim, fontSize: 14 },
-    totalValue: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 2 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
+    totalLabel: { color: C.textDim, fontSize: FONT.md },
+    totalValue: { color: C.text, fontSize: FONT.hero, fontWeight: '700', marginTop: 2, ...TABULAR },
     totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-    totalSub: { color: C.textFaint, fontSize: 13 },
+    totalSub: { color: C.textFaint, fontSize: FONT.sm },
     cardHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-    name: { color: C.text, fontSize: 16, fontWeight: '600' },
-    sub: { color: C.textFaint, fontSize: 12, marginTop: 2 },
-    chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
+    name: { color: C.text, fontSize: FONT.lg, fontWeight: '600' },
+    sub: { color: C.textFaint, fontSize: FONT.sm, marginTop: 2 },
     valueRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-    value: { color: C.text, fontSize: 22, fontWeight: '700' },
-    gain: { fontSize: 13, fontWeight: '600' },
+    value: { color: C.text, fontSize: FONT.xl, fontWeight: '700', ...TABULAR },
+    gain: { fontSize: FONT.sm, fontWeight: '600', ...TABULAR },
     debtRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -34,12 +34,12 @@ function makeStyles() {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: C.border,
     },
-    debtLabel: { color: C.textDim, fontSize: 13 },
-    note: { color: C.textFaint, fontSize: 12, lineHeight: 17, paddingHorizontal: 4 },
+    debtLabel: { color: C.textDim, fontSize: FONT.sm },
+    note: { color: C.textFaint, fontSize: FONT.sm, lineHeight: 17, paddingHorizontal: 4 },
   });
 }
 
-export default function RealEstate() {
+export function RealEstateSection() {
   const styles = useStyles(makeStyles);
   const { t } = useTranslation();
   const router = useRouter();
@@ -69,9 +69,16 @@ export default function RealEstate() {
         </Card>
       )}
 
-      <Button title={t('realEstate.ajouter')} onPress={() => router.push('/property-form')} />
-
-      {active.length === 0 && <Empty text={t('realEstate.aucun_detail')} />}
+      {active.length === 0 ? (
+        <EmptyState
+          icon={<TabIcon name="immobilier" color={C.textDim} size={30} />}
+          text={t('realEstate.aucun_detail')}
+          actionLabel={t('realEstate.ajouter')}
+          onAction={() => router.push('/property-form')}
+        />
+      ) : (
+        <Button title={t('realEstate.ajouter')} onPress={() => router.push('/property-form')} />
+      )}
 
       {active.map((p) => {
         const gain = propertyGainEur(p, series, rates);
@@ -80,11 +87,7 @@ export default function RealEstate() {
         const remaining = propLoans.reduce((max, l) => Math.max(max, loanStats(l).remainingMonths), 0);
         const gainColor = gain.gainAbs >= 0 ? C.positive : C.negative;
         return (
-          <Pressable
-            key={p.id}
-            onPress={() => router.push({ pathname: '/property/[id]', params: { id: p.id } })}
-          >
-            <Card>
+            <Card key={p.id} onPress={() => router.push({ pathname: '/property/[id]', params: { id: p.id } })}>
               <View style={styles.cardHead}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.name}>{p.name}</Text>
@@ -96,7 +99,7 @@ export default function RealEstate() {
                       : ''}
                   </Text>
                 </View>
-                <Text style={styles.chevron}>›</Text>
+                <Chevron />
               </View>
               <View style={styles.valueRow}>
                 <Text style={styles.value}>{formatEur(gain.value)}</Text>
@@ -114,7 +117,6 @@ export default function RealEstate() {
                 </View>
               )}
             </Card>
-          </Pressable>
         );
       })}
 

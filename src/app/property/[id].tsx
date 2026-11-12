@@ -1,8 +1,8 @@
 /** Détail d'un bien : valeur estimée, plus-value, courbe, crédits & amortissement. */
 import { LineChart } from '@/components/LineChart';
 import { LoanCard } from '@/components/LoanCard';
-import { Button, Card, Chips, Empty, PeriodChips, SectionTitle } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { Button, Card, Chips, Empty, PeriodChips, SectionTitle, Segmented } from '@/components/ui';
+import { C, CONTENT, FONT, TABULAR, useStyles } from '@/constants/theme';
 import { confirmAction } from '@/lib/confirm';
 import { formatDate, formatEur, formatPct } from '@/lib/format';
 import { toPerformanceSeries } from '@/lib/portfolio';
@@ -19,7 +19,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 function makeStyles() {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: C.bg },
-    content: { padding: 16, paddingBottom: 40 },
+    content: { padding: 16, paddingBottom: 40, ...CONTENT },
     chartControls: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -28,16 +28,16 @@ function makeStyles() {
       gap: 8,
       marginBottom: 8,
     },
-    kind: { color: C.textDim, fontSize: 13, fontWeight: '600' },
-    value: { color: C.text, fontSize: 30, fontWeight: '700', marginTop: 6 },
-    gain: { fontSize: 14, fontWeight: '600', marginTop: 4 },
+    kind: { color: C.textDim, fontSize: FONT.sm, fontWeight: '600' },
+    value: { color: C.text, fontSize: FONT.hero, fontWeight: '700', marginTop: 6, ...TABULAR },
+    gain: { fontSize: FONT.md, fontWeight: '600', marginTop: 4 },
     gainRef: { color: C.textFaint, fontWeight: '400' },
-    estimateNote: { color: C.textFaint, fontSize: 12, marginTop: 4, lineHeight: 16 },
+    estimateNote: { color: C.textFaint, fontSize: FONT.sm, marginTop: 4, lineHeight: 16 },
     refreshButton: { marginTop: 10 },
     errorText: { color: C.negative },
     row: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-    rowLabel: { color: C.textDim, fontSize: 14 },
-    rowValue: { color: C.text, fontSize: 14, fontWeight: '600' },
+    rowLabel: { color: C.textDim, fontSize: FONT.md },
+    rowValue: { color: C.text, fontSize: FONT.md, fontWeight: '600', ...TABULAR },
     equityRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -46,9 +46,9 @@ function makeStyles() {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: C.border,
     },
-    equityLabel: { color: C.text, fontSize: 15, fontWeight: '600' },
-    equityValue: { color: C.text, fontSize: 16, fontWeight: '700' },
-    notes: { color: C.textDim, fontSize: 14, lineHeight: 20 },
+    equityLabel: { color: C.text, fontSize: FONT.md, fontWeight: '600' },
+    equityValue: { color: C.text, fontSize: FONT.lg, fontWeight: '700', ...TABULAR },
+    notes: { color: C.textDim, fontSize: FONT.md, lineHeight: 20 },
   });
 }
 
@@ -146,7 +146,7 @@ export default function PropertyDetail() {
           <View style={{ height: 12 }} />
           <View style={styles.chartControls}>
             <PeriodChips value={period} onChange={setPeriodOverride} style={{ marginBottom: 0 }} />
-            <Chips
+            <Segmented
               options={CHART_MODES}
               value={chartMode}
               onChange={setChartMode}

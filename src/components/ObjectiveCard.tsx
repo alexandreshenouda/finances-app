@@ -1,7 +1,8 @@
 /** Carte d'un objectif : catégorie, progression (%), barre tricolore, mensualité à épargner. */
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Card, ProgressBar, objectiveProgressColor } from '@/components/ui';
-import { C, useStyles } from '@/constants/theme';
+import { useTranslation } from 'react-i18next';
+import { StyleSheet, Text, View } from 'react-native';
+import { Card, Chevron, ProgressBar, objectiveProgressColor } from '@/components/ui';
+import { C, FONT, TABULAR, useStyles } from '@/constants/theme';
 import { formatDuration, formatMoney, formatPct } from '@/lib/format';
 import { objectiveProgress } from '@/lib/objectives';
 import {
@@ -16,13 +17,12 @@ import {
 function makeStyles() {
   return StyleSheet.create({
     head: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    name: { color: C.text, fontSize: 16, fontWeight: '600' },
-    sub: { color: C.textDim, fontSize: 12, marginTop: 2 },
-    chevron: { color: C.textFaint, fontSize: 20, marginLeft: 8 },
+    name: { color: C.text, fontSize: FONT.lg, fontWeight: '600' },
+    sub: { color: C.textDim, fontSize: FONT.sm, marginTop: 2 },
     progressWrap: {},
     progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-    progressLabel: { color: C.textFaint, fontSize: 12 },
-    hint: { color: C.textFaint, fontSize: 12, marginTop: 8 },
+    progressLabel: { color: C.textFaint, fontSize: FONT.sm, ...TABULAR },
+    hint: { color: C.textFaint, fontSize: FONT.sm, marginTop: 8 },
   });
 }
 
@@ -45,19 +45,19 @@ export function ObjectiveCard({
   onPress: () => void;
 }) {
   const styles = useStyles(makeStyles);
+  const { t } = useTranslation();
   const progress = objectiveProgress(objective, { accounts, holdings, snapshots, rates, objectives });
   const color = objectiveProgressColor(progress.pct, objective.category);
   const title = objective.category === 'epargne_precaution' ? OBJECTIVE_CATEGORY_LABELS.epargne_precaution : objective.name || OBJECTIVE_CATEGORY_LABELS[objective.category];
 
   return (
-    <Pressable onPress={onPress}>
-      <Card>
+      <Card onPress={onPress}>
         <View style={styles.head}>
           <View style={{ flex: 1 }}>
             <Text style={styles.name}>{title}</Text>
             <Text style={styles.sub}>{OBJECTIVE_CATEGORY_LABELS[objective.category]}</Text>
           </View>
-          <Text style={styles.chevron}>›</Text>
+          <Chevron />
         </View>
 
         <View style={styles.progressWrap}>
@@ -72,11 +72,14 @@ export function ObjectiveCard({
 
         {progress.monthlyContribution !== undefined && (
           <Text style={styles.hint}>
-            À épargner {formatMoney(progress.monthlyContribution)}/mois
-            {progress.monthsRemaining !== undefined ? ` sur ${formatDuration(progress.monthsRemaining)}` : ''}
+            {progress.monthsRemaining !== undefined
+              ? t('objectives.a_epargner_sur', {
+                  amount: formatMoney(progress.monthlyContribution),
+                  duration: formatDuration(progress.monthsRemaining),
+                })
+              : t('objectives.a_epargner', { amount: formatMoney(progress.monthlyContribution) })}
           </Text>
         )}
       </Card>
-    </Pressable>
   );
 }

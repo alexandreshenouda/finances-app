@@ -511,3 +511,96 @@ export const DEFAULT_PROJECTION_SETTINGS: ProjectionSettings = {
   includeRealEstate: true,
   realEstateGrowthPct: 1.0,
 };
+
+// ─── Budget : entrées / sorties d'argent récurrentes ────────────────────────
+
+/** Nature d'un flux récurrent : revenu, dépense, ou versement d'épargne programmé. */
+export type BudgetKind = 'income' | 'expense' | 'saving';
+
+export const BUDGET_KINDS: BudgetKind[] = ['income', 'expense', 'saving'];
+
+export const BUDGET_KIND_LABELS: Record<BudgetKind, string> = createLabelProxy('budgetKinds');
+
+/** Périodicité de saisie ; tout est ramené au mois dans `budget.ts`. */
+export type BudgetFrequency = 'monthly' | 'quarterly' | 'yearly';
+
+export const BUDGET_FREQUENCIES: BudgetFrequency[] = ['monthly', 'quarterly', 'yearly'];
+
+export const BUDGET_FREQUENCY_LABELS: Record<BudgetFrequency, string> = createLabelProxy('budgetFrequencies');
+
+export type BudgetCategory =
+  // revenus
+  | 'salaire'
+  | 'independant'
+  | 'locatif'
+  | 'pension'
+  | 'aides'
+  | 'placements'
+  | 'autre_revenu'
+  // dépenses
+  | 'logement'
+  | 'energie'
+  | 'alimentation'
+  | 'transport'
+  | 'assurance'
+  | 'sante'
+  | 'telecom'
+  | 'impots'
+  | 'enfants'
+  | 'credit'
+  | 'loisirs'
+  | 'autre_depense'
+  // épargne programmée
+  | 'versement_epargne'
+  | 'versement_investissement'
+  | 'autre_epargne';
+
+export const BUDGET_CATEGORY_LABELS: Record<BudgetCategory, string> = createLabelProxy('budgetCategories');
+
+/** Catégories proposées pour chaque nature de flux (la première est le défaut). */
+export const BUDGET_CATEGORIES: Record<BudgetKind, BudgetCategory[]> = {
+  income: ['salaire', 'independant', 'locatif', 'pension', 'aides', 'placements', 'autre_revenu'],
+  expense: [
+    'logement',
+    'energie',
+    'alimentation',
+    'transport',
+    'assurance',
+    'sante',
+    'telecom',
+    'impots',
+    'enfants',
+    'credit',
+    'loisirs',
+    'autre_depense',
+  ],
+  saving: ['versement_epargne', 'versement_investissement', 'autre_epargne'],
+};
+
+/** Catégories de dépenses pré-cochées « vitales » (incompressibles) à la saisie —
+ * l'utilisateur reste libre de décocher. */
+export const BUDGET_ESSENTIAL_DEFAULT: BudgetCategory[] = [
+  'logement',
+  'energie',
+  'alimentation',
+  'transport',
+  'assurance',
+  'sante',
+  'impots',
+  'enfants',
+  'credit',
+];
+
+/** Un flux d'argent récurrent saisi par l'utilisateur (montant en EUR). */
+export interface BudgetItem {
+  id: string;
+  kind: BudgetKind;
+  label: string;
+  /** Montant par période (`frequency`), en EUR, toujours positif. */
+  amount: number;
+  frequency: BudgetFrequency;
+  category: BudgetCategory;
+  /** Dépense vitale / incompressible (uniquement pour `kind: 'expense'`). */
+  essential?: boolean;
+  createdAt: string; // ISO
+}
