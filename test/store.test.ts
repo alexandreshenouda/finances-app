@@ -215,6 +215,24 @@ describe('flux (versements, dividendes)', () => {
     expect(new Set(flows.map((f) => f.id)).size).toBe(flows.length);
   });
 
+  it('avec une fenêtre complète, purge les flux importés qui n’y figurent plus', () => {
+    S().mergeCashFlows('acc', [
+      { date: '2024-01-02', kind: 'interest', amount: 2_166, externalId: 'vente-mal-classee' },
+      { date: '2024-01-03', kind: 'deposit', amount: 100, externalId: 'tx-1' },
+      { date: '2023-06-01', kind: 'dividend', amount: 5, externalId: 'ancien' }, // avant la fenêtre : conservé
+      { date: '2024-01-04', kind: 'deposit', amount: 40 }, // saisi à la main : conservé
+    ]);
+    S().mergeCashFlows('autre', [{ date: '2024-01-02', kind: 'deposit', amount: 1, externalId: 'x' }]);
+
+    S().mergeCashFlows('acc', [{ date: '2024-01-03', kind: 'deposit', amount: 100, externalId: 'tx-1' }], '2024-01-01');
+    expect(S().cashFlows.filter((f) => f.accountId === 'acc').map((f) => f.externalId ?? 'manuel').sort()).toEqual(['ancien', 'manuel', 'tx-1']);
+    expect(S().cashFlows.filter((f) => f.accountId === 'autre')).toHaveLength(1);
+
+    // Fenêtre complète et vide : tout l'importé récent disparaît.
+    S().mergeCashFlows('acc', [], '2024-01-01');
+    expect(S().cashFlows.filter((f) => f.accountId === 'acc').map((f) => f.externalId ?? 'manuel').sort()).toEqual(['ancien', 'manuel']);
+  });
+
   it('garde les flux sans identifiant externe (aucun dédoublonnage possible)', () => {
     S().mergeCashFlows('acc', [{ date: '2024-01-02', kind: 'deposit', amount: 100 }]);
     S().mergeCashFlows('acc', [{ date: '2024-01-02', kind: 'deposit', amount: 100 }]);

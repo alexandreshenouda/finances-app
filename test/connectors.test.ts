@@ -88,6 +88,18 @@ describe('persistExternalAccounts', () => {
     ]);
   });
 
+  it('remplace l’historique importé quand le connecteur fournit une fenêtre complète', () => {
+    const conn = connection('traderepublic');
+    const flow = (externalId: string, kind: 'deposit' | 'interest', amountEur: number) => ({ externalId, date: '2024-03-01', kind, amountEur });
+    persistExternalAccounts(conn, result({ cashFlows: [flow('vente', 'interest', 2_166), flow('dep', 'deposit', 500)] }));
+    // Resynchro après correction du classement : la vente n'est plus un flux.
+    persistExternalAccounts(conn, result({ cashFlows: [flow('dep', 'deposit', 500)], cashFlowsSince: '2024-01-01' }));
+    expect(S().cashFlows.map((f) => f.externalId)).toEqual(['dep']);
+    // Fenêtre complète sans aucun flux : purge aussi.
+    persistExternalAccounts(conn, result({ cashFlows: [], cashFlowsSince: '2024-01-01' }));
+    expect(S().cashFlows).toEqual([]);
+  });
+
   it('ne touche pas au cumul de versements saisi quand le connecteur ne le fournit pas', () => {
     const conn = connection('binance');
     persistExternalAccounts(conn, result());

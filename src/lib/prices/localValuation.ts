@@ -128,6 +128,12 @@ function weightedAverage(
   return totalCount >= MIN_SAMPLES ? { pricePerM2: weightedSum / totalCount, sampleSize: totalCount } : null;
 }
 
+/** Dernier mois (YYYY-MM) de la série, si elle en porte un lisible. */
+function lastMonth(rows: DvfMonthlyRow[]): string | undefined {
+  const d = rows[rows.length - 1]?.d;
+  return typeof d === 'string' && /^\d{4}-\d{2}$/.test(d) ? d : undefined;
+}
+
 /**
  * Estimation locale : prix/m² moyen (pondéré par le nombre de ventes) sur les
  * `RECENT_MONTHS` derniers mois de la commune. Si trop peu de ventes récentes,
@@ -149,6 +155,7 @@ export async function fetchLocalEstimate(
 
     let result = weightedAverage(communeRows, fields, RECENT_MONTHS);
     let scope: LocalEstimate['scope'] = 'commune';
+    let usedRows = communeRows;
 
     if (!result) result = weightedAverage(communeRows, fields);
 
@@ -158,13 +165,20 @@ export async function fetchLocalEstimate(
       const depRows: DvfMonthlyRow[] = Array.isArray(depData?.data) ? depData.data : [];
       result = weightedAverage(depRows, fields, RECENT_MONTHS) ?? weightedAverage(depRows, fields);
       scope = 'departement';
+      usedRows = depRows;
     }
 
     if (!result) throw new Error(i18next.t('errors.dvf_pas_assez'));
 
     return {
       ok: true,
-      estimate: { pricePerM2: result.pricePerM2, sampleSize: result.sampleSize, scope, computedAt: new Date().toISOString() },
+      estimate: {
+        pricePerM2: result.pricePerM2,
+        sampleSize: result.sampleSize,
+        scope,
+        computedAt: new Date().toISOString(),
+        dataThrough: lastMonth(usedRows),
+      },
     };
   } catch (e: any) {
     return { ok: false, error: i18next.t('errors.estimation_locale', { message: e?.message ?? e }) };

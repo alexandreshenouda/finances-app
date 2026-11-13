@@ -22,6 +22,7 @@ import { logDebug, logDebugError } from '../debugLog';
 import i18next from '../i18n';
 import { getSecret, setSecret } from '../secure';
 import { addDays, todayKey } from '../format';
+import type { CashFlowKind } from '../types';
 import type { ExternalAccount, ExternalCashFlow, ExternalHolding } from './types';
 
 const TAG = 'traderepublic';
@@ -292,6 +293,8 @@ interface TrAccountSnapshot {
   privateMarkets: ExternalHolding[];
   /** Versements, retraits, dividendes et intérêts récents du compte espèces. */
   cashFlows: ExternalCashFlow[];
+  /** Début de la fenêtre d'historique rapatriée en entier ; absent si elle est incomplète. */
+  cashFlowsSince?: string;
   /** PEA uniquement : cumul des versements et plafond (EUR). */
   peaDepositsEur?: number;
   peaCeilingEur?: number;
@@ -514,32 +517,42 @@ async function fetchPositions(
 
 // ─── Historique des opérations (REST) & plafond du PEA ───────────────────────
 //
-// Relevé dans le bundle du client web (cf. AGENTS.md) :
+// Requêtes relevées dans le bundle du client web (cf. AGENTS.md), réponses vérifiées sur
+// un compte réel :
 //  - `GET /api/v2/timeline/transactions` — paramètres `pageSize`, `categoryIds` (ids séparés
 //    par des virgules), `cashAccountNumbers[]`, `isins[]`, `olderThan` (curseur) ; réponse
-//    `{ items, cursors: { after } }`, chaque item portant `id`, `title`, `timestamp`,
-//    `status` (`CANCELED` = annulé), `amount: { value, currency }` (positif = entrée
-//    d'argent) et `action: { type: 'instrumentDetail', payload: <isin> }` pour un titre.
-//  - `categoryIds=INCOME` est la catégorie des revenus (dividendes, coupons, intérêts) :
-//    c'est celle que le client web utilise pour l'écran « rendement » d'un titre.
-//  - `GET /api/v2/timeline/transaction-categories` liste les autres catégories. Leurs ids
-//    viennent du serveur et ne figurent PAS dans le bundle : on ne peut donc pas coder en
-//    dur celle des versements. `TRANSFER_CATEGORY_PATTERN` la reconnaît à son id / libellé ;
-//    si rien ne correspond, aucun versement n'est compté et un avertissement le dit, la
-//    liste brute étant journalisée pour corriger le motif.
+//    `{ items, cursors: { after } }`. Chaque item porte `id`, `title`, `timestamp`, `status`
+//    (`CANCELED` = annulé), `amount: { value, currency }` (positif = entrée d'argent),
+//    `eventType` et `icon` (`logos/<ISIN>/v2` pour un titre). `action` vaut toujours
+//    `{ type: 'timelineDetail', payload: <id> }` : il ne dit rien de la nature de l'opération.
+//  - `GET /api/v2/timeline/transaction-categories` : `INVESTING`, `INCOME` (enfants
+//    `EARNINGS_V2`, `SELLS_V2`, `CASH_IN_V2`) et `SPENDING` (dont `TRANSFERS`).
+//  - **Une catégorie ne dit pas ce qu'est une opération** : `INCOME` mélange intérêts,
+//    dividendes, virements entrants ET produit des ventes de titres ; `TRANSFERS` ne contient
+//    que les virements sortants. Seul `eventType` classe une opération (`EVENT_KINDS`) ; les
+//    catégories ne servent qu'à limiter ce qu'on rapatrie.
 //  - WS `taxWrapperAccountUtilization` + `secAccNo` → `{ totalAmount, usedAmount }`
 //    (`{ value, currency }`) : plafond et cumul des versements du PEA.
 
 const TIMELINE_PATH = '/api/v2/timeline';
-const INCOME_CATEGORY = 'INCOME';
-/** Catégories de mouvements d'argent entre l'extérieur et le compte (versements / retraits). */
-export const TRANSFER_CATEGORY_PATTERN =
-  /deposit|withdraw|pay[-_ ]?in|pay[-_ ]?out|transfer|top[-_ ]?up|versement|retrait|virement|einzahlung|auszahlung|überweisung/i;
+/** Catégories rapatriées : revenus + virements entrants (`INCOME`), virements sortants (`TRANSFERS`). */
+const HISTORY_CATEGORIES = ['INCOME', 'TRANSFERS'];
+/** Nature d'une opération d'après son `eventType` — les seuls types constatés sur un compte réel. */
+const EVENT_KINDS: Record<string, CashFlowKind> = {
+  BANK_TRANSACTION_INCOMING: 'deposit',
+  BANK_TRANSACTION_OUTGOING: 'withdrawal',
+  INTEREST_PAYOUT: 'interest',
+  SSP_CORPORATE_ACTION_CASH: 'dividend',
+};
+/** Types connus qui ne sont ni un versement ni un revenu (achat / vente de titres). */
+const IGNORED_EVENTS = new Set(['TRADING_TRADE_EXECUTED']);
 /** Profondeur d'historique rapatriée : 12 mois glissants plus une marge. */
 const HISTORY_DAYS = 400;
 const HISTORY_PAGE_SIZE = 50;
 const HISTORY_MAX_PAGES = 20;
 const ISIN_RE = /^[A-Z]{2}[A-Z0-9]{9}\d$/;
+/** Logo d'un titre : `logos/<ISIN>/v2`. */
+const LOGO_ISIN_RE = /^logos\/([A-Z]{2}[A-Z0-9]{9}\d)\//;
 
 /** Chaîne de requête au format du client web : les tableaux deviennent `clé[]=…` répétés. */
 function timelineQuery(params: Record<string, string | number | string[] | undefined>): string {
@@ -575,16 +588,10 @@ function collectCategories(node: unknown, out: Record<string, unknown>[] = [], d
   return out;
 }
 
-/** Ids des catégories de versements / retraits, reconnues à leur id ou à leur libellé. */
-export function transferCategoryIds(categories: unknown): string[] {
-  const ids = new Set<string>();
-  for (const c of collectCategories(categories)) {
-    const id = String(c.id);
-    if (id === INCOME_CATEGORY) continue;
-    const texts = [id, c.label, c.title, c.name].filter((v): v is string => typeof v === 'string');
-    if (texts.some((v) => TRANSFER_CATEGORY_PATTERN.test(v))) ids.add(id);
-  }
-  return [...ids];
+/** Catégories de `HISTORY_CATEGORIES` effectivement proposées par le serveur. */
+export function historyCategoryIds(categories: unknown): string[] {
+  const known = new Set(collectCategories(categories).map((c) => String(c.id)));
+  return HISTORY_CATEGORIES.filter((id) => known.has(id));
 }
 
 /** Jour (YYYY-MM-DD) d'un horodatage TR : ISO (`…+0000` compris) ou millisecondes. */
@@ -594,35 +601,55 @@ function timelineDateKey(timestamp: unknown): string | undefined {
   return undefined;
 }
 
-/**
- * Convertit une opération de la timeline en flux. `income` : l'opération vient de la
- * catégorie des revenus (dividende si un titre y est attaché, intérêts sinon) ; sinon
- * c'est un mouvement d'argent, versement ou retrait selon son signe.
- */
-export function parseTimelineItem(item: any, income: boolean): ExternalCashFlow | undefined {
-  const value = Number(item?.amount?.value);
-  const date = timelineDateKey(item?.timestamp);
-  if (!item?.id || !date || !Number.isFinite(value) || value === 0) return undefined;
-  if (item.status === 'CANCELED' || item.amount?.currency !== 'EUR') return undefined;
-  const label = typeof item.title === 'string' && item.title ? item.title : undefined;
-  if (!income) {
-    return { externalId: String(item.id), date, kind: value > 0 ? 'deposit' : 'withdrawal', amountEur: Math.abs(value), label };
+/** ISIN du titre d'une opération, lu dans son logo (repli : action `instrumentDetail`). */
+function timelineIsin(item: any): string | undefined {
+  for (const logo of [item?.icon, item?.avatar?.asset]) {
+    const m = typeof logo === 'string' ? LOGO_ISIN_RE.exec(logo) : null;
+    if (m) return m[1];
   }
-  // Un revenu négatif est une régularisation (impôt, annulation) : ni dividende ni intérêt.
-  if (value < 0) return undefined;
-  const payload = item.action?.type === 'instrumentDetail' ? item.action.payload : undefined;
-  const isin = typeof payload === 'string' && ISIN_RE.test(payload.trim()) ? payload.trim() : undefined;
-  return { externalId: String(item.id), date, kind: isin ? 'dividend' : 'interest', amountEur: value, label, isin };
+  const payload = item?.action?.type === 'instrumentDetail' ? item.action.payload : undefined;
+  return typeof payload === 'string' && ISIN_RE.test(payload.trim()) ? payload.trim() : undefined;
 }
 
-/** Opérations d'un compte espèces pour un jeu de catégories, pages les plus récentes d'abord. */
+/** Résultat du classement d'une opération : un flux, ou la raison pour laquelle elle est écartée. */
+export type TimelineParse =
+  | { flow: ExternalCashFlow }
+  | { skipped: 'ignored' | 'unknown' | 'invalid' };
+
+/**
+ * Convertit une opération de la timeline en flux, d'après son `eventType`. Écartées :
+ * achats / ventes de titres (`ignored`), types jamais rencontrés (`unknown` — remontés à
+ * l'utilisateur plutôt que devinés), et opérations annulées, hors EUR, illisibles ou dont
+ * le signe contredit le type (`invalid`).
+ */
+export function parseTimelineItem(item: any): TimelineParse {
+  const eventType = typeof item?.eventType === 'string' ? item.eventType : '';
+  if (IGNORED_EVENTS.has(eventType)) return { skipped: 'ignored' };
+  const kind = EVENT_KINDS[eventType];
+  if (!kind) return { skipped: 'unknown' };
+
+  const value = Number(item?.amount?.value);
+  const date = timelineDateKey(item?.timestamp);
+  if (!item?.id || !date || !Number.isFinite(value) || value === 0) return { skipped: 'invalid' };
+  if (item.status === 'CANCELED' || item.amount?.currency !== 'EUR') return { skipped: 'invalid' };
+  // Un retrait est négatif, tout le reste positif : un signe inverse est une régularisation.
+  if (kind === 'withdrawal' ? value > 0 : value < 0) return { skipped: 'invalid' };
+
+  const flow: ExternalCashFlow = { externalId: String(item.id), date, kind, amountEur: Math.abs(value) };
+  if (typeof item.title === 'string' && item.title) flow.label = item.title;
+  const isin = kind === 'dividend' ? timelineIsin(item) : undefined;
+  if (isin) flow.isin = isin;
+  return { flow };
+}
+
+/** Opérations d'un compte espèces, pages les plus récentes d'abord, classées par type. */
 async function fetchTimelineFlows(
   cashAccountNumber: string,
   categoryIds: string[],
-  income: boolean,
   since: string
-): Promise<ExternalCashFlow[]> {
+): Promise<{ flows: ExternalCashFlow[]; unknownTypes: string[] }> {
   const flows: ExternalCashFlow[] = [];
+  const unknownTypes: string[] = [];
   let cursor: string | undefined;
   for (let page = 0; page < HISTORY_MAX_PAGES; page++) {
     const res = await trGetJson(
@@ -641,37 +668,49 @@ async function fetchTimelineFlows(
         reachedEnd = true;
         continue;
       }
-      const flow = parseTimelineItem(item, income);
-      if (flow) flows.push(flow);
-      else logDebug(TAG, 'Opération ignorée (annulée, hors EUR ou illisible)', JSON.stringify(item));
+      const parsed = parseTimelineItem(item);
+      if ('flow' in parsed) flows.push(parsed.flow);
+      else if (parsed.skipped === 'unknown') {
+        unknownTypes.push(String(item?.eventType ?? '?'));
+        logDebugError(TAG, `Opération de type inconnu (${item?.eventType ?? '?'}) ignorée`, JSON.stringify(item));
+      } else if (parsed.skipped === 'invalid') {
+        logDebug(TAG, 'Opération ignorée (annulée, hors EUR ou illisible)', JSON.stringify(item));
+      }
     }
     cursor = typeof res?.cursors?.after === 'string' && res.cursors.after ? res.cursors.after : undefined;
     if (reachedEnd || !cursor) break;
   }
-  return flows;
+  return { flows, unknownTypes };
 }
 
 /**
  * Versements, retraits, dividendes et intérêts d'un compte espèces sur `HISTORY_DAYS`
- * jours. Best-effort : un échec ajoute un avertissement mais ne fait pas échouer la synchro.
+ * jours. Best-effort : un échec ajoute un avertissement mais ne fait pas échouer la
+ * synchro — `since` reste alors absent, pour que les flux déjà connus ne soient pas purgés.
  */
 async function fetchCashFlows(
   cashAccountNumber: string,
-  transferIds: string[],
+  categoryIds: string[],
   warnings: string[]
-): Promise<ExternalCashFlow[]> {
+): Promise<{ flows: ExternalCashFlow[]; since?: string }> {
+  if (categoryIds.length === 0) return { flows: [] };
   const since = addDays(todayKey(), -HISTORY_DAYS);
-  const flows: ExternalCashFlow[] = [];
-  const groups: [string[], boolean][] = [[[INCOME_CATEGORY], true]];
-  if (transferIds.length > 0) groups.push([transferIds, false]);
-  for (const [ids, income] of groups) {
-    try {
-      flows.push(...(await fetchTimelineFlows(cashAccountNumber, ids, income, since)));
-    } catch (e: any) {
-      warnings.push(i18next.t('errors.tr_historique_indisponible', { message: e?.message ?? e }));
+  try {
+    const { flows, unknownTypes } = await fetchTimelineFlows(cashAccountNumber, categoryIds, since);
+    if (unknownTypes.length > 0) {
+      warnings.push(
+        i18next.t('errors.tr_operations_inconnues', {
+          count: unknownTypes.length,
+          types: [...new Set(unknownTypes)].join(', '),
+        })
+      );
     }
+    // Sans la catégorie des virements sortants, l'historique est partiel : on ne purge rien.
+    return { flows, since: categoryIds.length === HISTORY_CATEGORIES.length ? since : undefined };
+  } catch (e: any) {
+    warnings.push(i18next.t('errors.tr_historique_indisponible', { message: e?.message ?? e }));
+    return { flows: [] };
   }
-  return flows;
 }
 
 /** Plafond et cumul des versements d'un PEA ; `undefined` si la réponse est inexploitable. */
@@ -732,11 +771,11 @@ export async function trFetchPortfolio(): Promise<TrPortfolioResult> {
       warnings.push(i18next.t('errors.tr_liquidites_indisponibles', { message: e?.message ?? e }));
     }
 
-    // 3. Catégories de la timeline, pour repérer celles des versements / retraits.
-    let transferIds: string[] = [];
+    // 3. Catégories de la timeline : on ne demande que celles que le serveur connaît.
+    let categoryIds: string[] = [];
     try {
-      transferIds = transferCategoryIds(await trGetJson(`${TIMELINE_PATH}/transaction-categories`));
-      if (transferIds.length === 0) warnings.push(i18next.t('errors.tr_versements_non_reconnus'));
+      categoryIds = historyCategoryIds(await trGetJson(`${TIMELINE_PATH}/transaction-categories`));
+      if (categoryIds.length < HISTORY_CATEGORIES.length) warnings.push(i18next.t('errors.tr_versements_non_reconnus'));
     } catch (e: any) {
       warnings.push(i18next.t('errors.tr_historique_indisponible', { message: e?.message ?? e }));
     }
@@ -823,9 +862,10 @@ export async function trFetchPortfolio(): Promise<TrPortfolioResult> {
         TAG,
         `${productType} (${secAccNo}) : ${holdings.length} titre(s), ${privateMarkets.length} private equity, cash=${cashEur}€`
       );
-      const cashFlows = pair.cashAccountNumber
-        ? await fetchCashFlows(pair.cashAccountNumber, transferIds, warnings)
-        : [];
+      const history = pair.cashAccountNumber
+        ? await fetchCashFlows(pair.cashAccountNumber, categoryIds, warnings)
+        : { flows: [] as ExternalCashFlow[], since: undefined };
+      const cashFlows = history.flows;
       const pea = productType === PRODUCT_TAX_WRAPPER ? await fetchPeaUtilization(socket, secAccNo) : undefined;
       logDebug(TAG, `${productType} (${secAccNo}) : ${cashFlows.length} flux, versements PEA=${pea?.depositsEur ?? '—'}`);
 
@@ -836,6 +876,7 @@ export async function trFetchPortfolio(): Promise<TrPortfolioResult> {
         holdings,
         privateMarkets,
         cashFlows,
+        cashFlowsSince: history.since,
         peaDepositsEur: pea?.depositsEur,
         peaCeilingEur: pea?.ceilingEur,
       });
@@ -867,6 +908,7 @@ export function trBuildAccounts(result: TrPortfolioResult): ExternalAccount[] {
         cashBalanceEur: snap.cashEur || undefined,
         holdings: snap.holdings,
         cashFlows: snap.cashFlows,
+        cashFlowsSince: snap.cashFlowsSince,
         peaDepositsEur: snap.peaDepositsEur,
         peaCeilingEur: snap.peaCeilingEur,
       });
@@ -879,6 +921,7 @@ export function trBuildAccounts(result: TrPortfolioResult): ExternalAccount[] {
         cashBalanceEur: snap.cashEur || undefined,
         holdings: snap.holdings,
         cashFlows: snap.cashFlows,
+        cashFlowsSince: snap.cashFlowsSince,
       });
     }
 

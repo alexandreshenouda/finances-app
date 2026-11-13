@@ -71,7 +71,7 @@ export function persistExternalAccounts(conn: Connection, result: SyncResult): v
         : {}),
     });
 
-    if (ext.cashFlows && ext.cashFlows.length > 0) {
+    if (ext.cashFlows && (ext.cashFlows.length > 0 || ext.cashFlowsSince)) {
       useStore.getState().mergeCashFlows(
         account.id,
         ext.cashFlows.map((f) => ({
@@ -81,7 +81,8 @@ export function persistExternalAccounts(conn: Connection, result: SyncResult): v
           amount: f.amountEur,
           label: f.label,
           isin: f.isin,
-        }))
+        })),
+        ext.cashFlowsSince
       );
     }
 

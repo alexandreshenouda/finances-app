@@ -650,7 +650,9 @@
     "resolution_isin": "{{name}}: ISIN-Auflösung {{isin}} → {{message}}",
     "aucun_ticker_yahoo": "{{name}}: kein Yahoo-Ticker für ISIN {{isin}} gefunden",
     "tr_historique_indisponible": "Trade-Republic-Transaktionsverlauf nicht verfügbar ({{message}}): Einzahlungen und Dividenden nicht aktualisiert",
-    "tr_versements_non_reconnus": "Einzahlungskategorien von Trade Republic nicht erkannt: Einzahlungen nicht importiert (siehe Debug-Protokoll)"
+    "tr_versements_non_reconnus": "Transaktionskategorien von Trade Republic nicht gefunden: Einzahlungsverlauf unvollständig (siehe Debug-Protokoll)",
+    "tr_operations_inconnues_one": "{{count}} Trade-Republic-Transaktion unbekannten Typs ignoriert ({{types}}) — siehe Debug-Protokoll",
+    "tr_operations_inconnues_other": "{{count}} Trade-Republic-Transaktionen unbekannten Typs ignoriert ({{types}}) — siehe Debug-Protokoll"
   },
   "objectives": {
     "a_epargner": "{{amount}}/Monat sparen",
@@ -942,7 +944,9 @@
     "aucun_credit": "Keine Darlehen. Fügen Sie die Hypothek hinzu, die diese Immobilie finanziert.",
     "ajouter_credit": "+ Darlehen hinzufügen",
     "modifier": "Immobilie bearbeiten",
-    "supprimer_bouton": "Immobilie löschen"
+    "supprimer_bouton": "Immobilie löschen",
+    "estimation_local_maj": "Aktualisiert am {{date}} · letzte von DVF veröffentlichte Verkäufe: {{mois}}. DVF-Daten werden nur zweimal jährlich aktualisiert: Der Wert kann zwischen zwei Aktualisierungen gleich bleiben.",
+    "estimation_local_maj_sans_mois": "Aktualisiert am {{date}}. DVF-Daten werden nur zweimal jährlich aktualisiert: Der Wert kann zwischen zwei Aktualisierungen gleich bleiben."
   },
   "loanCard": {
     "par_mois": "{{amount}}/Monat",

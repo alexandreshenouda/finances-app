@@ -148,8 +148,10 @@ interface AppState extends AppData {
 
   /** Versements, retraits, dividendes et intérêts constatés (connecteurs). */
   cashFlows: CashFlow[];
-  /** Ajoute des flux à un compte ; un flux déjà connu (même `externalId`) est remplacé, pas dupliqué. */
-  mergeCashFlows: (accountId: string, flows: Omit<CashFlow, 'id' | 'accountId'>[]) => void;
+  /** Ajoute des flux à un compte ; un flux déjà connu (même `externalId`) est remplacé, pas dupliqué.
+   *  Avec `since`, `flows` est l'historique complet depuis ce jour : les flux importés
+   *  (porteurs d'un `externalId`) datés d'après et absents de `flows` sont supprimés. */
+  mergeCashFlows: (accountId: string, flows: Omit<CashFlow, 'id' | 'accountId'>[], since?: string) => void;
 
   /** Verrouillage de l'app par biométrie / code de l'appareil. Réglage de l'appareil : non exporté. */
   appLock: boolean;
@@ -382,11 +384,16 @@ export const useStore = create<AppState>()(
       setBudgetIncludeLoans: (v) => set({ budgetIncludeLoans: v }),
 
       cashFlows: [],
-      mergeCashFlows: (accountId, flows) =>
+      mergeCashFlows: (accountId, flows, since) =>
         set((s) => {
           const incoming = new Set(flows.map((f) => f.externalId).filter(Boolean));
           const kept = s.cashFlows.filter(
-            (f) => !(f.accountId === accountId && f.externalId && incoming.has(f.externalId))
+            (f) =>
+              !(
+                f.accountId === accountId &&
+                f.externalId &&
+                (incoming.has(f.externalId) || (since !== undefined && f.date >= since))
+              )
           );
           return { cashFlows: [...kept, ...flows.map((f) => ({ ...f, id: uid(), accountId }))] };
         }),

@@ -423,12 +423,20 @@ tag would clobber each other. Keep it that way if you add a third.
   release asset must be directly installable; `production` still yields an AAB.
 - Use `node_modules/.bin/expo` in CI too, matching the local convention below.
 
+## Local property valuation: DVF freshness (`src/lib/prices/localValuation.ts`)
+`dvf-api.data.gouv.fr/commune/<insee>` returns a monthly series that lags by several months and
+is only republished twice a year, so refreshing a local estimate usually returns **the same
+value** — that is not a failure. `LocalEstimate.dataThrough` (last `YYYY-MM` of the series used)
+and `computedAt` are shown under the chart on the property screen so a refresh is visible even
+when the figure does not move. The request is in the debug log (tag `immobilier`).
+
 ## Cash flows: deposits, dividends, PEA ceiling (`src/lib/cashflows.ts`, `src/components/AccountFlows.tsx`)
 - `CashFlow` (`types.ts`): `kind` `deposit` / `withdrawal` / `dividend` / `interest`, `amount` in
   EUR **always positive**, optional `isin` and `externalId`. Stored in `store.cashFlows`
   (export / import / reset / deleted with the account). `mergeCashFlows(accountId, flows)` replaces
   a flow with the same `externalId` — a resync never duplicates, and flows older than the
-  connector's window are kept.
+  connector's window are kept. With its `since` argument (connector fetched the full window) it
+  also drops imported flows of that window that are gone.
 - Connectors feed them through `ExternalAccount.cashFlows` / `peaDepositsEur` / `peaCeilingEur`;
   `persistExternalAccounts` writes them. Only Trade Republic does today.
 - Everything is derived in `cashflows.ts` — reuse, don't re-sum in the UI:
@@ -445,24 +453,39 @@ tag would clobber each other. Keep it that way if you add a third.
 - `AccountFlows` (account detail) displays money → it carries the `privacyMode` subscription.
 
 ### Trade Republic: timeline history & PEA utilization
-Derived from the web bundle (same method as above), **not verified against a live account**:
+Requests derived from the web bundle, **responses checked against a real account** (2026-11):
 - REST, same cookies/headers as `/api/v2/auth/account`: `GET /api/v2/timeline/transactions`
-  with `pageSize`, `categoryIds` (comma-joined), `cashAccountNumbers[]`, `isins[]`, `olderThan`
-  (cursor) → `{ items, cursors: { after } }`. Item: `id`, `title`, `timestamp`, `status`
-  (`CANCELED`), `amount: { value, currency }` (positive = money in), `action: { type:
-  'instrumentDetail', payload: <isin> }`. Other endpoints under `/api/v2/timeline`:
-  `transaction-categories`, `search`, `activity-log`, `actions`, `inbox/open|closed`. The WS
-  `timelineTransactions` topic is still in the enum but the web client no longer uses it.
-- `categoryIds=INCOME` is hardcoded in the web client (per-instrument return screen): an INCOME
-  item with an ISIN is a `dividend`, without one it is `interest`, a negative one is skipped.
-- **Deposit category ids are server data** (`/transaction-categories`), absent from the bundle.
-  `TRANSFER_CATEGORY_PATTERN` matches them by id / label; when nothing matches, no deposit is
-  imported and a warning says so (`errors.tr_versements_non_reconnus`) — the raw list is in the
-  debug log, fix the pattern from it rather than guessing. Deposit vs withdrawal is the sign.
+  with `pageSize`, `categoryIds` (comma-joined — several parents in one request work),
+  `cashAccountNumbers[]`, `isins[]`, `olderThan` (cursor) → `{ items, cursors: { after, before } }`.
+  Item: `id`, `title`, `subtitle`, `timestamp` (`…+0000`), `status` (`EXECUTED` / `CANCELED`),
+  `amount: { value, currency }` (positive = money in), `eventType`, `icon` / `avatar.asset`
+  (`logos/<ISIN>/v2` for a security), `cashAccountNumber`. **`action` is always
+  `{ type: 'timelineDetail', payload: <id> }`** — it carries no ISIN and says nothing about
+  the operation (the first version assumed `instrumentDetail` and classified everything as interest).
+- `GET /api/v2/timeline/transaction-categories` → `{ categories: [{ id, name, children }] }`:
+  `INVESTING` (`STOCK`, `ETF`, `CRYPTO`, …), `INCOME` (`EARNINGS_V2`, `SELLS_V2`, `CASH_IN_V2`),
+  `SPENDING` (`CARD_*`, `ATM_WITHDRAWAL`, `TRANSFERS`).
+- **A category is not a kind.** `INCOME` mixes interest, dividends, incoming bank transfers
+  *and the proceeds of sell orders*; `TRANSFERS` only holds outgoing transfers. Classification is
+  by `eventType` only (`EVENT_KINDS`): `BANK_TRANSACTION_INCOMING` → deposit,
+  `BANK_TRANSACTION_OUTGOING` → withdrawal, `INTEREST_PAYOUT` → interest,
+  `SSP_CORPORATE_ACTION_CASH` → dividend (ISIN read from the logo). `TRADING_TRADE_EXECUTED` is
+  ignored. Any other `eventType` is **not guessed**: it is skipped, logged at error level and
+  counted in a warning (`errors.tr_operations_inconnues`) — add it to `EVENT_KINDS` /
+  `IGNORED_EVENTS` from the logged payload. A sign that contradicts the kind is skipped too.
+- A corrected dividend shows up as a `CANCELED` item plus a new `EXECUTED` one: skipping
+  `CANCELED` is what keeps it from being counted twice.
+- One request per page with `categoryIds=INCOME,TRANSFERS` (`HISTORY_CATEGORIES`), only for the
+  ids the server lists; a missing one adds `errors.tr_versements_non_reconnus`.
+- `cashFlowsSince` (start of the window) is set only when the whole window was fetched; it makes
+  `mergeCashFlows` drop previously imported flows of that window that are no longer returned
+  (misclassified by an older version, or cancelled since). Manual flows (no `externalId`) and
+  flows older than the window are kept. A partial or failed fetch never purges.
 - WS `taxWrapperAccountUtilization` + `secAccNo` → `{ totalAmount, usedAmount }` (`{ value,
-  currency }`), asked for `TAX_WRAPPER` envelopes only → `peaCeilingEur` / `peaDepositsEur`.
+  currency }`, plus `completionDate`, `taxFree`), asked for `TAX_WRAPPER` envelopes only →
+  `peaCeilingEur` / `peaDepositsEur`.
 - History is best-effort: any failure adds a warning, never fails the sync. Window =
-  `HISTORY_DAYS` (400), `HISTORY_MAX_PAGES` × `HISTORY_PAGE_SIZE` per envelope and category group.
+  `HISTORY_DAYS` (400), up to `HISTORY_MAX_PAGES` × `HISTORY_PAGE_SIZE` per envelope.
 
 ## App lock (`src/lib/appLock.ts`, `src/components/AppLockGate.tsx`)
 - `store.appLock` (persisted, **not exported** — it is a device setting; reset by `resetAll`).

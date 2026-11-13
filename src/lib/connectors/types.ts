@@ -36,6 +36,9 @@ export interface ExternalAccount {
   holdings: ExternalHolding[];
   /** Flux récents du compte, si le fournisseur expose un historique. */
   cashFlows?: ExternalCashFlow[];
+  /** Jour (YYYY-MM-DD) à partir duquel `cashFlows` est l'historique COMPLET du compte : les
+   *  flux déjà importés depuis cette date et absents de la liste sont alors supprimés. */
+  cashFlowsSince?: string;
   /** PEA : cumul des versements et plafond, si le fournisseur les expose. */
   peaDepositsEur?: number;
   peaCeilingEur?: number;

@@ -650,7 +650,9 @@
     "resolution_isin": "{{name}}: ISIN lookup {{isin}} → {{message}}",
     "aucun_ticker_yahoo": "{{name}}: no Yahoo ticker found for ISIN {{isin}}",
     "tr_historique_indisponible": "Trade Republic transaction history unavailable ({{message}}): deposits and dividends not updated",
-    "tr_versements_non_reconnus": "Trade Republic deposit categories not recognised: deposits not imported (see the debug log)"
+    "tr_versements_non_reconnus": "Trade Republic transaction categories not found: deposit history incomplete (see the debug log)",
+    "tr_operations_inconnues_one": "{{count}} Trade Republic transaction of an unknown type ignored ({{types}}) — see the debug log",
+    "tr_operations_inconnues_other": "{{count}} Trade Republic transactions of an unknown type ignored ({{types}}) — see the debug log"
   },
   "objectives": {
     "a_epargner": "Save {{amount}}/month",
@@ -942,7 +944,9 @@
     "aucun_credit": "No loans. Add the mortgage financing this property.",
     "ajouter_credit": "+ Add a loan",
     "modifier": "Edit property",
-    "supprimer_bouton": "Delete property"
+    "supprimer_bouton": "Delete property",
+    "estimation_local_maj": "Refreshed on {{date}} · latest sales published by DVF: {{mois}}. DVF data is only updated twice a year, so the value may stay the same between refreshes.",
+    "estimation_local_maj_sans_mois": "Refreshed on {{date}}. DVF data is only updated twice a year, so the value may stay the same between refreshes."
   },
   "loanCard": {
     "par_mois": "{{amount}}/month",

@@ -217,7 +217,9 @@ pour le détail des contraintes.
   budget, menus) partagent une même ligne (`ListRow`) qui réagit à l'appui ; les montants sont
   en chiffres à chasse fixe et le texte secondaire respecte un contraste ≥ 4,5:1.
 - **Versements, dividendes et plafond du PEA** (comptes Trade Republic) : chaque synchronisation
-  rapatrie ~13 mois d'opérations du compte espèces de chaque enveloppe.
+  rapatrie ~13 mois d'opérations du compte espèces de chaque enveloppe. Chaque opération est
+  classée d'après son type (virement entrant ou sortant, intérêts, dividende) ; les achats et
+  ventes de titres sont ignorés, et un type inconnu est signalé plutôt que deviné.
   - *Versements nets* (dépôts − retraits) : affichés sur la fiche du compte et, dans le Budget,
     à côté de l'épargne constatée — qui, elle, inclut la performance des marchés.
   - *Dividendes et intérêts reçus* : total sur 12 mois, par année, principaux titres payeurs et

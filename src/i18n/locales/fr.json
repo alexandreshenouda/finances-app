@@ -650,7 +650,9 @@
     "resolution_isin": "{{name}} : résolution ISIN {{isin}} → {{message}}",
     "aucun_ticker_yahoo": "{{name}} : aucun ticker Yahoo trouvé pour l'ISIN {{isin}}",
     "tr_historique_indisponible": "Historique des opérations Trade Republic indisponible ({{message}}) : versements et dividendes non mis à jour",
-    "tr_versements_non_reconnus": "Catégories de versements Trade Republic non reconnues : versements non importés (voir le journal de debug)"
+    "tr_versements_non_reconnus": "Catégories d'opérations Trade Republic introuvables : historique des versements incomplet (voir le journal de debug)",
+    "tr_operations_inconnues_one": "{{count}} opération Trade Republic d'un type inconnu ignorée ({{types}}) — voir le journal de debug",
+    "tr_operations_inconnues_other": "{{count}} opérations Trade Republic d'un type inconnu ignorées ({{types}}) — voir le journal de debug"
   },
   "objectives": {
     "a_epargner": "À épargner {{amount}}/mois",
@@ -942,7 +944,9 @@
     "aucun_credit": "Aucun crédit. Ajoutez le prêt immobilier finançant ce bien.",
     "ajouter_credit": "+ Ajouter un crédit",
     "modifier": "Modifier le bien",
-    "supprimer_bouton": "Supprimer le bien"
+    "supprimer_bouton": "Supprimer le bien",
+    "estimation_local_maj": "Actualisée le {{date}} · dernières ventes publiées par DVF : {{mois}}. Les données DVF ne sont mises à jour que deux fois par an : la valeur peut rester identique d'une actualisation à l'autre.",
+    "estimation_local_maj_sans_mois": "Actualisée le {{date}}. Les données DVF ne sont mises à jour que deux fois par an : la valeur peut rester identique d'une actualisation à l'autre."
   },
   "loanCard": {
     "par_mois": "{{amount}}/mois",

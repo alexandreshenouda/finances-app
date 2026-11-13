@@ -378,6 +378,8 @@ export interface LocalEstimate {
   /** Échelle géographique effectivement utilisée (commune privilégiée, département si trop peu de ventes locales). */
   scope: 'commune' | 'departement';
   computedAt: string; // ISO
+  /** Dernier mois (YYYY-MM) couvert par la série DVF utilisée — DVF paraît avec plusieurs mois de retard. */
+  dataThrough?: string;
 }
 
 /** Un bien immobilier physique (distinct des comptes bancaires). */

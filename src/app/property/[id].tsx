@@ -169,6 +169,16 @@ export default function PropertyDetail() {
                   ? t('propertyDetail.estimation_local_manquante')
                   : t('propertyDetail.estimation_auto')}
           </Text>
+          {property.valuationMode === 'local' && property.localEstimate && (
+            <Text style={styles.estimateNote}>
+              {property.localEstimate.dataThrough
+                ? t('propertyDetail.estimation_local_maj', {
+                    date: formatDate(property.localEstimate.computedAt),
+                    mois: property.localEstimate.dataThrough.split('-').reverse().join('/'),
+                  })
+                : t('propertyDetail.estimation_local_maj_sans_mois', { date: formatDate(property.localEstimate.computedAt) })}
+            </Text>
+          )}
           {property.valuationMode === 'local' && property.geo && (
             <>
               <Button
