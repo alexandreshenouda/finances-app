@@ -969,7 +969,7 @@
     "fichier_cree_titre": "Fichier créé",
     "partage_impossible": "Partage impossible",
     "journaliser": "Journaliser les requêtes réseau",
-    "journaliser_hint": "Une fois activé, toutes les requêtes réseau de l'app (cours, taux de change, prix de l'immobilier, classification, IA…) et les échanges bruts des connecteurs (notamment Trade Republic) sont enregistrés ci-dessous, sur l'appareil uniquement. Les clés API sont masquées dans les URL. Pensez à désactiver quand vous n'êtes plus en train de diagnostiquer un problème.",
+    "journaliser_hint": "Une fois activé, toutes les requêtes réseau de l'app (cours, taux de change, prix de l'immobilier, classification, IA…) et les échanges bruts des connecteurs (notamment Trade Republic) sont enregistrés ci-dessous, sur l'appareil uniquement. Le journal est semi-anonymisé pour pouvoir être partagé : noms, numéros de compte, identifiants, adresse et commune ne gardent que leurs extrémités, et les clés API sont masquées. Les montants, dates et titres restent lisibles. Pensez à désactiver quand vous n'êtes plus en train de diagnostiquer un problème.",
     "journal": "Journal ({{count}})",
     "aucune_entree": "Aucune entrée.",
     "copier_journal": "Copier le journal (presse-papiers)",

@@ -199,6 +199,10 @@ pour le détail des contraintes.
 **Confidentialité & personnalisation**
 - **Thèmes** : choix entre le thème **Or** (sombre et or clair, par défaut) et le thème
   **Classique** (bleu-ardoise historique) dans **Paramètres → Affichage**.
+- **Journal de debug partageable** : le journal des requêtes réseau (**Paramètres → Outils
+  développeur**) est semi-anonymisé à l'enregistrement comme à l'export — noms, numéros de
+  compte, identifiants, adresse et commune ne gardent que leurs extrémités ; montants, dates et
+  titres restent lisibles pour le diagnostic.
 - **Mode confidentialité** : icône œil dans l'en-tête de chaque onglet pour masquer
   instantanément tous les montants (les pourcentages de répartition et de performance restent
   visibles).
@@ -314,7 +318,7 @@ vivent dans `test/`, un par module de `src/lib` :
 | `test/traderepublic.test.ts` | login v2 à approbation push, protocole WebSocket (faux serveur), enveloppes CTO/PEA/Private Equity, historique des opérations (pagination, catégories), plafond du PEA |
 | `test/cashflows.test.ts`, `test/appLock.test.ts` | versements nets, synthèse des dividendes (12 mois, rendement sur prix de revient), plafond du PEA ; règles de verrouillage de l'app |
 | `test/aiCounsel.test.ts` | recherche Yahoo & résolution ISIN, indicateurs techniques (SMA/EMA/RSI/MACD/volatilité/pivots/cône 12M), score 7 facteurs et comité d'investissement Gemini (REST + fallback de modèles) |
-| `test/debugLog.test.ts`, `test/confirm.test.ts`, `test/secure.test.ts`, `test/i18n.test.ts` | journal de debug (dont `tracedFetch` : traçage et masquage des secrets des requêtes réseau), dialogues thématisés, stockage des secrets (natif / web), détection de langue, parité des clés fr/en/de et messages de `src/lib` traduits |
+| `test/debugLog.test.ts`, `test/confirm.test.ts`, `test/secure.test.ts`, `test/i18n.test.ts` | journal de debug (dont `tracedFetch` : traçage et masquage des secrets des requêtes réseau, et `test/logAnonymize.test.ts` : semi-anonymisation des noms, comptes, identifiants, adresse), dialogues thématisés, stockage des secrets (natif / web), détection de langue, parité des clés fr/en/de et messages de `src/lib` traduits |
 
 Les valeurs de référence des crédits sont recalculées dans les tests par la **formule fermée
 de l'annuité**, indépendamment de la simulation mois par mois de `realestate.ts` : les deux

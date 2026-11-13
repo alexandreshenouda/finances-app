@@ -969,7 +969,7 @@
     "fichier_cree_titre": "Datei erstellt",
     "partage_impossible": "Teilen nicht möglich",
     "journaliser": "Netzwerkanfragen protokollieren",
-    "journaliser_hint": "Nach Aktivierung werden alle Netzwerkanfragen der App (Kurse, Wechselkurse, Immobilienpreise, Klassifizierung, KI…) sowie der Rohverkehr der Verbindungen (insbesondere Trade Republic) unten protokolliert, nur auf dem Gerät. API-Schlüssel werden in den URLs maskiert. Denken Sie daran, dies zu deaktivieren, sobald Sie mit der Fehlerdiagnose fertig sind.",
+    "journaliser_hint": "Nach Aktivierung werden alle Netzwerkanfragen der App (Kurse, Wechselkurse, Immobilienpreise, Klassifizierung, KI…) sowie der Rohverkehr der Verbindungen (insbesondere Trade Republic) unten protokolliert, nur auf dem Gerät. Das Protokoll ist teilanonymisiert, damit es geteilt werden kann: Namen, Kontonummern, Kennungen, Adresse und Gemeinde behalten nur ihre ersten und letzten Zeichen, API-Schlüssel werden maskiert. Beträge, Daten und Wertpapiere bleiben lesbar. Denken Sie daran, dies zu deaktivieren, sobald Sie mit der Fehlerdiagnose fertig sind.",
     "journal": "Protokoll ({{count}})",
     "aucune_entree": "Keine Einträge.",
     "copier_journal": "Protokoll kopieren (Zwischenablage)",

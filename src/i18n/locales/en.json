@@ -969,7 +969,7 @@
     "fichier_cree_titre": "File created",
     "partage_impossible": "Share failed",
     "journaliser": "Log network requests",
-    "journaliser_hint": "Once enabled, every network request made by the app (prices, FX rates, real-estate prices, classification, AI…) and raw connector exchanges (Trade Republic in particular) are logged below, on-device only. API keys are masked in URLs. Remember to disable it once you're done diagnosing an issue.",
+    "journaliser_hint": "Once enabled, every network request made by the app (prices, FX rates, real-estate prices, classification, AI…) and raw connector exchanges (Trade Republic in particular) are logged below, on-device only. The log is semi-anonymised so it can be shared: names, account numbers, identifiers, address and town only keep their first and last characters, and API keys are masked. Amounts, dates and securities stay readable. Remember to disable it once you're done diagnosing an issue.",
     "journal": "Log ({{count}})",
     "aucune_entree": "No entries.",
     "copier_journal": "Copy log (clipboard)",

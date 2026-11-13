@@ -509,6 +509,20 @@ Requests derived from the web bundle, **responses checked against a real account
   With the log off it is a plain pass-through; with it on, one entry per finished request:
   method, URL, HTTP status (or the network error) and duration; non-2xx and thrown errors are
   logged at `error` level. It calls the global `fetch`, so `test/http.ts` `mockFetch` still works.
+- **The log is semi-anonymised** (`src/lib/logAnonymize.ts`, `anonymizeLog`) so it can be shared:
+  applied to message and detail in `logDebug*` — *before* truncation, while the JSON is whole —
+  and again in `formatLogEntries` (copy / share), which also covers entries stored before the
+  protection existed. It is idempotent. Two layers:
+  - by JSON key: `NAME_KEYS` (owner, creditor, debtor, remittance…) → first/last letter of each
+    word (`maskName`); `ACCOUNT_KEYS` (iban, accountNumber, secAccNo, uid…) → 2 first / 2 last
+    characters (`maskMiddle`); a `title` is masked in the whole subtree of an operation whose
+    `eventType` is not in `NON_PERSONAL_EVENT_TYPES` — unknown types are masked by default;
+  - by pattern on any text (messages, URLs, non-JSON bodies): digit runs ≥ 8 (account / phone
+    numbers), e-mails, IBANs, UUIDs (4 + 4 kept), the geocoding `q=` address, and the INSEE
+    commune code reduced to its department. Truncated JSON falls back to patterns with every
+    `title` masked.
+  Amounts, dates, ISINs and security names are deliberately kept. **A connector that logs a new
+  personal field must add its key or pattern there**, with a test in `test/logAnonymize.test.ts`.
 - Headers and bodies are never logged (API keys, JWTs); secret query params (`key`, `signature`,
   `token`…) are masked by `redactUrl` — extend `SECRET_PARAMS` if a new API puts a secret in its URL.
 - Trade Republic keeps its own hand-written logs (redacted bodies, WebSocket frames, timeline

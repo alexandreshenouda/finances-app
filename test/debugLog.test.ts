@@ -1,6 +1,6 @@
 /** Tests du journal de debug des connecteurs (`src/lib/debugLog.ts`). */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { logDebug, logDebugError, redactUrl, tracedFetch, useDebugLogStore } from '@/lib/debugLog';
+import { formatLogEntries, logDebug, logDebugError, redactUrl, tracedFetch, useDebugLogStore } from '@/lib/debugLog';
 import { json, mockFetch, networkError, text } from './http';
 
 const S = () => useDebugLogStore.getState();
@@ -108,5 +108,32 @@ describe('redactUrl', () => {
   it('masque les paramètres sensibles et laisse les autres intacts', () => {
     expect(redactUrl('https://a.test/p?apiKey=1&q=paris&token=2')).toBe('https://a.test/p?apiKey=***&q=paris&token=***');
     expect(redactUrl('https://a.test/p?monkey=1')).toBe('https://a.test/p?monkey=1');
+  });
+});
+
+describe('semi-anonymisation du journal', () => {
+  it('masque à l’écriture, avant troncature, message comme détail', () => {
+    S().setEnabled(true);
+    const items = Array.from({ length: 400 }, () => ({ title: 'DUPONT MARIE', eventType: 'BANK_TRANSACTION_INCOMING', cashAccountNumber: '0123456789' }));
+    logDebugError('traderepublic', 'DEFAULT (0123456789) : 400 flux', JSON.stringify({ items }));
+    const [entry] = S().entries;
+    expect(entry.message).toBe('DEFAULT (01••••••89) : 400 flux');
+    // Le détail dépasse la limite : il est tronqué APRÈS masquage, aucun nom ne subsiste.
+    expect(entry.detail!.endsWith('…')).toBe(true);
+    expect(entry.detail).not.toMatch(/DUPONT|MARIE|0123456789/);
+    expect(entry.detail).toContain('"title":"D••••T M•••E"');
+  });
+
+  it('masque aussi à l’export les entrées enregistrées avant la protection', () => {
+    useDebugLogStore.setState({
+      entries: [
+        { id: '1', ts: '2026-01-02T03:04:05.000Z', level: 'info', tag: 'traderepublic', message: 'WS cash (0123456789)', detail: '{"owner":"Jean Dupont"}' },
+        { id: '2', ts: '2026-01-02T03:04:04.000Z', level: 'error', tag: 'fx', message: 'GET /latest → HTTP 503' },
+      ],
+    });
+    expect(formatLogEntries(S().entries)).toBe(
+      '[2026-01-02T03:04:05.000Z] INFO traderepublic — WS cash (01••••••89)\n{"owner":"J••n D••••t"}\n\n' +
+        '[2026-01-02T03:04:04.000Z] ERROR fx — GET /latest → HTTP 503'
+    );
   });
 });
