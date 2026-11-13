@@ -15,6 +15,7 @@ import {
     View,
     type StyleProp,
     type TextInputProps,
+    type ViewInstance,
     type ViewStyle,
 } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
@@ -559,7 +560,7 @@ export function PeriodChips({
   const styles = useStyles(makeStyles);
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState({ x: 0, y: 0, w: 0, h: 0 });
-  const triggerRef = useRef<View>(null);
+  const triggerRef = useRef<ViewInstance>(null);
 
   const secondaryActive = PERIODS_SECONDARY.includes(value);
   const moreLabel = secondaryActive ? value : '···';
@@ -787,7 +788,7 @@ export function Slider({
   color?: string;
 }) {
   const styles = useStyles(makeStyles);
-  const trackRef = useRef<View>(null);
+  const trackRef = useRef<ViewInstance>(null);
   const trackPageX = useRef(0);
   // Layout/props are read through refs, not state: `responder` below is created once
   // (via useRef) so its closures must read live values at call time rather than

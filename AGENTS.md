@@ -1,6 +1,6 @@
 # Expo HAS CHANGED
 
-Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
+Read the exact versioned docs at https://docs.expo.dev/versions/v58.0.0/ before writing any code.
 
 # Documentation update requirement (MANDATORY)
 **Always update `README.md` (and any related documentation / `AGENTS.md`) whenever you implement, extend or modify features, settings, architecture patterns, or configuration options.** Keep documentation accurate and synchronized with the codebase in the same commit / PR.
@@ -531,6 +531,10 @@ Requests derived from the web bundle, **responses checked against a real account
   `coingecko`, `binance`, `kraken`, `enablebanking`, `aiCounsel` (Yahoo charts), `gemini`.
 
 ## Verification workflow
+- **SDK 58 / React Native 0.88 Strict TypeScript API**: deep imports from `react-native/Libraries/*`
+  are type errors and host refs use instance types — `useRef<ViewInstance>(null)` (also
+  `TextInputInstance`, …), not `useRef<View>`. Node ≥ 22.13 is required (CI uses 22). If `npm install`
+  hits an ERESOLVE on `expo-symbols` after a bump, regenerate `package-lock.json`.
 - `node_modules` is **not present by default** — run `npm install` first, before any
   typecheck or build (fresh clone / fresh session).
 - Typecheck: `node_modules/.bin/tsc --noEmit` directly. Do **not** use `npx tsc` — an

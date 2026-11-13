@@ -10,7 +10,7 @@
 
 <p align="center">
   <img alt="Plateformes" src="https://img.shields.io/badge/plateformes-Android%20%7C%20iOS%20%7C%20Web%20%7C%20Windows-5B8DEF">
-  <img alt="Expo SDK" src="https://img.shields.io/badge/Expo%20SDK-57-000020?logo=expo&logoColor=white">
+  <img alt="Expo SDK" src="https://img.shields.io/badge/Expo%20SDK-58-000020?logo=expo&logoColor=white">
   <img alt="Licence" src="https://img.shields.io/badge/licence-MIT-34D399">
   <img alt="Backend" src="https://img.shields.io/badge/backend-aucun%2C%20100%25%20local-16233D">
   <a href="https://github.com/alexandreshenouda/finances-app/actions/workflows/tests.yml?query=branch%3Amain"><img alt="Tests" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Falexandreshenouda%2Ffinances-app%2Fbadges%2Ftests.json"></a>
