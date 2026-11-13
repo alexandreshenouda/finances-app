@@ -4,14 +4,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   trAwaitApproval,
+  historyCategoryIds,
+  parseTimelineItem,
   trBuildAccounts,
   trFetchAccountInfo,
   trFetchPortfolio,
   trInitiateLogin,
   trResendApproval,
 } from '@/lib/connectors/traderepublic';
+import { addDays, todayKey } from '@/lib/format';
 import { useDebugLogStore } from '@/lib/debugLog';
-import { json, mockFetch, text } from './http';
+import { json, mockFetch, text, type RouteReply } from './http';
 import { __secureMemory } from './stubs/expo-secure-store';
 
 // ─── Faux serveur WebSocket ────────────────────────────────────────────────
@@ -133,6 +136,8 @@ const portfolioHandler: Handler = (s) => {
           ],
         },
       }; // …tout en V2, à plat
+    case 'taxWrapperAccountUtilization':
+      return { A: { totalAmount: { value: '150000', currency: 'EUR' }, usedAmount: { value: '42000.5', currency: 'EUR' } } };
     case 'instrument':
       if (s.id === APPLE) return { A: { shortName: 'Apple' } };
       if (s.id === PE_FUND) return { A: { exchangeIds: ['LSX', 'PRIV'] } };
@@ -152,12 +157,30 @@ const portfolioHandler: Handler = (s) => {
   return null;
 };
 
+/** Arbre des catégories tel que renvoyé par Trade Republic (extrait). */
+const CATEGORIES = {
+  categories: [
+    { id: 'INVESTING', name: 'Investing', children: [{ id: 'STOCK', name: 'Stocks', children: [] }] },
+    { id: 'INCOME', name: 'Income', children: [{ id: 'EARNINGS_V2', name: 'Earnings', children: [] }, { id: 'CASH_IN_V2', name: 'Cash In', children: [] }] },
+    { id: 'SPENDING', name: 'Spending', children: [{ id: 'ATM_WITHDRAWAL', name: 'Cash', children: [] }, { id: 'TRANSFERS', name: 'Transfers', children: [] }] },
+  ],
+};
+/** Début de la fenêtre d'historique rapatriée. */
+const SINCE = addDays(todayKey(), -400);
+
+/** Timeline par défaut : catégories réelles, aucun mouvement. */
+const TIMELINE: [string | RegExp, RouteReply][] = [
+  ['/timeline/transaction-categories', json(CATEGORIES)],
+  ['/timeline/transactions', json({ items: [] })],
+];
+
 beforeEach(() => {
   FakeWebSocket.instances = [];
   FakeWebSocket.handler = () => null;
   FakeWebSocket.mode = 'open';
   FakeWebSocket.throwOnClose = false;
   vi.stubGlobal('WebSocket', FakeWebSocket);
+  mockFetch(TIMELINE);
   __secureMemory.clear();
   useDebugLogStore.setState({ enabled: true, entries: [] });
 });
@@ -350,6 +373,8 @@ describe('trFetchPortfolio', () => {
           { name: 'Apple', symbol: APPLE, isin: APPLE, quantity: 2, unitPriceEur: 200, buyPriceEur: 150 },
         ],
         privateMarkets: [{ name: 'PE fund', symbol: PE_FUND, isin: PE_FUND, quantity: 3, unitPriceEur: 50, buyPriceEur: undefined }],
+        cashFlows: [],
+        cashFlowsSince: SINCE,
       },
       {
         productType: 'TAX_WRAPPER',
@@ -357,6 +382,11 @@ describe('trFetchPortfolio', () => {
         cashEur: 150,
         holdings: [{ name: 'TotalEnergies', symbol: TOTAL, isin: TOTAL, quantity: 4, unitPriceEur: 30, buyPriceEur: undefined }],
         privateMarkets: [{ name: 'Sans cours', symbol: NO_PRICE, isin: NO_PRICE, quantity: 1, unitPriceEur: 0, buyPriceEur: undefined }],
+        cashFlows: [],
+        cashFlowsSince: SINCE,
+        // Plafond du PEA : `taxWrapperAccountUtilization`, demandé pour l'enveloppe TAX_WRAPPER seulement.
+        peaDepositsEur: 42000.5,
+        peaCeilingEur: 150000,
       },
     ]);
 
@@ -380,19 +410,19 @@ describe('trFetchPortfolio', () => {
       if (s.type === 'compactPortfolioByTypeV2') return { A: { categories: [{ categoryType: 'stocksAndETFs', positions: [] }] } };
       return null;
     };
-    mockFetch([['/api/v2/auth/account', json({ securitiesAccountNumber: 'SEC9' })]]);
+    mockFetch([...TIMELINE, ['/api/v2/auth/account', json({ securitiesAccountNumber: 'SEC9' })]]);
     const r = await trFetchPortfolio();
     expect(r.warnings).toEqual([
       'Liste des comptes indisponible : seul le compte-titres principal sera importé',
       'Liquidités indisponibles : Trade Republic : boom',
     ]);
-    expect(r.accounts).toEqual([{ productType: 'DEFAULT', secAccNo: 'SEC9', cashEur: 0, holdings: [], privateMarkets: [] }]);
+    expect(r.accounts).toEqual([{ productType: 'DEFAULT', secAccNo: 'SEC9', cashEur: 0, holdings: [], privateMarkets: [], cashFlows: [] }]);
     expect(logs().some((e) => e.level === 'error' && e.message === 'Aucune position extraite pour SEC9')).toBe(true);
   });
 
   it('signale qu’aucun compte n’a pu être récupéré', async () => {
     FakeWebSocket.handler = (s) => (s.type === 'accountPairs' ? { A: {} } : { A: [] });
-    mockFetch([['/api/v2/auth/account', text('', 500)]]);
+    mockFetch([...TIMELINE, ['/api/v2/auth/account', text('', 500)]]);
     const r = await trFetchPortfolio();
     expect(r.accounts).toEqual([]);
     expect(r.warnings).toEqual([
@@ -404,7 +434,7 @@ describe('trFetchPortfolio', () => {
 
   it('ne garde aucune enveloppe si le compte HTTP n’a pas de numéro', async () => {
     FakeWebSocket.handler = (s) => (s.type === 'accountPairs' ? { A: null } : { A: [] });
-    mockFetch([['/api/v2/auth/account', json({ other: true })]]);
+    mockFetch([...TIMELINE, ['/api/v2/auth/account', json({ other: true })]]);
     expect((await trFetchPortfolio()).accounts).toEqual([]);
   });
 
@@ -444,24 +474,25 @@ describe('trFetchPortfolio', () => {
         cashEur: 0,
         holdings: [{ name: 'Apple', symbol: APPLE, isin: APPLE, quantity: 1, unitPriceEur: 1, buyPriceEur: undefined }],
         privateMarkets: [],
+        cashFlows: [],
       },
     ]);
   });
 
   it('dégrade proprement si la WebSocket est refusée (session invalide, WAF)', async () => {
     FakeWebSocket.mode = 'error';
-    mockFetch([['/api/v2/auth/account', json({ securitiesAccountNumber: 'SEC1' })]]);
+    mockFetch([...TIMELINE, ['/api/v2/auth/account', json({ securitiesAccountNumber: 'SEC1' })]]);
     const r = await trFetchPortfolio();
     expect(r.warnings).toContain(
       'Liquidités indisponibles : Trade Republic : erreur WebSocket (session invalide ou WAF ?)'
     );
-    expect(r.accounts).toEqual([{ productType: 'DEFAULT', secAccNo: 'SEC1', cashEur: 0, holdings: [], privateMarkets: [] }]);
+    expect(r.accounts).toEqual([{ productType: 'DEFAULT', secAccNo: 'SEC1', cashEur: 0, holdings: [], privateMarkets: [], cashFlows: [] }]);
   });
 
   it('abandonne la connexion WebSocket après 15 s sans « connected »', async () => {
     vi.useFakeTimers();
     FakeWebSocket.mode = 'silent';
-    mockFetch([['/api/v2/auth/account', text('', 401)]]);
+    mockFetch([...TIMELINE, ['/api/v2/auth/account', text('', 401)]]);
     const pending = trFetchPortfolio();
     await vi.advanceTimersByTimeAsync(15_000);
     const r = await pending;
@@ -471,10 +502,258 @@ describe('trFetchPortfolio', () => {
   it('n’attend pas plus de 12 s une souscription sans réponse', async () => {
     vi.useFakeTimers();
     FakeWebSocket.handler = (s) => (s.type === 'cash' ? null : { A: { accounts: [] } });
-    mockFetch([['/api/v2/auth/account', text('', 401)]]);
+    mockFetch([...TIMELINE, ['/api/v2/auth/account', text('', 401)]]);
     const pending = trFetchPortfolio();
     await vi.advanceTimersByTimeAsync(12_000);
     expect((await pending).warnings).toContain('Liquidités indisponibles : Trade Republic : réponse WebSocket expirée');
+  });
+});
+
+describe('historique des opérations et plafond du PEA', () => {
+  const day = (offset: number) => addDays(todayKey(), offset);
+  /** Opération au format réel de la timeline : `action` est toujours `timelineDetail`. */
+  const tx = (id: string, offset: number, value: number, eventType: string, over: object = {}) => ({
+    id,
+    title: `Opération ${id}`,
+    timestamp: `${day(offset)}T09:30:00.000+0000`,
+    icon: 'logos/contacts-A-Grey/v2',
+    amount: { currency: 'EUR', value, fractionDigits: 2 },
+    status: 'EXECUTED',
+    action: { type: 'timelineDetail', payload: id },
+    eventType,
+    ...over,
+  });
+  const logo = (isin: string) => ({ icon: `logos/${isin}/v2`, avatar: { asset: `logos/${isin}/v2`, badge: null } });
+  const param = (url: string, name: string) => new URL(url).searchParams.get(name);
+
+  it('classe les opérations par type d’événement, pas par catégorie, en paginant jusqu’à la fenêtre', async () => {
+    FakeWebSocket.handler = portfolioHandler;
+    const calls = mockFetch([
+      ['/timeline/transaction-categories', json(CATEGORIES)],
+      [
+        '/timeline/transactions',
+        (url) => {
+          if (param(url, 'cashAccountNumbers[]') !== 'CASH1') {
+            return json({ items: [tx('pea-div', -3, 0.73, 'SSP_CORPORATE_ACTION_CASH', logo(TOTAL))], cursors: { after: null } });
+          }
+          if (param(url, 'olderThan') === 'page-2') {
+            // Deuxième page : on franchit la fenêtre d'historique, la pagination s'arrête là.
+            return json({
+              items: [tx('dep-old', -399, 700, 'BANK_TRANSACTION_INCOMING'), tx('dep-too-old', -500, 9_999, 'BANK_TRANSACTION_INCOMING')],
+              cursors: { after: 'page-3' },
+            });
+          }
+          return json({
+            items: [
+              tx('int-1', -2, 0.51, 'INTEREST_PAYOUT', { title: 'Interest', icon: 'logos/timeline_interest_new/v2' }),
+              tx('dep-1', -5, 1_000, 'BANK_TRANSACTION_INCOMING'),
+              tx('div-1', -10, 1.22, 'SSP_CORPORATE_ACTION_CASH', logo(APPLE)),
+              tx('div-x', -10, 1.16, 'SSP_CORPORATE_ACTION_CASH', { ...logo(APPLE), status: 'CANCELED' }),
+              // Produit d'une vente : rangé dans INCOME par Trade Republic, mais ni versement ni revenu.
+              tx('sell-1', -12, 2_166.42, 'TRADING_TRADE_EXECUTED', logo(WORLD)),
+              tx('wd-1', -20, -2_000, 'BANK_TRANSACTION_OUTGOING'),
+              tx('card-1', -21, -12.9, 'CARD_TRANSACTION'),
+              tx('card-2', -22, -3, 'CARD_TRANSACTION'),
+              tx('usd-1', -23, 9, 'INTEREST_PAYOUT', { amount: { value: 9, currency: 'USD' } }),
+            ],
+            cursors: { after: 'page-2' },
+          });
+        },
+      ],
+    ]);
+
+    const result = await trFetchPortfolio();
+    const [cto, pea] = result.accounts;
+    expect(cto.cashFlows).toEqual([
+      { externalId: 'int-1', date: day(-2), kind: 'interest', amountEur: 0.51, label: 'Interest' },
+      { externalId: 'dep-1', date: day(-5), kind: 'deposit', amountEur: 1_000, label: 'Opération dep-1' },
+      { externalId: 'div-1', date: day(-10), kind: 'dividend', amountEur: 1.22, label: 'Opération div-1', isin: APPLE },
+      { externalId: 'wd-1', date: day(-20), kind: 'withdrawal', amountEur: 2_000, label: 'Opération wd-1' },
+      { externalId: 'dep-old', date: day(-399), kind: 'deposit', amountEur: 700, label: 'Opération dep-old' },
+    ]);
+    expect(cto.cashFlowsSince).toBe(day(-400));
+    expect(cto.peaDepositsEur).toBeUndefined();
+    expect(pea.cashFlows).toEqual([
+      { externalId: 'pea-div', date: day(-3), kind: 'dividend', amountEur: 0.73, label: 'Opération pea-div', isin: TOTAL },
+    ]);
+    expect(pea).toMatchObject({ peaDepositsEur: 42000.5, peaCeilingEur: 150000 });
+    // Un type jamais rencontré est signalé, pas deviné.
+    expect(result.warnings).toContain(
+      '2 opérations Trade Republic d\'un type inconnu ignorées (CARD_TRANSACTION) — voir le journal de debug'
+    );
+
+    // Une seule requête par page, au format du client web : catégories jointes par des virgules, tableaux en `clé[]`.
+    const txCalls = calls.filter((c) => c.url.includes('/timeline/transactions'));
+    expect(txCalls.map((c) => [param(c.url, 'cashAccountNumbers[]'), param(c.url, 'categoryIds'), param(c.url, 'olderThan')])).toEqual([
+      ['CASH1', 'INCOME,TRANSFERS', null],
+      ['CASH1', 'INCOME,TRANSFERS', 'page-2'],
+      ['CASH2', 'INCOME,TRANSFERS', null],
+    ]);
+    expect(txCalls[0].url).toContain('pageSize=50&categoryIds=INCOME%2CTRANSFERS&cashAccountNumbers%5B%5D=CASH1');
+    expect((txCalls[0].init?.headers as Record<string, string>)['x-tr-platform']).toBe('web');
+    expect(ws().subs.filter((s) => s.type === 'taxWrapperAccountUtilization')).toEqual([
+      { type: 'taxWrapperAccountUtilization', secAccNo: 'SEC2' },
+    ]);
+    // Les opérations écartées sont journalisées — sauf les ordres, attendus et sans intérêt.
+    const ignored = logs().filter((e) => e.message.includes('ignorée')).map((e) => JSON.parse(e.detail!).id);
+    expect(ignored.sort()).toEqual(['card-1', 'card-2', 'div-x', 'usd-1']);
+
+    // Flux, fenêtre et plafond suivent chaque enveloppe jusqu'aux comptes créés.
+    const built = trBuildAccounts(result);
+    expect(built.find((a) => a.externalId === 'traderepublic-main')).toMatchObject({ cashFlowsSince: day(-400) });
+    expect(built.find((a) => a.externalId === 'traderepublic-main')?.cashFlows).toHaveLength(5);
+    expect(built.find((a) => a.externalId === 'traderepublic-pea')).toMatchObject({ peaDepositsEur: 42000.5, peaCeilingEur: 150000 });
+    expect(built.find((a) => a.type === 'private_equity')?.cashFlows).toBeUndefined();
+  });
+
+  it('n’importe qu’un historique partiel, sans purge, si une catégorie attendue manque', async () => {
+    FakeWebSocket.handler = portfolioHandler;
+    const calls = mockFetch([
+      ['/timeline/transaction-categories', json({ categories: [{ id: 'INCOME', name: 'Income', children: [] }] })],
+      ['/timeline/transactions', json({ items: [tx('dep-1', -1, 500, 'BANK_TRANSACTION_INCOMING')] })],
+    ]);
+    const result = await trFetchPortfolio();
+    expect(result.warnings).toContain(
+      "Catégories d'opérations Trade Republic introuvables : historique des versements incomplet (voir le journal de debug)"
+    );
+    expect(calls.filter((c) => c.url.includes('/timeline/transactions')).every((c) => param(c.url, 'categoryIds') === 'INCOME')).toBe(true);
+    expect(result.accounts[0].cashFlows.map((f) => f.kind)).toEqual(['deposit']);
+    expect(result.accounts[0].cashFlowsSince).toBeUndefined();
+  });
+
+  it('ne demande aucun historique si le serveur ne propose aucune catégorie connue', async () => {
+    FakeWebSocket.handler = portfolioHandler;
+    const calls = mockFetch([['/timeline/transaction-categories', json({ categories: [{ id: 'AUTRE' }] })]]);
+    const result = await trFetchPortfolio();
+    expect(calls.some((c) => c.url.includes('/timeline/transactions'))).toBe(false);
+    expect(result.accounts.map((a) => [a.cashFlows, a.cashFlowsSince])).toEqual([[[], undefined], [[], undefined]]);
+  });
+
+  it('avertit sans échouer ni purger quand l’historique est injoignable', async () => {
+    FakeWebSocket.handler = portfolioHandler;
+    mockFetch([
+      ['/timeline/transaction-categories', json(CATEGORIES)],
+      ['/timeline/transactions', text('forbidden', 403)],
+    ]);
+    const result = await trFetchPortfolio();
+    expect(result.accounts.map((a) => [a.cashFlows, a.cashFlowsSince])).toEqual([[[], undefined], [[], undefined]]);
+    expect(result.accounts[0].holdings).toHaveLength(2);
+    expect(result.warnings.filter((w) => w.startsWith('Historique des opérations Trade Republic indisponible'))).toEqual([
+      'Historique des opérations Trade Republic indisponible (HTTP 403) : versements et dividendes non mis à jour',
+      'Historique des opérations Trade Republic indisponible (HTTP 403) : versements et dividendes non mis à jour',
+    ]);
+
+    mockFetch([['/timeline/transaction-categories', text('nope', 503)]]);
+    const sansCategories = await trFetchPortfolio();
+    expect(sansCategories.warnings).toContain(
+      'Historique des opérations Trade Republic indisponible (HTTP 503) : versements et dividendes non mis à jour'
+    );
+    expect(logs().some((e) => e.level === 'error' && e.message.includes('/timeline/transaction-categories → HTTP 503'))).toBe(true);
+  });
+
+  it('laisse le plafond du PEA inconnu si la réponse est inexploitable', async () => {
+    const withUtilization = (reply: Reply): Handler => (s) => (s.type === 'taxWrapperAccountUtilization' ? reply : portfolioHandler(s));
+    for (const reply of [
+      { E: 'Unknown topic type' },
+      { A: { totalAmount: { value: '150000', currency: 'USD' }, usedAmount: { value: '1', currency: 'USD' } } },
+      { A: { totalAmount: { value: '0', currency: 'EUR' }, usedAmount: { value: '1', currency: 'EUR' } } },
+      { A: { totalAmount: { value: 'x', currency: 'EUR' }, usedAmount: { value: '1', currency: 'EUR' } } },
+      { A: null },
+    ] as Reply[]) {
+      FakeWebSocket.handler = withUtilization(reply);
+      const pea = (await trFetchPortfolio()).accounts[1];
+      expect([pea.peaDepositsEur, pea.peaCeilingEur]).toEqual([undefined, undefined]);
+    }
+  });
+});
+
+describe('parseTimelineItem', () => {
+  const item = (eventType: string, over: object = {}) => ({
+    id: 'tx',
+    title: 'Titre',
+    timestamp: '2024-05-17T23:30:00.000+0000',
+    amount: { value: 10, currency: 'EUR' },
+    eventType,
+    ...over,
+  });
+  const flowOf = (i: unknown) => {
+    const r = parseTimelineItem(i);
+    return 'flow' in r ? r.flow : r.skipped;
+  };
+
+  it('classe chaque type d’événement connu', () => {
+    expect(flowOf(item('BANK_TRANSACTION_INCOMING'))).toEqual({ externalId: 'tx', date: '2024-05-17', kind: 'deposit', amountEur: 10, label: 'Titre' });
+    expect(flowOf(item('BANK_TRANSACTION_OUTGOING', { amount: { value: '-7.5', currency: 'EUR' }, title: '' }))).toEqual({
+      externalId: 'tx',
+      date: '2024-05-17',
+      kind: 'withdrawal',
+      amountEur: 7.5,
+    });
+    expect(flowOf(item('INTEREST_PAYOUT'))).toMatchObject({ kind: 'interest', amountEur: 10 });
+    expect(flowOf(item('SSP_CORPORATE_ACTION_CASH'))).toMatchObject({ kind: 'dividend', amountEur: 10 });
+  });
+
+  it('lit l’ISIN d’un dividende dans son logo, à défaut dans une action « instrumentDetail »', () => {
+    const div = (over: object) => flowOf(item('SSP_CORPORATE_ACTION_CASH', over));
+    expect(div({ icon: 'logos/DK0062498333/v2' })).toMatchObject({ isin: 'DK0062498333' });
+    expect(div({ icon: null, avatar: { asset: 'logos/FR0000120271/v2' } })).toMatchObject({ isin: 'FR0000120271' });
+    expect(div({ action: { type: 'instrumentDetail', payload: ' FR0000120271 ' } })).toMatchObject({ isin: 'FR0000120271' });
+    for (const over of [
+      { icon: 'logos/timeline_interest_new/v2' },
+      { action: { type: 'timelineDetail', payload: 'FR0000120271' } },
+      { action: { type: 'instrumentDetail', payload: 'pas-un-isin' } },
+      { action: { type: 'instrumentDetail', payload: 42 } },
+    ]) {
+      expect(div(over)).not.toHaveProperty('isin');
+    }
+    // Seul un dividende porte un titre : le logo d'un autre type n'est pas lu.
+    expect(flowOf(item('INTEREST_PAYOUT', { icon: 'logos/DK0062498333/v2' }))).not.toHaveProperty('isin');
+  });
+
+  it('accepte un horodatage en millisecondes', () => {
+    const noon = new Date(2024, 4, 17, 12).getTime();
+    expect(flowOf(item('INTEREST_PAYOUT', { timestamp: noon }))).toMatchObject({ date: '2024-05-17' });
+  });
+
+  it('écarte ordres, types inconnus et opérations inexploitables, en disant pourquoi', () => {
+    expect(flowOf(item('TRADING_TRADE_EXECUTED'))).toBe('ignored');
+    for (const unknown of [item('CARD_TRANSACTION'), item(''), { ...item('x'), eventType: 42 }, {}, null]) {
+      expect(flowOf(unknown)).toBe('unknown');
+    }
+    for (const bad of [
+      item('INTEREST_PAYOUT', { status: 'CANCELED' }),
+      item('INTEREST_PAYOUT', { amount: { value: 0, currency: 'EUR' } }),
+      item('INTEREST_PAYOUT', { amount: { value: 'abc', currency: 'EUR' } }),
+      item('INTEREST_PAYOUT', { amount: { value: 5, currency: 'USD' } }),
+      item('INTEREST_PAYOUT', { amount: undefined }),
+      item('INTEREST_PAYOUT', { id: undefined }),
+      item('INTEREST_PAYOUT', { timestamp: 'hier' }),
+      item('INTEREST_PAYOUT', { timestamp: Number.NaN }),
+      // Signe contraire au type : régularisation, pas un flux.
+      item('INTEREST_PAYOUT', { amount: { value: -3, currency: 'EUR' } }),
+      item('SSP_CORPORATE_ACTION_CASH', { amount: { value: -3, currency: 'EUR' } }),
+      item('BANK_TRANSACTION_INCOMING', { amount: { value: -3, currency: 'EUR' } }),
+      item('BANK_TRANSACTION_OUTGOING', { amount: { value: 3, currency: 'EUR' } }),
+    ]) {
+      expect(flowOf(bad)).toBe('invalid');
+    }
+  });
+});
+
+describe('historyCategoryIds', () => {
+  it('ne retient que les catégories attendues que le serveur propose, à toute profondeur', () => {
+    expect(historyCategoryIds(CATEGORIES)).toEqual(['INCOME', 'TRANSFERS']);
+    expect(historyCategoryIds({ categories: [{ id: 'SPENDING', children: [{ id: 'TRANSFERS' }] }] })).toEqual(['TRANSFERS']);
+    expect(historyCategoryIds([{ id: 42 }, { id: 'INCOME' }])).toEqual(['INCOME']);
+  });
+
+  it('renvoie une liste vide pour une réponse vide, illisible ou trop profonde', () => {
+    expect(historyCategoryIds(null)).toEqual([]);
+    expect(historyCategoryIds('texte')).toEqual([]);
+    expect(historyCategoryIds([])).toEqual([]);
+    let deep: any = { id: 'INCOME' };
+    for (let i = 0; i < 8; i++) deep = { child: deep };
+    expect(historyCategoryIds(deep)).toEqual([]);
   });
 });
 
@@ -485,9 +764,9 @@ describe('trBuildAccounts', () => {
     const accounts = trBuildAccounts({
       warnings: [],
       accounts: [
-        { productType: 'DEFAULT', secAccNo: '1', cashEur: 10, holdings: [h('a')], privateMarkets: [h('pe')] },
-        { productType: 'TAX_WRAPPER', secAccNo: '2', cashEur: 0, holdings: [h('b')], privateMarkets: [h('pe2')] },
-        { productType: 'SOMETHING_NEW', secAccNo: '3', cashEur: 5, holdings: [], privateMarkets: [] },
+        { productType: 'DEFAULT', secAccNo: '1', cashEur: 10, holdings: [h('a')], privateMarkets: [h('pe')], cashFlows: [] },
+        { productType: 'TAX_WRAPPER', secAccNo: '2', cashEur: 0, holdings: [h('b')], privateMarkets: [h('pe2')], cashFlows: [] },
+        { productType: 'SOMETHING_NEW', secAccNo: '3', cashEur: 5, holdings: [], privateMarkets: [], cashFlows: [] },
       ],
     });
     expect(accounts.map((a) => [a.externalId, a.type, a.name, a.cashBalanceEur, a.holdings.map((x) => x.name)])).toEqual([

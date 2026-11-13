@@ -232,7 +232,9 @@
     "budget_precaution_mismatch_title": "Emergency fund to realign with the budget",
     "budget_precaution_mismatch": "Your emergency fund goal is based on {{declared}}/month of essential expenses, while your budget counts {{essential}}/month.",
     "budget_precaution_mismatch_why": "The target size of the safety cushion depends directly on essential expenses: an outdated base gives a target that is too low or too high.",
-    "budget_precaution_mismatch_action": "Open the “Emergency fund” goal and use “Use the amounts from my budget” to align it."
+    "budget_precaution_mismatch_action": "Open the “Emergency fund” goal and use “Use the amounts from my budget” to align it.",
+    "pea_ceiling_deposits_obs": "You have paid {{deposits}} into your PEA “{{name}}”, i.e. {{pct}} of the {{ceiling}} ceiling: {{remaining}} of deposits remain possible.",
+    "pea_ceiling_reached_obs": "You have paid {{deposits}} into your PEA “{{name}}”: the {{ceiling}} deposit ceiling has been reached."
   },
   "riskProfiles": {
     "prudent": "Conservative",
@@ -514,7 +516,9 @@
     "frais_gestion_placeholder": "e.g. 0.75",
     "frais_garde_placeholder": "e.g. 24",
     "frais_notes": "Fee notes",
-    "frais_notes_placeholder": "e.g. 0% on partner ETFs"
+    "frais_notes_placeholder": "e.g. 0% on partner ETFs",
+    "pea_versements": "Cumulative deposits in € (optional)",
+    "pea_versements_placeholder": "e.g. 42000 (legal ceiling: €150,000)"
   },
   "connections": {
     "title": "Connections",
@@ -644,7 +648,11 @@
     "aucun_proxy": "no CORS proxy available",
     "coingecko_id_inconnu": "{{name}}: unknown CoinGecko id \"{{symbol}}\"",
     "resolution_isin": "{{name}}: ISIN lookup {{isin}} → {{message}}",
-    "aucun_ticker_yahoo": "{{name}}: no Yahoo ticker found for ISIN {{isin}}"
+    "aucun_ticker_yahoo": "{{name}}: no Yahoo ticker found for ISIN {{isin}}",
+    "tr_historique_indisponible": "Trade Republic transaction history unavailable ({{message}}): deposits and dividends not updated",
+    "tr_versements_non_reconnus": "Trade Republic transaction categories not found: deposit history incomplete (see the debug log)",
+    "tr_operations_inconnues_one": "{{count}} Trade Republic transaction of an unknown type ignored ({{types}}) — see the debug log",
+    "tr_operations_inconnues_other": "{{count}} Trade Republic transactions of an unknown type ignored ({{types}}) — see the debug log"
   },
   "objectives": {
     "a_epargner": "Save {{amount}}/month",
@@ -936,7 +944,9 @@
     "aucun_credit": "No loans. Add the mortgage financing this property.",
     "ajouter_credit": "+ Add a loan",
     "modifier": "Edit property",
-    "supprimer_bouton": "Delete property"
+    "supprimer_bouton": "Delete property",
+    "estimation_local_maj": "Refreshed on {{date}} · latest sales published by DVF: {{mois}}. DVF data is only updated twice a year, so the value may stay the same between refreshes.",
+    "estimation_local_maj_sans_mois": "Refreshed on {{date}}. DVF data is only updated twice a year, so the value may stay the same between refreshes."
   },
   "loanCard": {
     "par_mois": "{{amount}}/month",
@@ -959,7 +969,7 @@
     "fichier_cree_titre": "File created",
     "partage_impossible": "Share failed",
     "journaliser": "Log network requests",
-    "journaliser_hint": "Once enabled, every network request made by the app (prices, FX rates, real-estate prices, classification, AI…) and raw connector exchanges (Trade Republic in particular) are logged below, on-device only. API keys are masked in URLs. Remember to disable it once you're done diagnosing an issue.",
+    "journaliser_hint": "Once enabled, every network request made by the app (prices, FX rates, real-estate prices, classification, AI…) and raw connector exchanges (Trade Republic in particular) are logged below, on-device only. The log is semi-anonymised so it can be shared: names, account numbers, identifiers, address and town only keep their first and last characters, and API keys are masked. Amounts, dates and securities stay readable. Remember to disable it once you're done diagnosing an issue.",
     "journal": "Log ({{count}})",
     "aucune_entree": "No entries.",
     "copier_journal": "Copy log (clipboard)",
@@ -1311,7 +1321,10 @@
     "inclure_prets": "Count my loan payments",
     "inclure_prets_note": "Monthly payments (insurance included) of ongoing loans from the Loans section are added to essential expenses. Uncheck if you already entered them manually.",
     "avertissement": "Indicative calculations based on your entries; they do not constitute personalised financial advice.",
-    "conseils": "Insights"
+    "conseils": "Insights",
+    "reel_versements": "Observed net deposits",
+    "reel_versements_note_one": "Net deposits (deposits − withdrawals, no market performance) only cover {{count}} synced account with a transaction history.",
+    "reel_versements_note_other": "Net deposits (deposits − withdrawals, no market performance) only cover the {{count}} synced accounts with a transaction history."
   },
   "budgetForm": {
     "titre_new": "New recurring item",
@@ -1329,5 +1342,38 @@
     "supprimer_bouton": "Delete this item",
     "supprimer_titre": "Delete item",
     "supprimer_confirm": "Delete “{{name}}” from the budget?"
+  },
+  "flows": {
+    "plafond_titre": "PEA deposit ceiling",
+    "plafond_verse": "{{pct}} of the ceiling paid in",
+    "plafond_sur": "{{deposits}} / {{ceiling}}",
+    "plafond_reste": "{{remaining}} can still be paid in before the legal ceiling.",
+    "plafond_atteint": "Deposit ceiling reached: the plan can keep growing but can no longer receive deposits.",
+    "plafond_source_synchro": "Total updated on every sync.",
+    "plafond_source_saisie": "Total entered in the account form.",
+    "plafond_a_renseigner": "Enter your cumulative deposits in the account form to track the €150,000 legal ceiling.",
+    "versements_titre": "Deposits over 12 months",
+    "versements": "Deposits",
+    "retraits": "Withdrawals",
+    "versements_nets": "Net deposits",
+    "dividendes_titre": "Dividends and interest received",
+    "dividendes_12m": "Dividends over 12 months",
+    "rendement_pru": "{{pct}} of the cost basis of current holdings",
+    "interets_12m": "Interest over 12 months",
+    "dividendes_annee": "Dividends {{year}}",
+    "payeurs_titre": "Top payers (12 months)",
+    "note_historique": "Net amounts received on the account, as reported by the sync; each sync imports roughly the last 13 months of history."
+  },
+  "lock": {
+    "titre": "Security",
+    "option": "Lock the app (biometrics or device passcode)",
+    "option_note": "The app asks for your fingerprint, face or device passcode on launch, and when you return after more than a minute in the background. This setting is specific to this device and is not included in backups.",
+    "invite": "Unlock Finances",
+    "invite_activer": "Confirm to enable the app lock",
+    "invite_desactiver": "Confirm to disable the app lock",
+    "verrouillee": "The app is locked.",
+    "deverrouiller": "Unlock",
+    "indisponible_titre": "App lock unavailable",
+    "indisponible_texte": "No screen lock (passcode, pattern, fingerprint or face) is set up on this device. Set one up in the system settings, then try again."
   }
 }

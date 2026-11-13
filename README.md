@@ -10,7 +10,7 @@
 
 <p align="center">
   <img alt="Plateformes" src="https://img.shields.io/badge/plateformes-Android%20%7C%20iOS%20%7C%20Web%20%7C%20Windows-5B8DEF">
-  <img alt="Expo SDK" src="https://img.shields.io/badge/Expo%20SDK-57-000020?logo=expo&logoColor=white">
+  <img alt="Expo SDK" src="https://img.shields.io/badge/Expo%20SDK-58-000020?logo=expo&logoColor=white">
   <img alt="Licence" src="https://img.shields.io/badge/licence-MIT-34D399">
   <img alt="Backend" src="https://img.shields.io/badge/backend-aucun%2C%20100%25%20local-16233D">
   <a href="https://github.com/alexandreshenouda/finances-app/actions/workflows/tests.yml?query=branch%3Amain"><img alt="Tests" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Falexandreshenouda%2Ffinances-app%2Fbadges%2Ftests.json"></a>
@@ -199,9 +199,17 @@ pour le détail des contraintes.
 **Confidentialité & personnalisation**
 - **Thèmes** : choix entre le thème **Or** (sombre et or clair, par défaut) et le thème
   **Classique** (bleu-ardoise historique) dans **Paramètres → Affichage**.
+- **Journal de debug partageable** : le journal des requêtes réseau (**Paramètres → Outils
+  développeur**) est semi-anonymisé à l'enregistrement comme à l'export — noms, numéros de
+  compte, identifiants, adresse et commune ne gardent que leurs extrémités ; montants, dates et
+  titres restent lisibles pour le diagnostic.
 - **Mode confidentialité** : icône œil dans l'en-tête de chaque onglet pour masquer
   instantanément tous les montants (les pourcentages de répartition et de performance restent
   visibles).
+- **Verrouillage de l'app** (Android / iOS) : **Paramètres → Sécurité** protège l'ouverture de
+  l'app par l'empreinte, le visage ou le code de l'appareil (`expo-local-authentication`), y
+  compris au retour après plus d'une minute en arrière-plan. Réglage propre à l'appareil, absent
+  des sauvegardes ; indisponible sur le web / Electron.
 - **Personnalisation de l'affichage** : choix de la période par défaut des graphiques et de
   la variation, visibilité configurable des rubriques (Immobilier, Emprunts, Diversification, IA).
 - **Accessibilité & confort** : boutons, puces, lignes et cases exposent leur rôle et leur état
@@ -212,14 +220,25 @@ pour le détail des contraintes.
   (`FONT`, `RADIUS`, `SPACE` dans `src/constants/theme.ts`) ; les listes (comptes, postes du
   budget, menus) partagent une même ligne (`ListRow`) qui réagit à l'appui ; les montants sont
   en chiffres à chasse fixe et le texte secondaire respecte un contraste ≥ 4,5:1.
+- **Versements, dividendes et plafond du PEA** (comptes Trade Republic) : chaque synchronisation
+  rapatrie ~13 mois d'opérations du compte espèces de chaque enveloppe. Chaque opération est
+  classée d'après son type (virement entrant ou sortant, intérêts, dividende) ; les achats et
+  ventes de titres sont ignorés, et un type inconnu est signalé plutôt que deviné.
+  - *Versements nets* (dépôts − retraits) : affichés sur la fiche du compte et, dans le Budget,
+    à côté de l'épargne constatée — qui, elle, inclut la performance des marchés.
+  - *Dividendes et intérêts reçus* : total sur 12 mois, par année, principaux titres payeurs et
+    rendement sur prix de revient des lignes détenues.
+  - *Plafond de versements du PEA* : cumul versé / 150 000 € avec barre de progression ; pour un
+    PEA non synchronisé, le cumul se saisit dans la fiche du compte. Le conseil « plafond du
+    PEA » s'appuie sur ce cumul plutôt que sur la valorisation du plan.
 - **Multi-devises** : comptes et lignes en EUR (défaut), USD ou CHF — saisie dans la devise
   d'origine, affichage et courbes convertis en € avec les taux BCE
   ([frankfurter.dev](https://frankfurter.dev), rafraîchis à chaque mise à jour, derniers taux
   conservés hors ligne).
 - **Export / import** JSON (sans les identifiants) : sauvegarde intégrale incluant comptes,
   lignes (avec ventilations sectorielles, géographiques, top holdings et frais issus de JustETF),
-  historique des snapshots, biens immobiliers, crédits, objectifs d'épargne et scénarios de
-  projection sauvegardés. Presse-papiers partout, et fichier (partage / sélecteur de documents) sur
+  historique des snapshots, biens immobiliers, crédits, objectifs d'épargne, scénarios de
+  projection sauvegardés et flux constatés (versements, dividendes). Presse-papiers partout, et fichier (partage / sélecteur de documents) sur
   Android. Les exports antérieurs restent rétro-compatibles.
 
 ## Lancer l'app
@@ -296,9 +315,10 @@ vivent dans `test/`, un par module de `src/lib` :
 | `test/store.test.ts` | store persisté : CRUD, suppressions en cascade, import/export, réhydratation, synchronisation masquage/langue/thème |
 | `test/connectors.test.ts` | orchestrateur de synchro (identifiants, comptes liés, lignes, snapshot) |
 | `test/binance.test.ts`, `test/kraken.test.ts`, `test/enablebanking.test.ts` | connecteurs : signatures HMAC / JWT RS256 revérifiées avec `node:crypto`, valorisation EUR, erreurs |
-| `test/traderepublic.test.ts` | login v2 à approbation push, protocole WebSocket (faux serveur), enveloppes CTO/PEA/Private Equity |
+| `test/traderepublic.test.ts` | login v2 à approbation push, protocole WebSocket (faux serveur), enveloppes CTO/PEA/Private Equity, historique des opérations (pagination, catégories), plafond du PEA |
+| `test/cashflows.test.ts`, `test/appLock.test.ts` | versements nets, synthèse des dividendes (12 mois, rendement sur prix de revient), plafond du PEA ; règles de verrouillage de l'app |
 | `test/aiCounsel.test.ts` | recherche Yahoo & résolution ISIN, indicateurs techniques (SMA/EMA/RSI/MACD/volatilité/pivots/cône 12M), score 7 facteurs et comité d'investissement Gemini (REST + fallback de modèles) |
-| `test/debugLog.test.ts`, `test/confirm.test.ts`, `test/secure.test.ts`, `test/i18n.test.ts` | journal de debug (dont `tracedFetch` : traçage et masquage des secrets des requêtes réseau), dialogues thématisés, stockage des secrets (natif / web), détection de langue, parité des clés fr/en/de et messages de `src/lib` traduits |
+| `test/debugLog.test.ts`, `test/confirm.test.ts`, `test/secure.test.ts`, `test/i18n.test.ts` | journal de debug (dont `tracedFetch` : traçage et masquage des secrets des requêtes réseau, et `test/logAnonymize.test.ts` : semi-anonymisation des noms, comptes, identifiants, adresse), dialogues thématisés, stockage des secrets (natif / web), détection de langue, parité des clés fr/en/de et messages de `src/lib` traduits |
 
 Les valeurs de référence des crédits sont recalculées dans les tests par la **formule fermée
 de l'annuité**, indépendamment de la simulation mois par mois de `realestate.ts` : les deux

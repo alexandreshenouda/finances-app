@@ -11,14 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { Button, Card, Checkbox, SectionTitle } from '@/components/ui';
 import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
-import { useDebugLogStore, type LogEntry } from '@/lib/debugLog';
+import { formatLogEntries, useDebugLogStore } from '@/lib/debugLog';
 import { todayKey } from '@/lib/format';
-
-function formatEntries(entries: LogEntry[]): string {
-  return entries
-    .map((e) => `[${e.ts}] ${e.level.toUpperCase()} ${e.tag} — ${e.message}${e.detail ? `\n${e.detail}` : ''}`)
-    .join('\n\n');
-}
 
 function makeStyles() {
   return StyleSheet.create({
@@ -44,14 +38,14 @@ export default function DevTools() {
   const onClear = () => confirmAction(t('devTools.vider_titre'), t('devTools.vider_confirm'), clear);
 
   const onCopy = async () => {
-    await Clipboard.setStringAsync(formatEntries(entries));
+    await Clipboard.setStringAsync(formatLogEntries(entries));
     notify(t('devTools.copie_titre'), t('devTools.copie_texte'));
   };
 
   const onShareFile = async () => {
     try {
       const file = new File(Paths.cache, `debug-log-${todayKey()}.txt`);
-      file.write(formatEntries(entries));
+      file.write(formatLogEntries(entries));
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(file.uri, { mimeType: 'text/plain', dialogTitle: t('devTools.partage_titre') });
       } else {

@@ -1,4 +1,5 @@
 /** Détail d'un compte : courbe, lignes, frais, mise à jour de valeur. */
+import { AccountFlows } from '@/components/AccountFlows';
 import { LineChart } from '@/components/LineChart';
 import { Button, Card, Chips, Dot, Empty, PeriodChips, SectionTitle, Segmented } from '@/components/ui';
 import { C, CONTENT, FONT, RADIUS, TABULAR, useStyles } from '@/constants/theme';
@@ -303,6 +304,8 @@ export default function AccountDetail() {
           />
         )}
         {isSynced && <Text style={styles.syncNote}>{t('accountDetail.sync_note')}</Text>}
+
+        <AccountFlows account={account} />
 
         {!isSynced && holdings.length === 0 && (
           <>

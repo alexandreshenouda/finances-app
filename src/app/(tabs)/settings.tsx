@@ -1,15 +1,16 @@
 /** Onglet Paramètres : menus vers les sous-écrans + effacement des données. */
 import { TabIcon } from '@/components/TabIcons';
-import { Button, Card, ListCard, ListRow, SectionTitle } from '@/components/ui';
+import { Button, Card, Checkbox, ListCard, ListRow, SectionTitle } from '@/components/ui';
 import { C, CONTENT, FONT, useStyles } from '@/constants/theme';
 import { confirmAction, notify } from '@/lib/confirm';
 import { classifyHoldings } from '@/lib/prices/classification';
 import { connectionSecretKey, deleteSecret, GEMINI_SECRET_KEY } from '@/lib/secure';
 import { useStore } from '@/lib/store';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text } from 'react-native';
 
 function makeStyles() {
   return StyleSheet.create({
@@ -26,7 +27,29 @@ export default function Settings() {
   const router = useRouter();
   const connections = useStore((s) => s.connections);
   const resetAll = useStore((s) => s.resetAll);
+  const appLock = useStore((s) => s.appLock);
+  const setAppLock = useStore((s) => s.setAppLock);
   const [classifying, setClassifying] = useState(false);
+
+  // Activer comme désactiver le verrou exige de s'authentifier : on ne peut ni s'enfermer
+  // dehors avec un appareil sans verrou, ni lever la protection sans être le propriétaire.
+  const onToggleAppLock = async (next: boolean) => {
+    try {
+      const level = await LocalAuthentication.getEnrolledLevelAsync();
+      if (level === LocalAuthentication.SecurityLevel.NONE) {
+        if (!next) setAppLock(false);
+        else notify(t('lock.indisponible_titre'), t('lock.indisponible_texte'));
+        return;
+      }
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: t(next ? 'lock.invite_activer' : 'lock.invite_desactiver'),
+        cancelLabel: t('common.cancel'),
+      });
+      if (result.success) setAppLock(next);
+    } catch (e: any) {
+      notify(t('common.error'), String(e?.message ?? e));
+    }
+  };
   const [classifyMessage, setClassifyMessage] = useState<string | null>(null);
 
   const onReclassifyAll = async () => {
@@ -103,6 +126,16 @@ export default function Settings() {
           last
         />
       </ListCard>
+
+      {Platform.OS !== 'web' && (
+        <>
+          <SectionTitle>{t('lock.titre')}</SectionTitle>
+          <Card>
+            <Checkbox label={t('lock.option')} value={appLock} onChange={onToggleAppLock} />
+            <Text style={styles.note}>{t('lock.option_note')}</Text>
+          </Card>
+        </>
+      )}
 
       <SectionTitle>{t('settings.historique')}</SectionTitle>
       <ListCard>

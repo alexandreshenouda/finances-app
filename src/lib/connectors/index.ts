@@ -66,7 +66,25 @@ export function persistExternalAccounts(conn: Connection, result: SyncResult): v
       cashBalance: ext.cashBalanceEur ?? (ext.holdings.length > 0 ? 0 : existing?.cashBalance ?? 0),
       connectionId: conn.id,
       externalId: ext.externalId,
+      ...(ext.peaDepositsEur !== undefined
+        ? { peaDeposits: ext.peaDepositsEur, peaCeiling: ext.peaCeilingEur }
+        : {}),
     });
+
+    if (ext.cashFlows && (ext.cashFlows.length > 0 || ext.cashFlowsSince)) {
+      useStore.getState().mergeCashFlows(
+        account.id,
+        ext.cashFlows.map((f) => ({
+          externalId: f.externalId,
+          date: f.date,
+          kind: f.kind,
+          amount: f.amountEur,
+          label: f.label,
+          isin: f.isin,
+        })),
+        ext.cashFlowsSince
+      );
+    }
 
     const state2 = useStore.getState();
     for (const h of state2.holdings.filter((h) => h.accountId === account.id)) {

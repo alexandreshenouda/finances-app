@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { uid } from './format';
+import { anonymizeLog } from './logAnonymize';
 
 const MAX_ENTRIES = 500;
 const MAX_DETAIL_LENGTH = 20000;
@@ -53,21 +54,36 @@ export const useDebugLogStore = create<DebugLogState>()(
   )
 );
 
-function truncate(detail?: string): string | undefined {
-  if (detail === undefined) return undefined;
+/** Détail semi-anonymisé PUIS tronqué : masquer d'abord, tant que le JSON est encore entier. */
+function truncate(raw?: string): string | undefined {
+  if (raw === undefined) return undefined;
+  const detail = anonymizeLog(raw);
   return detail.length > MAX_DETAIL_LENGTH ? `${detail.slice(0, MAX_DETAIL_LENGTH)}…` : detail;
 }
 
 /** Trace une entrée de debug si le mode développeur est actif (no-op sinon). */
 export function logDebug(tag: string, message: string, detail?: string): void {
   if (!useDebugLogStore.getState().enabled) return;
-  useDebugLogStore.getState().log({ level: 'info', tag, message, detail: truncate(detail) });
+  useDebugLogStore.getState().log({ level: 'info', tag, message: anonymizeLog(message), detail: truncate(detail) });
 }
 
 /** Idem, marqué comme erreur (mise en avant visuelle dans le journal). */
 export function logDebugError(tag: string, message: string, detail?: string): void {
   if (!useDebugLogStore.getState().enabled) return;
-  useDebugLogStore.getState().log({ level: 'error', tag, message, detail: truncate(detail) });
+  useDebugLogStore.getState().log({ level: 'error', tag, message: anonymizeLog(message), detail: truncate(detail) });
+}
+
+/**
+ * Journal au format texte, pour la copie et le partage. Chaque entrée est (re)passée par la
+ * semi-anonymisation : celles enregistrées avant cette protection sortent masquées aussi.
+ */
+export function formatLogEntries(entries: LogEntry[]): string {
+  return entries
+    .map((e) => {
+      const detail = e.detail ? `\n${anonymizeLog(e.detail)}` : '';
+      return `[${e.ts}] ${e.level.toUpperCase()} ${e.tag} — ${anonymizeLog(e.message)}${detail}`;
+    })
+    .join('\n\n');
 }
 
 /** Paramètres d'URL porteurs d'un secret (clé Gemini, signature Binance…). */

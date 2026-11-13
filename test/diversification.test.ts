@@ -578,6 +578,22 @@ describe('computeInsights — antériorité fiscale PEA / assurance-vie', () => 
       .toBeDefined();
   });
 
+  it('juge le plafond sur les versements cumulés quand ils sont connus, pas sur la valorisation', () => {
+    const base = { name: 'PEA', type: 'pea' as const, openingDate: isoYearsAgo(9) };
+    const ceilingOf = (id: string, over: object, value: number) =>
+      find(insights({ accounts: [account({ id, ...base, cashBalance: value, ...over })], byType: byType({ pea: value }), totalValue: value }), `pea-ceiling-${id}`);
+
+    // Plan valorisé 200 k€ grâce aux gains, mais seulement 60 k€ versés : pas d'alerte.
+    expect(ceilingOf('p1', { peaDeposits: 60_000 }, 200_000)).toBeUndefined();
+    // 90 % du plafond versé : alerte avec le reliquat.
+    const proche = ceilingOf('p2', { peaDeposits: 135_000 }, 100_000);
+    expect(proche?.observationKey).toBe('diversification.pea_ceiling_deposits_obs');
+    expect(proche?.params).toMatchObject({ pct: expect.stringMatching(/^90/) });
+    // Plafond atteint (plafond remonté par le connecteur).
+    const plein = ceilingOf('p3', { peaDeposits: 150_000, peaCeiling: 150_000 }, 100_000);
+    expect(plein?.observationKey).toBe('diversification.pea_ceiling_reached_obs');
+  });
+
   it('suggère un PEA à qui n’a qu’un CTO significatif', () => {
     const cto = account({ id: 'cto', name: 'CTO', type: 'cto', cashBalance: 5_000 });
     expect(find(insights({ accounts: [cto], byType: byType({ cto: 5_000 }), totalValue: 5_000 }), 'pea-missing')).toBeDefined();

@@ -232,7 +232,9 @@
     "budget_precaution_mismatch_title": "Notfallfonds an das Budget anpassen",
     "budget_precaution_mismatch": "Ihr Notfallfonds-Ziel basiert auf {{declared}}/Monat notwendiger Ausgaben, Ihr Budget weist jedoch {{essential}}/Monat aus.",
     "budget_precaution_mismatch_why": "Die Zielhöhe des Sicherheitspolsters hängt direkt von den notwendigen Ausgaben ab: Eine veraltete Basis ergibt ein zu niedriges oder zu hohes Ziel.",
-    "budget_precaution_mismatch_action": "Öffnen Sie das Ziel „Notfallfonds“ und nutzen Sie „Beträge aus meinem Budget übernehmen“, um es anzugleichen."
+    "budget_precaution_mismatch_action": "Öffnen Sie das Ziel „Notfallfonds“ und nutzen Sie „Beträge aus meinem Budget übernehmen“, um es anzugleichen.",
+    "pea_ceiling_deposits_obs": "Sie haben {{deposits}} in Ihren PEA „{{name}}“ eingezahlt, also {{pct}} der Grenze von {{ceiling}}: Es sind noch {{remaining}} an Einzahlungen möglich.",
+    "pea_ceiling_reached_obs": "Sie haben {{deposits}} in Ihren PEA „{{name}}“ eingezahlt: Die Einzahlungsgrenze von {{ceiling}} ist erreicht."
   },
   "riskProfiles": {
     "prudent": "Defensiv",
@@ -514,7 +516,9 @@
     "frais_gestion_placeholder": "z. B. 0,75",
     "frais_garde_placeholder": "z. B. 24",
     "frais_notes": "Notizen zu den Gebühren",
-    "frais_notes_placeholder": "z. B. 0 % auf Partner-ETFs"
+    "frais_notes_placeholder": "z. B. 0 % auf Partner-ETFs",
+    "pea_versements": "Kumulierte Einzahlungen in € (optional)",
+    "pea_versements_placeholder": "z. B. 42000 (gesetzliche Grenze: 150.000 €)"
   },
   "connections": {
     "title": "Verbindungen",
@@ -644,7 +648,11 @@
     "aucun_proxy": "kein CORS-Proxy verfügbar",
     "coingecko_id_inconnu": "{{name}}: unbekannte CoinGecko-ID „{{symbol}}“",
     "resolution_isin": "{{name}}: ISIN-Auflösung {{isin}} → {{message}}",
-    "aucun_ticker_yahoo": "{{name}}: kein Yahoo-Ticker für ISIN {{isin}} gefunden"
+    "aucun_ticker_yahoo": "{{name}}: kein Yahoo-Ticker für ISIN {{isin}} gefunden",
+    "tr_historique_indisponible": "Trade-Republic-Transaktionsverlauf nicht verfügbar ({{message}}): Einzahlungen und Dividenden nicht aktualisiert",
+    "tr_versements_non_reconnus": "Transaktionskategorien von Trade Republic nicht gefunden: Einzahlungsverlauf unvollständig (siehe Debug-Protokoll)",
+    "tr_operations_inconnues_one": "{{count}} Trade-Republic-Transaktion unbekannten Typs ignoriert ({{types}}) — siehe Debug-Protokoll",
+    "tr_operations_inconnues_other": "{{count}} Trade-Republic-Transaktionen unbekannten Typs ignoriert ({{types}}) — siehe Debug-Protokoll"
   },
   "objectives": {
     "a_epargner": "{{amount}}/Monat sparen",
@@ -936,7 +944,9 @@
     "aucun_credit": "Keine Darlehen. Fügen Sie die Hypothek hinzu, die diese Immobilie finanziert.",
     "ajouter_credit": "+ Darlehen hinzufügen",
     "modifier": "Immobilie bearbeiten",
-    "supprimer_bouton": "Immobilie löschen"
+    "supprimer_bouton": "Immobilie löschen",
+    "estimation_local_maj": "Aktualisiert am {{date}} · letzte von DVF veröffentlichte Verkäufe: {{mois}}. DVF-Daten werden nur zweimal jährlich aktualisiert: Der Wert kann zwischen zwei Aktualisierungen gleich bleiben.",
+    "estimation_local_maj_sans_mois": "Aktualisiert am {{date}}. DVF-Daten werden nur zweimal jährlich aktualisiert: Der Wert kann zwischen zwei Aktualisierungen gleich bleiben."
   },
   "loanCard": {
     "par_mois": "{{amount}}/Monat",
@@ -959,7 +969,7 @@
     "fichier_cree_titre": "Datei erstellt",
     "partage_impossible": "Teilen nicht möglich",
     "journaliser": "Netzwerkanfragen protokollieren",
-    "journaliser_hint": "Nach Aktivierung werden alle Netzwerkanfragen der App (Kurse, Wechselkurse, Immobilienpreise, Klassifizierung, KI…) sowie der Rohverkehr der Verbindungen (insbesondere Trade Republic) unten protokolliert, nur auf dem Gerät. API-Schlüssel werden in den URLs maskiert. Denken Sie daran, dies zu deaktivieren, sobald Sie mit der Fehlerdiagnose fertig sind.",
+    "journaliser_hint": "Nach Aktivierung werden alle Netzwerkanfragen der App (Kurse, Wechselkurse, Immobilienpreise, Klassifizierung, KI…) sowie der Rohverkehr der Verbindungen (insbesondere Trade Republic) unten protokolliert, nur auf dem Gerät. Das Protokoll ist teilanonymisiert, damit es geteilt werden kann: Namen, Kontonummern, Kennungen, Adresse und Gemeinde behalten nur ihre ersten und letzten Zeichen, API-Schlüssel werden maskiert. Beträge, Daten und Wertpapiere bleiben lesbar. Denken Sie daran, dies zu deaktivieren, sobald Sie mit der Fehlerdiagnose fertig sind.",
     "journal": "Protokoll ({{count}})",
     "aucune_entree": "Keine Einträge.",
     "copier_journal": "Protokoll kopieren (Zwischenablage)",
@@ -1311,7 +1321,10 @@
     "inclure_prets": "Meine Kreditraten mitzählen",
     "inclure_prets_note": "Die Monatsraten (inkl. Versicherung) laufender Kredite aus dem Bereich Kredite werden den notwendigen Ausgaben hinzugefügt. Abwählen, wenn Sie sie bereits manuell erfasst haben.",
     "avertissement": "Unverbindliche Berechnungen auf Basis Ihrer Eingaben; sie stellen keine individuelle Finanzberatung dar.",
-    "conseils": "Hinweise"
+    "conseils": "Hinweise",
+    "reel_versements": "Festgestellte Netto-Einzahlungen",
+    "reel_versements_note_one": "Netto-Einzahlungen (Einzahlungen − Auszahlungen, ohne Wertentwicklung) decken nur {{count}} synchronisiertes Konto mit Transaktionsverlauf ab.",
+    "reel_versements_note_other": "Netto-Einzahlungen (Einzahlungen − Auszahlungen, ohne Wertentwicklung) decken nur die {{count}} synchronisierten Konten mit Transaktionsverlauf ab."
   },
   "budgetForm": {
     "titre_new": "Neuer wiederkehrender Posten",
@@ -1329,5 +1342,38 @@
     "supprimer_bouton": "Diesen Posten löschen",
     "supprimer_titre": "Posten löschen",
     "supprimer_confirm": "„{{name}}“ aus dem Budget löschen?"
+  },
+  "flows": {
+    "plafond_titre": "PEA-Einzahlungsgrenze",
+    "plafond_verse": "{{pct}} der Grenze eingezahlt",
+    "plafond_sur": "{{deposits}} / {{ceiling}}",
+    "plafond_reste": "Bis zur gesetzlichen Grenze können noch {{remaining}} eingezahlt werden.",
+    "plafond_atteint": "Einzahlungsgrenze erreicht: Der Plan kann weiter wachsen, aber keine Einzahlungen mehr erhalten.",
+    "plafond_source_synchro": "Summe wird bei jeder Synchronisierung aktualisiert.",
+    "plafond_source_saisie": "Summe im Kontoformular eingetragen.",
+    "plafond_a_renseigner": "Tragen Sie Ihre kumulierten Einzahlungen im Kontoformular ein, um die gesetzliche Grenze von 150.000 € zu verfolgen.",
+    "versements_titre": "Einzahlungen über 12 Monate",
+    "versements": "Einzahlungen",
+    "retraits": "Auszahlungen",
+    "versements_nets": "Netto-Einzahlungen",
+    "dividendes_titre": "Erhaltene Dividenden und Zinsen",
+    "dividendes_12m": "Dividenden über 12 Monate",
+    "rendement_pru": "{{pct}} des Einstandswerts der gehaltenen Positionen",
+    "interets_12m": "Zinsen über 12 Monate",
+    "dividendes_annee": "Dividenden {{year}}",
+    "payeurs_titre": "Größte Zahler (12 Monate)",
+    "note_historique": "Auf dem Konto eingegangene Nettobeträge laut Synchronisierung; jede Synchronisierung importiert etwa die letzten 13 Monate."
+  },
+  "lock": {
+    "titre": "Sicherheit",
+    "option": "App sperren (Biometrie oder Gerätecode)",
+    "option_note": "Die App verlangt beim Start und bei der Rückkehr nach mehr als einer Minute im Hintergrund Ihren Fingerabdruck, Ihr Gesicht oder den Gerätecode. Diese Einstellung gilt nur für dieses Gerät und ist nicht in Sicherungen enthalten.",
+    "invite": "Finances entsperren",
+    "invite_activer": "Bestätigen, um die App-Sperre zu aktivieren",
+    "invite_desactiver": "Bestätigen, um die App-Sperre zu deaktivieren",
+    "verrouillee": "Die App ist gesperrt.",
+    "deverrouiller": "Entsperren",
+    "indisponible_titre": "App-Sperre nicht verfügbar",
+    "indisponible_texte": "Auf diesem Gerät ist keine Bildschirmsperre (Code, Muster, Fingerabdruck oder Gesicht) eingerichtet. Richten Sie eine in den Systemeinstellungen ein und versuchen Sie es erneut."
   }
 }

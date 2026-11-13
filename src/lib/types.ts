@@ -138,8 +138,38 @@ export interface Account {
   connectionId?: string;
   /** Identifiant du compte chez le fournisseur externe */
   externalId?: string;
+  /** PEA : cumul des versements (EUR), saisi à la main ou remonté par le connecteur.
+   *  Les retraits ne le diminuent pas — c'est la règle du plafond légal. */
+  peaDeposits?: number;
+  /** PEA : plafond de versements remonté par le connecteur ; absent = `PEA_CEILING_EUR`. */
+  peaCeiling?: number;
   createdAt: string; // ISO
   archived?: boolean;
+}
+
+/** Plafond légal de versements d'un PEA classique (EUR). */
+export const PEA_CEILING_EUR = 150_000;
+
+/**
+ * Flux d'espèces constaté sur un compte : versement / retrait (argent qui entre ou sort de
+ * l'enveloppe) ou revenu reçu (dividende d'un titre, intérêts). Sert à séparer l'effort
+ * d'épargne de la performance, et au suivi des dividendes.
+ */
+export type CashFlowKind = 'deposit' | 'withdrawal' | 'dividend' | 'interest';
+
+export interface CashFlow {
+  id: string;
+  accountId: string;
+  /** Jour au format YYYY-MM-DD */
+  date: string;
+  kind: CashFlowKind;
+  /** Montant en EUR, toujours positif (le sens est porté par `kind`). */
+  amount: number;
+  label?: string;
+  /** Titre à l'origine du revenu (dividendes). */
+  isin?: string;
+  /** Identifiant de l'opération chez le fournisseur : évite les doublons d'une synchro à l'autre. */
+  externalId?: string;
 }
 
 export type PriceSource = 'yahoo' | 'coingecko' | 'exchange' | 'manual';
@@ -348,6 +378,8 @@ export interface LocalEstimate {
   /** Échelle géographique effectivement utilisée (commune privilégiée, département si trop peu de ventes locales). */
   scope: 'commune' | 'departement';
   computedAt: string; // ISO
+  /** Dernier mois (YYYY-MM) couvert par la série DVF utilisée — DVF paraît avec plusieurs mois de retard. */
+  dataThrough?: string;
 }
 
 /** Un bien immobilier physique (distinct des comptes bancaires). */

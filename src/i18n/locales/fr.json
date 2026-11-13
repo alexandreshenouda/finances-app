@@ -232,7 +232,9 @@
     "budget_precaution_mismatch_title": "Épargne de précaution à réaligner sur le budget",
     "budget_precaution_mismatch": "Votre objectif d'épargne de précaution se base sur {{declared}}/mois de dépenses vitales, alors que votre budget en compte {{essential}}/mois.",
     "budget_precaution_mismatch_why": "Le montant cible du matelas de sécurité dépend directement des dépenses vitales : une base périmée donne une cible trop basse ou trop haute.",
-    "budget_precaution_mismatch_action": "Ouvrez l'objectif « Épargne de précaution » et utilisez « Reprendre les montants de mon budget » pour l'aligner."
+    "budget_precaution_mismatch_action": "Ouvrez l'objectif « Épargne de précaution » et utilisez « Reprendre les montants de mon budget » pour l'aligner.",
+    "pea_ceiling_deposits_obs": "Vous avez versé {{deposits}} sur votre PEA « {{name}} », soit {{pct}} du plafond de {{ceiling}} : il reste {{remaining}} de versements possibles.",
+    "pea_ceiling_reached_obs": "Vous avez versé {{deposits}} sur votre PEA « {{name}} » : le plafond de versements de {{ceiling}} est atteint."
   },
   "riskProfiles": {
     "prudent": "Prudent",
@@ -514,7 +516,9 @@
     "frais_gestion_placeholder": "ex : 0,75",
     "frais_garde_placeholder": "ex : 24",
     "frais_notes": "Notes sur les frais",
-    "frais_notes_placeholder": "ex : 0 % sur les ETF partenaires"
+    "frais_notes_placeholder": "ex : 0 % sur les ETF partenaires",
+    "pea_versements": "Cumul des versements en € (optionnel)",
+    "pea_versements_placeholder": "ex : 42000 (plafond légal : 150 000 €)"
   },
   "connections": {
     "title": "Connexions",
@@ -644,7 +648,11 @@
     "aucun_proxy": "aucun proxy CORS disponible",
     "coingecko_id_inconnu": "{{name}} : id CoinGecko « {{symbol}} » inconnu",
     "resolution_isin": "{{name}} : résolution ISIN {{isin}} → {{message}}",
-    "aucun_ticker_yahoo": "{{name}} : aucun ticker Yahoo trouvé pour l'ISIN {{isin}}"
+    "aucun_ticker_yahoo": "{{name}} : aucun ticker Yahoo trouvé pour l'ISIN {{isin}}",
+    "tr_historique_indisponible": "Historique des opérations Trade Republic indisponible ({{message}}) : versements et dividendes non mis à jour",
+    "tr_versements_non_reconnus": "Catégories d'opérations Trade Republic introuvables : historique des versements incomplet (voir le journal de debug)",
+    "tr_operations_inconnues_one": "{{count}} opération Trade Republic d'un type inconnu ignorée ({{types}}) — voir le journal de debug",
+    "tr_operations_inconnues_other": "{{count}} opérations Trade Republic d'un type inconnu ignorées ({{types}}) — voir le journal de debug"
   },
   "objectives": {
     "a_epargner": "À épargner {{amount}}/mois",
@@ -936,7 +944,9 @@
     "aucun_credit": "Aucun crédit. Ajoutez le prêt immobilier finançant ce bien.",
     "ajouter_credit": "+ Ajouter un crédit",
     "modifier": "Modifier le bien",
-    "supprimer_bouton": "Supprimer le bien"
+    "supprimer_bouton": "Supprimer le bien",
+    "estimation_local_maj": "Actualisée le {{date}} · dernières ventes publiées par DVF : {{mois}}. Les données DVF ne sont mises à jour que deux fois par an : la valeur peut rester identique d'une actualisation à l'autre.",
+    "estimation_local_maj_sans_mois": "Actualisée le {{date}}. Les données DVF ne sont mises à jour que deux fois par an : la valeur peut rester identique d'une actualisation à l'autre."
   },
   "loanCard": {
     "par_mois": "{{amount}}/mois",
@@ -959,7 +969,7 @@
     "fichier_cree_titre": "Fichier créé",
     "partage_impossible": "Partage impossible",
     "journaliser": "Journaliser les requêtes réseau",
-    "journaliser_hint": "Une fois activé, toutes les requêtes réseau de l'app (cours, taux de change, prix de l'immobilier, classification, IA…) et les échanges bruts des connecteurs (notamment Trade Republic) sont enregistrés ci-dessous, sur l'appareil uniquement. Les clés API sont masquées dans les URL. Pensez à désactiver quand vous n'êtes plus en train de diagnostiquer un problème.",
+    "journaliser_hint": "Une fois activé, toutes les requêtes réseau de l'app (cours, taux de change, prix de l'immobilier, classification, IA…) et les échanges bruts des connecteurs (notamment Trade Republic) sont enregistrés ci-dessous, sur l'appareil uniquement. Le journal est semi-anonymisé pour pouvoir être partagé : noms, numéros de compte, identifiants, adresse et commune ne gardent que leurs extrémités, et les clés API sont masquées. Les montants, dates et titres restent lisibles. Pensez à désactiver quand vous n'êtes plus en train de diagnostiquer un problème.",
     "journal": "Journal ({{count}})",
     "aucune_entree": "Aucune entrée.",
     "copier_journal": "Copier le journal (presse-papiers)",
@@ -1311,7 +1321,10 @@
     "inclure_prets": "Compter les mensualités de mes prêts",
     "inclure_prets_note": "Les mensualités (assurance incluse) des prêts en cours de la rubrique Emprunts sont ajoutées aux dépenses vitales. Décochez si vous les avez déjà saisies à la main.",
     "avertissement": "Calculs indicatifs fondés sur vos saisies ; ils ne constituent pas un conseil financier personnalisé.",
-    "conseils": "Conseils"
+    "conseils": "Conseils",
+    "reel_versements": "Versements nets constatés",
+    "reel_versements_note_one": "Les versements nets (dépôts − retraits, sans performance) ne couvrent que {{count}} compte synchronisé disposant d'un historique d'opérations.",
+    "reel_versements_note_other": "Les versements nets (dépôts − retraits, sans performance) ne couvrent que les {{count}} comptes synchronisés disposant d'un historique d'opérations."
   },
   "budgetForm": {
     "titre_new": "Nouveau flux récurrent",
@@ -1329,5 +1342,38 @@
     "supprimer_bouton": "Supprimer ce flux",
     "supprimer_titre": "Supprimer le flux",
     "supprimer_confirm": "Supprimer « {{name}} » du budget ?"
+  },
+  "flows": {
+    "plafond_titre": "Plafond de versements du PEA",
+    "plafond_verse": "{{pct}} du plafond versé",
+    "plafond_sur": "{{deposits}} / {{ceiling}}",
+    "plafond_reste": "Il reste {{remaining}} à verser avant le plafond légal.",
+    "plafond_atteint": "Plafond de versements atteint : le plan peut continuer à croître, mais plus recevoir de versement.",
+    "plafond_source_synchro": "Cumul mis à jour à chaque synchronisation.",
+    "plafond_source_saisie": "Cumul saisi dans la fiche du compte.",
+    "plafond_a_renseigner": "Renseignez le cumul de vos versements dans la fiche du compte pour suivre le plafond légal de 150 000 €.",
+    "versements_titre": "Versements sur 12 mois",
+    "versements": "Versements",
+    "retraits": "Retraits",
+    "versements_nets": "Versements nets",
+    "dividendes_titre": "Dividendes et intérêts reçus",
+    "dividendes_12m": "Dividendes sur 12 mois",
+    "rendement_pru": "{{pct}} du prix de revient des lignes détenues",
+    "interets_12m": "Intérêts sur 12 mois",
+    "dividendes_annee": "Dividendes {{year}}",
+    "payeurs_titre": "Principaux payeurs (12 mois)",
+    "note_historique": "Montants nets reçus sur le compte, tels que remontés par la synchronisation ; l'historique importé couvre environ 13 mois glissants à chaque synchronisation."
+  },
+  "lock": {
+    "titre": "Sécurité",
+    "option": "Verrouiller l'app (biométrie ou code de l'appareil)",
+    "option_note": "L'app demande votre empreinte, votre visage ou le code de l'appareil à l'ouverture, et au retour après plus d'une minute en arrière-plan. Réglage propre à cet appareil, non inclus dans les sauvegardes.",
+    "invite": "Déverrouiller Finances",
+    "invite_activer": "Confirmez pour activer le verrouillage",
+    "invite_desactiver": "Confirmez pour désactiver le verrouillage",
+    "verrouillee": "L'app est verrouillée.",
+    "deverrouiller": "Déverrouiller",
+    "indisponible_titre": "Verrouillage indisponible",
+    "indisponible_texte": "Aucun verrou d'écran (code, schéma, empreinte ou visage) n'est configuré sur cet appareil. Configurez-en un dans les réglages du système, puis réessayez."
   }
 }

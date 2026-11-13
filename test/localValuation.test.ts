@@ -90,6 +90,8 @@ describe('fetchLocalEstimate', () => {
     expect(r.estimate.sampleSize).toBe(24);
     expect(r.estimate.scope).toBe('commune');
     expect(Date.parse(r.estimate.computedAt)).not.toBeNaN();
+    // Dernier mois illisible (« x ») : pas de mois de fraîcheur plutôt qu'une valeur fausse.
+    expect(r.estimate.dataThrough).toBeUndefined();
     expect(calls).toHaveLength(1);
   });
 
@@ -102,7 +104,8 @@ describe('fetchLocalEstimate', () => {
     ];
     mockFetch([['/commune/', json({ data })]]);
     const r = await fetchLocalEstimate(GEO, 'maison');
-    expect(r.ok && r.estimate).toMatchObject({ pricePerM2: (4 * 3_000 + 2 * 2_000) / 6, sampleSize: 6, scope: 'commune' });
+    // `dataThrough` : dernier mois publié par DVF, même s'il n'a servi à aucune vente.
+    expect(r.ok && r.estimate).toMatchObject({ pricePerM2: (4 * 3_000 + 2 * 2_000) / 6, sampleSize: 6, scope: 'commune', dataThrough: '2024-04' });
   });
 
   it('élargit à tout l’historique de la commune si les 12 derniers mois sont trop maigres', async () => {
@@ -116,10 +119,10 @@ describe('fetchLocalEstimate', () => {
   it('se rabat sur le département quand la commune a moins de 5 ventes', async () => {
     const calls = mockFetch([
       ['/commune/', json({ data: rows(3, { a: 1, m_a: 9_000 }) })],
-      ['/departement/69', json({ data: rows(12, { a: 2, m_a: 3_500 }) })],
+      ['/departement/69', json({ data: [...rows(11, { a: 2, m_a: 3_500 }), { d: '2025-06', a: 2, m_a: 3_500 }] })],
     ]);
     const r = await fetchLocalEstimate(GEO, 'appartement');
-    expect(r.ok && r.estimate).toMatchObject({ pricePerM2: 3_500, sampleSize: 24, scope: 'departement' });
+    expect(r.ok && r.estimate).toMatchObject({ pricePerM2: 3_500, sampleSize: 24, scope: 'departement', dataThrough: '2025-06' });
     expect(calls.map((c) => c.url.split('.gouv.fr')[1])).toEqual(['/commune/69123', '/departement/69']);
   });
 

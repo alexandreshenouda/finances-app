@@ -1,3 +1,4 @@
+import { AppLockGate } from '@/components/AppLockGate';
 import { ThemedDialogContainer } from '@/components/ThemedDialog';
 import { C } from '@/constants/theme';
 import i18next from '@/lib/i18n';
@@ -80,6 +81,7 @@ export default function RootLayout() {
         <Stack.Screen name="holding-detail" options={{ title: t('holdingDetail.titre'), presentation: 'modal' }} />
       </Stack>
       <ThemedDialogContainer />
+      <AppLockGate />
     </ThemeProvider>
   );
 }
