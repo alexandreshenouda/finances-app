@@ -1030,13 +1030,32 @@ function allocationGap(byType: Map<AccountType, number>, riskProfile: RiskProfil
 
 // ─── 10. Diversification sectorielle / géographique ───────────────────────────────────
 
-function classifiablePool(byType: Map<AccountType, number>): number {
-  return (
-    (byType.get('pea') ?? 0) +
-    (byType.get('cto') ?? 0) +
-    (byType.get('private_equity') ?? 0) +
-    (byType.get('crypto') ?? 0)
-  );
+/** Enveloppes comptées en entier dans l'encours classable (titres, PE, crypto). */
+const CLASSIFIABLE_ACCOUNT_TYPES: AccountType[] = ['pea', 'cto', 'private_equity', 'crypto'];
+
+/**
+ * Encours classable (dénominateur des taux de couverture) : les enveloppes de
+ * `CLASSIFIABLE_ACCOUNT_TYPES` en entier, plus — dans les autres (assurance-vie, PER…) — les
+ * seules lignes cotées (ISIN) ou déjà classées, c'est-à-dire les unités de compte ; un fonds
+ * euros n'a ni secteur ni pays. Toute ligne comptée par `aggregateBySector` /
+ * `aggregateByCountry` est donc dans l'encours : la couverture ne peut pas dépasser 100 %
+ * (elle atteignait 146 % avec des UC d'assurance-vie classées).
+ */
+function classifiablePool(
+  byType: Map<AccountType, number>,
+  holdings: Holding[],
+  accountsById: Map<string, Account>,
+  rates: FxRates
+): number {
+  let pool = 0;
+  for (const t of CLASSIFIABLE_ACCOUNT_TYPES) pool += byType.get(t) ?? 0;
+  for (const h of holdings) {
+    const account = accountsById.get(h.accountId);
+    if (account && CLASSIFIABLE_ACCOUNT_TYPES.includes(account.type)) continue;
+    const classifiable = !!h.isin?.trim() || !!h.sectorWeights?.length || !!h.countryWeights?.length || !!h.country;
+    if (classifiable) pool += Math.max(0, ownedHoldingValue(h, accountsById, rates));
+  }
+  return pool;
 }
 
 function aggregateBySector(
@@ -1090,7 +1109,7 @@ function sectorConcentration(
   rates: FxRates,
   byType: Map<AccountType, number>
 ): Insight | null {
-  const pool = classifiablePool(byType);
+  const pool = classifiablePool(byType, holdings, accountsById, rates);
   if (pool <= 0) return null;
   const { bySector, covered } = aggregateBySector(holdings, accountsById, rates);
   if (covered / pool < MIN_CLASSIFICATION_COVERAGE) return null;
@@ -1125,7 +1144,7 @@ function geoConcentration(
   rates: FxRates,
   byType: Map<AccountType, number>
 ): Insight | null {
-  const pool = classifiablePool(byType);
+  const pool = classifiablePool(byType, holdings, accountsById, rates);
   if (pool <= 0) return null;
   const { byCountry, covered } = aggregateByCountry(holdings, accountsById, rates);
   if (covered / pool < MIN_CLASSIFICATION_COVERAGE) return null;
@@ -1169,7 +1188,7 @@ export function computeClassificationBreakdown(
   byType: Map<AccountType, number>
 ): ClassificationBreakdown {
   const accountsById = new Map(accounts.map((a) => [a.id, a]));
-  const pool = classifiablePool(byType);
+  const pool = classifiablePool(byType, holdings, accountsById, rates);
   const { bySector, covered: sectorCovered } = aggregateBySector(holdings, accountsById, rates);
   const { byCountry, covered: countryCovered } = aggregateByCountry(holdings, accountsById, rates);
 

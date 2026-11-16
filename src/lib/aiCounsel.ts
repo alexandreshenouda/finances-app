@@ -87,10 +87,22 @@ export interface AssetBundle {
   news: NewsItem[];
 }
 
+/** Morceau de texte traduisible : clé sous `ai.signaux.*` + paramètres d'interpolation. */
+export interface SignalTextPart {
+  key: string;
+  params?: Record<string, string | number>;
+}
+
 export interface SignalFactor {
+  /** Libellé anglais, repris tel quel dans le contexte envoyé à Gemini. */
   factor: string;
   signal: 'BULLISH' | 'NEUTRAL' | 'BEARISH';
+  /** Détail anglais (prompt Gemini). */
   detail: string;
+  /** Affichage : clé du libellé sous `ai.signaux.*` (l'UI traduit, le prompt reste en anglais). */
+  factorKey: string;
+  /** Affichage : détail traduit morceau par morceau, joints par « • ». */
+  detailParts: SignalTextPart[];
   scoreContribution: number;
 }
 
@@ -811,8 +823,13 @@ function calcATR(points: PricePoint[], period = 14): number {
   return slice.reduce((a, b) => a + b, 0) / slice.length;
 }
 
-function scoreNewsHeadlines(titles: string[]): { score: number; summary: string } {
-  if (titles.length === 0) return { score: 0, summary: 'Neutral news flow' };
+/** Variation signée à une décimale, ex. « +3.2 » / « -20.2 » (le « % » est dans la traduction). */
+function signedPct(x: number): string {
+  return `${x >= 0 ? '+' : ''}${x.toFixed(1)}`;
+}
+
+function scoreNewsHeadlines(titles: string[]): { score: number; summary: string; summaryPart: SignalTextPart } {
+  if (titles.length === 0) return { score: 0, summary: 'Neutral news flow', summaryPart: { key: 'news_aucune' } };
   const bullishWords = [
     'surge',
     'soar',
@@ -872,7 +889,14 @@ function scoreNewsHeadlines(titles: string[]): { score: number; summary: string 
         ? `Cautious/negative headline tone (${clamped} net bearish headlines)`
         : 'Balanced / neutral recent news headlines';
 
-  return { score: clamped, summary };
+  const summaryPart: SignalTextPart =
+    clamped >= 2
+      ? { key: 'news_positive', params: { n: clamped } }
+      : clamped <= -2
+        ? { key: 'news_negative', params: { n: Math.abs(clamped) } }
+        : { key: 'news_equilibree' };
+
+  return { score: clamped, summary, summaryPart };
 }
 
 export function computeTechnicalAnalytics(
@@ -1023,6 +1047,14 @@ export function computeTechnicalAnalytics(
       detail: `Price is ${priceVsSma200Pct >= 0 ? '+' : ''}${priceVsSma200Pct.toFixed(1)}% ${
         bullish ? 'above' : 'below'
       } 200D SMA (${sma200.toFixed(2)})`,
+      factorKey: 'f_tendance_longue',
+      detailParts: [
+        {
+          key: bullish ? 'sma200_dessus' : 'sma200_dessous',
+          // Écart sans signe : « au-dessus » / « sous » porte déjà le sens.
+          params: { pct: Math.abs(priceVsSma200Pct).toFixed(1), sma: sma200.toFixed(2) },
+        },
+      ],
       scoreContribution: Math.round(contrib),
     });
   }
@@ -1036,6 +1068,11 @@ export function computeTechnicalAnalytics(
     signalBreakdown.push({
       factor: 'Medium-Term Trend Structure',
       signal: contrib > 2 ? 'BULLISH' : contrib < -2 ? 'BEARISH' : 'NEUTRAL',
+      factorKey: 'f_structure',
+      detailParts: [
+        { key: above50 ? 'sma50_dessus' : 'sma50_dessous', params: { sma: sma50.toFixed(2) } },
+        ...(goldenCross === null ? [] : [{ key: goldenCross ? 'golden_cross' : 'death_cross' }]),
+      ],
       detail: `${above50 ? 'Above' : 'Below'} 50D SMA (${sma50.toFixed(2)})${
         goldenCross !== null
           ? goldenCross
@@ -1055,6 +1092,11 @@ export function computeTechnicalAnalytics(
     signalBreakdown.push({
       factor: 'Short-Term Momentum (20D EMA)',
       signal: contrib > 1.5 ? 'BULLISH' : contrib < -1.5 ? 'BEARISH' : 'NEUTRAL',
+      factorKey: 'f_momentum',
+      detailParts: [
+        { key: 'perf_1m', params: { pct: signedPct(return1M) } },
+        { key: aboveEma ? 'ema20_dessus' : 'ema20_dessous', params: { ema: ema20.toFixed(2) } },
+      ],
       detail: `1M return ${return1M >= 0 ? '+' : ''}${return1M.toFixed(1)}% • Price ${
         aboveEma ? 'above' : 'below'
       } 20D EMA (${ema20.toFixed(2)})`,
@@ -1067,26 +1109,32 @@ export function computeTechnicalAnalytics(
     let signal: 'BULLISH' | 'NEUTRAL' | 'BEARISH' = 'NEUTRAL';
     let contrib = 0;
     let detail = `RSI(14) at ${rsi14.toFixed(1)} `;
+    let qualifier = 'rsi_equilibre';
     if (rsi14 >= 53 && rsi14 <= 68) {
       signal = 'BULLISH';
       contrib = 6;
       detail += '(Healthy bullish momentum without extreme overbought froth)';
+      qualifier = 'rsi_sain';
     } else if (rsi14 > 68 && rsi14 <= 75) {
       signal = 'BULLISH';
       contrib = 3;
       detail += '(Strong momentum, approaching overbought territory)';
+      qualifier = 'rsi_fort';
     } else if (rsi14 > 75) {
       signal = 'NEUTRAL';
       contrib = -2;
       detail += '(Overbought >75 — elevated short-term pullback risk)';
+      qualifier = 'rsi_surachete';
     } else if (rsi14 < 30) {
       signal = 'BULLISH';
       contrib = 4;
       detail += '(Oversold <30 — statistical mean-reversion bounce candidate)';
+      qualifier = 'rsi_survendu';
     } else if (rsi14 < 45) {
       signal = 'BEARISH';
       contrib = -6;
       detail += '(Weak relative momentum regime)';
+      qualifier = 'rsi_faible';
     } else {
       detail += '(Balanced momentum equilibrium)';
     }
@@ -1095,6 +1143,8 @@ export function computeTechnicalAnalytics(
       factor: 'RSI (14) Oscillator',
       signal,
       detail,
+      factorKey: 'f_rsi',
+      detailParts: [{ key: 'rsi_valeur', params: { rsi: rsi14.toFixed(1) } }, { key: qualifier }],
       scoreContribution: contrib,
     });
   }
@@ -1107,6 +1157,14 @@ export function computeTechnicalAnalytics(
     signalBreakdown.push({
       factor: 'MACD (12, 26, 9) Impulse',
       signal: bullishMacd ? 'BULLISH' : 'BEARISH',
+      factorKey: 'f_macd',
+      detailParts: [
+        {
+          key: bullishMacd ? 'macd_dessus' : 'macd_dessous',
+          params: { macd: macdLine.toFixed(2), signal: macdSignal.toFixed(2) },
+        },
+        { key: 'macd_histogramme', params: { hist: `${macdHistogram >= 0 ? '+' : ''}${macdHistogram.toFixed(2)}` } },
+      ],
       detail: `MACD (${macdLine.toFixed(2)}) is ${
         bullishMacd ? 'above' : 'below'
       } Signal (${macdSignal.toFixed(2)}) • Hist: ${macdHistogram >= 0 ? '+' : ''}${macdHistogram.toFixed(2)}`,
@@ -1120,6 +1178,13 @@ export function computeTechnicalAnalytics(
     rawScore += contrib;
     signalBreakdown.push({
       factor: '52-Week Range Strength',
+      factorKey: 'f_52s',
+      detailParts: [
+        {
+          key: 'position_52s',
+          params: { pct: fiftyTwoWeekPositionPct.toFixed(0), low: low52.toFixed(2), high: high52.toFixed(2) },
+        },
+      ],
       signal:
         fiftyTwoWeekPositionPct >= 60
           ? 'BULLISH'
@@ -1141,6 +1206,8 @@ export function computeTechnicalAnalytics(
       factor: 'Media & News Flow Sentiment',
       signal: newsScore.score >= 2 ? 'BULLISH' : newsScore.score <= -2 ? 'BEARISH' : 'NEUTRAL',
       detail: newsScore.summary,
+      factorKey: 'f_actualites',
+      detailParts: [newsScore.summaryPart],
       scoreContribution: newsScore.score,
     });
   }

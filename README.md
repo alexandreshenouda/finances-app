@@ -25,33 +25,104 @@ pour le détail des contraintes.
 
 ## Aperçu
 
+Captures sur un Pixel 10 (Android), avec le [jeu de données de démonstration](#données-de-démonstration)
+fictif. Thème **Or** (par défaut) :
+
 <table>
   <tr>
     <td align="center" width="33%">
-      <img src="docs/screenshots/synthese.png" width="230" alt="Synthèse : patrimoine total, courbe et répartition"><br/>
+      <img src="docs/screenshots/or/synthese.png" width="230" alt="Synthèse : patrimoine net, courbe sur un an et répartition"><br/>
       <sub>Synthèse</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/comptes.png" width="230" alt="Liste des comptes groupés par type"><br/>
-      <sub>Comptes</sub>
+      <img src="docs/screenshots/or/objectifs.png" width="230" alt="Objectifs : épargne de précaution, projet à court terme, indépendance financière"><br/>
+      <sub>Objectifs</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/compte-detail.png" width="230" alt="Détail d'un compte PEA avec ses lignes"><br/>
-      <sub>Détail d'un compte</sub>
+      <img src="docs/screenshots/or/comptes.png" width="230" alt="Rubrique Comptes : comptes groupés par type avec leur plus-value"><br/>
+      <sub>Comptes</sub>
     </td>
   </tr>
   <tr>
     <td align="center" width="33%">
-      <img src="docs/screenshots/immobilier.png" width="230" alt="Détail d'un bien : estimation, équité et crédit"><br/>
+      <img src="docs/screenshots/or/compte-detail.png" width="230" alt="Détail d'un PEA : courbe, plus-value latente et lignes"><br/>
+      <sub>Détail d'un compte</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/or/immobilier.png" width="230" alt="Détail d'un bien : estimation DVF locale, historique projeté par l'indice INSEE"><br/>
       <sub>Immobilier</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/emprunts.png" width="230" alt="Onglet Emprunts : crédit immobilier et prêt conso"><br/>
+      <img src="docs/screenshots/or/emprunts.png" width="230" alt="Rubrique Emprunts : capital restant dû, mensualités et amortissement"><br/>
       <sub>Emprunts</sub>
     </td>
-    <td width="33%"></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/or/budget.png" width="230" alt="Budget : capacité d'épargne et répartition des revenus"><br/>
+      <sub>Budget</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/or/diversification.png" width="230" alt="Analyse : suggestions de diversification, frais, fiscalité et budget"><br/>
+      <sub>Conseils</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/or/ia.png" width="230" alt="Analyse IA : cours, moyennes mobiles et indicateurs techniques d'un titre"><br/>
+      <sub>Analyse IA</sub>
+    </td>
   </tr>
 </table>
+
+<details>
+<summary><b>Les mêmes écrans en thème Classique</b> (bleu-ardoise, Paramètres → Affichage)</summary>
+<br/>
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/classique/synthese.png" width="230" alt="Synthèse : patrimoine net, courbe sur un an et répartition"><br/>
+      <sub>Synthèse</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/classique/objectifs.png" width="230" alt="Objectifs : épargne de précaution, projet à court terme, indépendance financière"><br/>
+      <sub>Objectifs</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/classique/comptes.png" width="230" alt="Rubrique Comptes : comptes groupés par type avec leur plus-value"><br/>
+      <sub>Comptes</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/classique/compte-detail.png" width="230" alt="Détail d'un PEA : courbe, plus-value latente et lignes"><br/>
+      <sub>Détail d'un compte</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/classique/immobilier.png" width="230" alt="Détail d'un bien : estimation DVF locale, historique projeté par l'indice INSEE"><br/>
+      <sub>Immobilier</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/classique/emprunts.png" width="230" alt="Rubrique Emprunts : capital restant dû, mensualités et amortissement"><br/>
+      <sub>Emprunts</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/classique/budget.png" width="230" alt="Budget : capacité d'épargne et répartition des revenus"><br/>
+      <sub>Budget</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/classique/diversification.png" width="230" alt="Analyse : suggestions de diversification, frais, fiscalité et budget"><br/>
+      <sub>Conseils</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/classique/ia.png" width="230" alt="Analyse IA : cours, moyennes mobiles et indicateurs techniques d'un titre"><br/>
+      <sub>Analyse IA</sub>
+    </td>
+  </tr>
+</table>
+
+</details>
 
 ## Sommaire
 
@@ -264,6 +335,32 @@ Le build iOS se fait sur le cloud EAS (pas besoin de macOS pour builder) ; EAS g
 provisioning (certificat + profil) au premier build via votre login Apple. L'app déclare
 `ios.bundleIdentifier` et `android.package` = `fr.perso.patrimoine`. Pour un build local,
 `npx expo run:android` (Android Studio) ou `npx expo run:ios` (macOS + Xcode).
+
+### Données de démonstration
+
+`demo/demo-data.json` est un jeu de données **entièrement fictif** (un couple à Lyon : deux
+salaires, un T3 avec prêt immobilier + PTZ, un crédit auto, PEA, assurance-vie, compte-titres,
+crypto, livrets, budget et objectifs, ~3 ans d'historique). Pour l'essayer : **Paramètres →
+Sauvegarde → Importer depuis un fichier** (il remplace les données présentes). C'est lui qui sert
+aux captures de l'aperçu.
+
+Il est produit par `demo/generate-demo-data.mjs`, qui simule le foyer jour par jour au lieu
+d'écrire des chiffres à la main : cours issus d'un modèle à facteurs (marché commun, crypto à
+part, correction de marché), achats mensuels au PEA en titres entiers et DCA crypto qui
+déterminent quantités et PRU, dividendes calculés sur les titres détenus, intérêts des livrets
+et du fonds euros au 1er janvier, compte courant piloté par les lignes du budget (salaires,
+mensualités recalculées des prêts, dépenses quotidiennes et saisonnières, excédent placé,
+découvert renfloué depuis le LDDS), snapshots irréguliers comme ceux d'une app qu'on n'ouvre pas
+tous les jours. Les dates sont relatives au jour de génération, donc à régénérer quand le fichier
+vieillit :
+
+```bash
+node demo/generate-demo-data.mjs                          # → demo/demo-data.json, daté d'aujourd'hui
+node demo/generate-demo-data.mjs out.json --today=2026-11-16 --seed=7
+```
+
+Cours et classification (secteurs, pays, principales lignes des ETF) sont inclus : rien n'est
+téléchargé à l'import. Un **Rafraîchir** remplace ensuite les cours fictifs par les cours réels.
 
 ## Tests
 
@@ -520,6 +617,8 @@ src/
 
 test/                  tests unitaires Vitest des calculs (voir « Tests »), + bouchons
                        des modules natifs dans test/stubs/
+demo/                  générateur du jeu de données fictif + le fichier importable
+docs/screenshots/      captures du README (or/ et classique/)
 ```
 
 Données locales : documents (comptes, lignes, snapshots, connexions, biens et crédits immobiliers)

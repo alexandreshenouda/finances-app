@@ -19,6 +19,7 @@ import {
   type LayoutChangeEvent,
 } from 'react-native';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 import { C, FONT, useStyles } from '@/constants/theme';
 import { formatDate, formatEur, formatPct } from '@/lib/format';
 import type { SeriesPoint } from '@/lib/portfolio';
@@ -57,6 +58,7 @@ export function LineChart({
   mode?: ChartMode;
 }) {
   const styles = useStyles(makeStyles);
+  const { t } = useTranslation();
   const [width, setWidth] = useState(0);
   const [touchIdx, setTouchIdx] = useState<number | null>(null);
   const nodeRef = useRef<HTMLElement | null>(null);
@@ -135,9 +137,7 @@ export function LineChart({
   if (points.length < 2) {
     return (
       <View ref={wrapRef} style={[styles.wrap, { height: H, justifyContent: 'center' }]} onLayout={onLayout}>
-        <Text style={styles.emptyText}>
-          Pas encore assez d'historique — les courbes apparaîtront après quelques mises à jour de valeur.
-        </Text>
+        <Text style={styles.emptyText}>{t('chart.historique_insuffisant')}</Text>
       </View>
     );
   }

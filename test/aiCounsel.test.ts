@@ -18,6 +18,9 @@ import {
   type PricePoint,
 } from '@/lib/aiCounsel';
 import { json, mockFetch, networkError } from './http';
+import fr from '@/i18n/locales/fr.json';
+import en from '@/i18n/locales/en.json';
+import de from '@/i18n/locales/de.json';
 
 function makePoints(count: number, startPrice = 100, step = 0.5): PricePoint[] {
   const baseMs = 1700000000000;
@@ -497,6 +500,51 @@ describe('aiCounsel — analyse technique, score 7 facteurs et projections quant
     );
     expect(rsi38Tech.rsi14).toBeGreaterThanOrEqual(30);
     expect(rsi38Tech.rsi14).toBeLessThan(45);
+  });
+});
+
+describe('aiCounsel — libellés d’affichage traduits des signaux', () => {
+  // L'UI traduit `factorKey`, `detailParts`, le signal, le régime et la tendance sous
+  // `ai.signaux.*` ; une clé absente afficherait la clé brute à l'écran.
+  const LOCALES = { fr, en, de } as const;
+  const keysOf = (tech: ReturnType<typeof computeTechnicalAnalytics>) => [
+    ...tech.signalBreakdown.flatMap((s) => [
+      { key: s.factorKey },
+      { key: `signal_${s.signal.toLowerCase()}` },
+      ...s.detailParts,
+    ]),
+    { key: `tendance_${tech.trendDirection.toLowerCase()}` },
+  ];
+
+  it('produit des clés présentes dans les trois langues, avec tous leurs paramètres', () => {
+    const bearPts = makePoints(80, 200, -1.2);
+    const bullish = makeAssetBundle();
+    const bearish = makeAssetBundle({
+      regularMarketPrice: bearPts.at(-1)!.close,
+      charts: { '1D': bearPts.slice(-5), '1W': bearPts.slice(-10), '1M': bearPts.slice(-20), '1Y': bearPts, '5Y': [] },
+      news: [{ uuid: 'n', title: 'Profit warning, downgrade and slump', publisher: 'R', link: 'https://x', publishTime: 0, relatedTickers: [], thumbnail: null }],
+    });
+    const empty = makeAssetBundle({ charts: { '1D': [], '1W': [], '1M': [], '1Y': [], '5Y': [] }, news: [] });
+    const techs = [computeTechnicalAnalytics(bullish, bullish.regularMarketTime), computeTechnicalAnalytics(bearish), computeTechnicalAnalytics(empty)];
+
+    const seen = new Set<string>();
+    for (const tech of techs) {
+      for (const { key, params } of keysOf(tech) as { key: string; params?: Record<string, unknown> }[]) {
+        seen.add(key);
+        for (const [lang, locale] of Object.entries(LOCALES)) {
+          const text = (locale.ai.signaux as Record<string, string>)[key];
+          expect(text, `${lang}: ai.signaux.${key}`).toBeTypeOf('string');
+          for (const [, name] of text.matchAll(/\{\{(\w+)\}\}/g)) {
+            expect(params ?? {}, `${lang}: ${key} attend {{${name}}}`).toHaveProperty(name);
+          }
+        }
+      }
+    }
+    // Haussier, baissier et sans historique couvrent bien des branches différentes.
+    expect(seen).toContain('signal_bullish');
+    expect(seen).toContain('signal_bearish');
+    expect(seen).toContain('news_negative');
+    expect(seen).toContain('news_aucune');
   });
 });
 

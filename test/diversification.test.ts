@@ -147,6 +147,40 @@ describe('computeClassificationBreakdown', () => {
     expect(b.sectorCoverage).toBeCloseTo(1, 10);
   });
 
+  it('compte les UC classées d’une assurance-vie dans l’encours, pas le fonds euros', () => {
+    // Avant : l'encours ignorait l'assurance-vie alors que ses UC classées étaient couvertes
+    // → « 146 % des lignes classables couvertes ».
+    const av = account({ id: 'av', type: 'assurance_vie' });
+    const holdings = [
+      holding({ accountId: 'cto', quantity: 1, unitPrice: 4_000, sectorWeights: [{ sector: 'technology', weight: 1 }] }),
+      holding({ accountId: 'cto', quantity: 1, unitPrice: 1_000 }), // non classée
+      holding({
+        accountId: 'av',
+        isin: 'IE00B4L5Y983',
+        quantity: 1,
+        unitPrice: 5_000,
+        sectorWeights: [{ sector: 'financials', weight: 1 }],
+        countryWeights: [{ country: 'US', weight: 1 }],
+      }),
+      holding({ accountId: 'av', name: 'Fonds euros', quantity: 1, unitPrice: 20_000 }), // ni ISIN ni classement
+    ];
+    const b = computeClassificationBreakdown(holdings, [acc, av], RATES, byType({ cto: 5_000, assurance_vie: 25_000 }));
+    expect(b.classifiablePool).toBe(5_000 + 5_000);
+    expect(b.sectorCoverage).toBeCloseTo(9_000 / 10_000, 10);
+    expect(b.geoCoverage).toBeCloseTo(5_000 / 10_000, 10);
+  });
+
+  it('compte dans l’encours une UC cotée pas encore classée', () => {
+    const per = account({ id: 'per', type: 'per' });
+    const holdings = [
+      holding({ accountId: 'per', isin: 'LU1681043599', quantity: 1, unitPrice: 3_000 }),
+      holding({ accountId: 'per', isin: 'FR0011871128', quantity: 1, unitPrice: 1_000, sectorWeights: [{ sector: 'energy', weight: 1 }] }),
+    ];
+    const b = computeClassificationBreakdown(holdings, [per], RATES, byType({ per: 4_000 }));
+    expect(b.classifiablePool).toBe(4_000);
+    expect(b.sectorCoverage).toBeCloseTo(0.25, 10);
+  });
+
   it('ne divise pas par zéro sur un patrimoine non classifiable', () => {
     const b = computeClassificationBreakdown([], [], RATES, byType({ livret: 10_000 }));
     expect(b.classifiablePool).toBe(0);

@@ -343,6 +343,11 @@ savings plans, PEA ceiling usage, etc.:
 - `Account.openingDate` (ISO `YYYY-MM-DD`) tracks tax wrapper opening date, enabling automated computation of seniority and tax milestones for PEA (5-year mark for capital gains tax exemption and partial withdrawals) and Assurance-Vie (8-year mark for annual capital gains tax allowances: 4,600 € / 9,200 €).
 - Look-through overlap detection crosses the `topHoldings` from JustETF and direct stocks to detect hidden mega-cap concentration across multiple funds.
 - Fee audit combines `Holding.feesPct` and `Account.fees.managementPct` to calculate weighted annual costs and alert on expensive actively managed funds.
+- **Coverage pool** (`classifiablePool`): PEA / CTO / private equity / crypto accounts in full,
+  plus — in other wrappers (assurance-vie, PER…) — only the holdings that are listed (ISIN) or
+  already classified, i.e. the unités de compte; a fonds euros has neither and stays out. Every
+  holding counted as covered is thus in the pool, so coverage can't exceed 100 % (classified
+  life-insurance UCs used to show "146 % des lignes classables couvertes").
 - Cards in `InsightCard.tsx` support accordion expansion (`whyKey` and `actionKey`) and category filtering chips in `DiversificationSection.tsx`.
 
 ## Épargne de précaution : suggestion & conseils (`src/lib/objectives.ts`, `src/lib/diversification.ts`)
@@ -390,8 +395,18 @@ savings plans, PEA ceiling usage, etc.:
 - **Future-price card** (`FanChartSvg` in `StockCounselView.tsx`): scenarios carry a stable `key`
   (`3M`/`6M`/`12M` quant, `3M`/`12M`/`3Y` Gemini); the chart draws **only the selected horizon**
   (`selectedHorizon`, default `3M`, falls back to the first scenario when switching source) as a
-  √t-widening cone, and end labels are spread ≥ 12 px apart. Don't plot several horizons on one
-  chart again — their Bull/Base/Bear labels overlapped.
+  √t-widening cone, and end labels are spread ≥ 12 px apart (Bull and Base sit just above their
+  line). Don't plot several horizons on one chart again — their Bull/Base/Bear labels overlapped.
+- **One string per SVG `<Text>`**: `Bull: {price}` is two JSX children, which react-native-svg
+  renders on Android as two spans *each* anchored at `x` (`textAnchor="end"`/`"middle"`) — they
+  were drawn on top of each other, while the web lays them out in sequence. Build the label with
+  a template literal (`` {`Bull: ${price}`} ``).
+- **Technical signals are translated at display time**: `SignalFactor.factor` / `.detail`,
+  `sentimentRegime` and `trendDirection` stay English enums/texts because they go into the Gemini
+  prompt and drive colours; the UI renders `factorKey` / `detailParts` (keys + params under
+  `ai.signaux.*`, parts joined by « • »), `signal_*`, `regime_*` (`REGIME_KEYS`) and
+  `tendance_*`. A new factor or detail needs its key in fr/en/de — `aiCounsel.test.ts` checks
+  every key the engine emits and its `{{params}}`.
 - **`SelectField` height**: on Android the native `Picker` is left at its own height (`minHeight:
   TOUCH_MIN`); a fixed `height: 44` cropped the bottom of the text. Web/iOS keep `height: 44`.
 - **API Key security & Settings (`src/app/ai-settings.tsx`)**: the Gemini API key is configured in **Paramètres → Intelligence Artificielle (Gemini)** (`src/app/ai-settings.tsx`, also accessible from **Paramètres → Connexions** `src/app/connections.tsx`) and stored exclusively in device secure storage (`expo-secure-store` via `src/lib/secure.ts` under `GEMINI_SECRET_KEY = 'gemini.apiKey'`, purged on full data wipe alongside exchange/bank secrets) — never in AsyncStorage (`store.ts`). Non-secret preferences (`aiWatchlist`, `aiLastSymbol`, `aiModel`, `aiCustomPreprompt`, `aiReports`) live in `store.ts`.
@@ -536,6 +551,32 @@ Requests derived from the web bundle, **responses checked against a real account
   `trGetJson`) on bare `fetch`; don't wrap it too or every call shows twice. Don't add a `logDebug('GET …')` next to a
   `tracedFetch` either. Tags: `fx`, `immobilier` (FRED index, geocoding, DVF), `yahoo`, `justetf`,
   `coingecko`, `binance`, `kraken`, `enablebanking`, `aiCounsel` (Yahoo charts), `gemini`.
+
+## Demo data & README screenshots (`demo/`, `docs/screenshots/`)
+- `demo/generate-demo-data.mjs` writes `demo/demo-data.json` in the **backup format** (`AppData`
+  of `store.ts`), imported via Paramètres → Sauvegarde → « Importer depuis un fichier ». It
+  hand-writes entities, so **a change to `AppData` or to an entity type in `types.ts` must be
+  mirrored there** (then regenerate) — nothing typechecks it.
+- It simulates day by day instead of hard-coding figures: prices are a Brownian bridge between a
+  start and a "current" price on a shared market factor; quantities / PRU come from the simulated
+  buys; the current account is driven by the budget lines and the loans' annuities. Keep those
+  links when editing (e.g. a new budget line must also move money in the simulation).
+- Classification weights are **fractions (0..1)** in the app (as JustETF stores them); the script
+  writes them in % for readability and divides on output. Writing % straight into the data shows
+  2 549 % sectors in Diversification.
+- Dates are relative to the generation day (`--today=` to pin): regenerate before new captures.
+- Screenshots: release APK on the `Pixel_10` AVD (`expo prebuild -p android`, then
+  `./gradlew assembleRelease -PreactNativeArchitectures=x86_64`, JDK = Android Studio's `jbr`;
+  revert the `package.json` scripts prebuild rewrites, `/android` is gitignored), French via
+  Paramètres → Langue, status bar via `adb shell am broadcast -a com.android.systemui.demo`,
+  1080 px captures downscaled to 540 px wide. Pass `-s emulator-5554` to adb when a phone is
+  also connected.
+- **Don't swipe down at the top of the Synthèse**: pull-to-refresh replaces the demo prices by real
+  ones. The property chart needs the INSEE index, which only a refresh downloads: refresh once,
+  then re-import the demo file (import replaces `AppData` but keeps `houseIndex`).
+- Gradle + the emulator together can exhaust RAM on this machine (the emulator gets killed): stop
+  the Gradle daemon before capturing, start the emulator with `-memory 3072 -gpu
+  swiftshader_indirect` under `systemd-run --user` so it outlives the shell.
 
 ## Verification workflow
 - **SDK 58 / React Native 0.88 Strict TypeScript API**: deep imports from `react-native/Libraries/*`

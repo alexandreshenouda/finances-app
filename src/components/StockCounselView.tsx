@@ -1251,7 +1251,7 @@ export function StockCounselView({
       {
         key: '3M',
         label: '3M',
-        subtitle: 'Log-Normal Drift & Vol Cone',
+        subtitle: t('ai.signaux.sous_titre_3m'),
         bear: q3.bearPrice,
         base: q3.basePrice,
         bull: q3.bullPrice,
@@ -1262,7 +1262,7 @@ export function StockCounselView({
       {
         key: '6M',
         label: '6M',
-        subtitle: 'Medium-Term Quant Range',
+        subtitle: t('ai.signaux.sous_titre_6m'),
         bear: q6.bearPrice,
         base: q6.basePrice,
         bull: q6.bullPrice,
@@ -1273,7 +1273,7 @@ export function StockCounselView({
       {
         key: '12M',
         label: '12M',
-        subtitle: '1Y ±0.85σ Confidence Band',
+        subtitle: t('ai.signaux.sous_titre_12m'),
         bear: q12.bearPrice,
         base: q12.basePrice,
         bull: q12.bullPrice,
@@ -1282,7 +1282,7 @@ export function StockCounselView({
         bullPct: q12.bullChangePct,
       },
     ];
-  }, [asset, technicals, useGeminiTargets, geminiStructured]);
+  }, [asset, technicals, useGeminiTargets, geminiStructured, t]);
 
   // Un seul horizon à la fois sur le graphique (3M par défaut) : les cibles des
   // différents horizons se superposaient. Si l'horizon choisi n'existe pas dans la
@@ -1846,7 +1846,7 @@ export function StockCounselView({
                       fill={C.positive}
                       fontSize="10"
                     >
-                      Bull {futureTargets.bull.toFixed(1)}
+                      {`Bull ${futureTargets.bull.toFixed(1)}`}
                     </SvgText>
                     <Line
                       x1={lastX}
@@ -1865,7 +1865,7 @@ export function StockCounselView({
                       fontSize="10"
                       fontWeight="bold"
                     >
-                      Base {futureTargets.base.toFixed(1)}
+                      {`Base ${futureTargets.base.toFixed(1)}`}
                     </SvgText>
                     <Line
                       x1={lastX}
@@ -1883,7 +1883,7 @@ export function StockCounselView({
                       fill={C.negative}
                       fontSize="10"
                     >
-                      Bear {futureTargets.bear.toFixed(1)}
+                      {`Bear ${futureTargets.bear.toFixed(1)}`}
                     </SvgText>
                   </G>
                 )}
@@ -2045,7 +2045,7 @@ export function StockCounselView({
                 ]}
               >
                 <Text style={[styles.regimeBadgeText, { color: sentimentColor }]}>
-                  {geminiStructured?.sentimentLabel || technicals.sentimentRegime}
+                  {geminiStructured?.sentimentLabel || t(`ai.signaux.${REGIME_KEYS[technicals.sentimentRegime]}`)}
                 </Text>
               </View>
             </View>
@@ -2072,7 +2072,7 @@ export function StockCounselView({
                 )}
                 <View style={styles.subPill}>
                   <Text style={styles.subPillText}>
-                    {t('ai.tendance')} : {technicals.trendDirection}
+                    {t('ai.tendance')} : {t(`ai.signaux.tendance_${technicals.trendDirection.toLowerCase()}`)}
                   </Text>
                 </View>
               </View>
@@ -2130,11 +2130,15 @@ export function StockCounselView({
               return (
                 <View key={idx} style={styles.signalRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.signalFactor}>{sig.factor}</Text>
-                    <Text style={styles.signalDetail}>{sig.detail}</Text>
+                    <Text style={styles.signalFactor}>{t(`ai.signaux.${sig.factorKey}`)}</Text>
+                    <Text style={styles.signalDetail}>
+                      {sig.detailParts.map((part) => t(`ai.signaux.${part.key}`, part.params)).join(' • ')}
+                    </Text>
                   </View>
                   <View style={[styles.signalTag, { backgroundColor: C.cardAlt }]}>
-                    <Text style={[styles.signalTagText, { color: sigColor }]}>{sig.signal}</Text>
+                    <Text style={[styles.signalTagText, { color: sigColor }]}>
+                      {t(`ai.signaux.signal_${sig.signal.toLowerCase()}`)}
+                    </Text>
                   </View>
                 </View>
               );
@@ -2738,6 +2742,15 @@ export function StockCounselView({
   );
 }
 
+/** Régime de sentiment (enum anglais, aussi envoyé à Gemini) → clé d'affichage `ai.signaux.*`. */
+const REGIME_KEYS: Record<TechnicalAnalytics['sentimentRegime'], string> = {
+  'STRONG BULLISH': 'regime_tres_haussier',
+  BULLISH: 'regime_haussier',
+  'NEUTRAL / CONSOLIDATING': 'regime_neutre',
+  BEARISH: 'regime_baissier',
+  'STRONG BEARISH': 'regime_tres_baissier',
+};
+
 function FanChartSvg({
   fanChart,
   width,
@@ -2806,12 +2819,16 @@ function FanChartSvg({
   const bearY = mapY(bear);
 
   // Étiquettes : écartées d'au moins LABEL_GAP px pour ne jamais se chevaucher,
-  // même quand les trois cibles sont proches.
+  // même quand les trois cibles sont proches. Chaque <SvgText> reçoit UNE seule chaîne
+  // (template literal) : « Bull: {prix} » fait deux enfants JSX, que react-native-svg
+  // rend sur Android en deux tspans ancrés chacun en `x` avec textAnchor="end" — ils se
+  // superposaient (le web, lui, les enchaîne).
   const LABEL_GAP = 12;
   const minLabelY = 12;
   const maxLabelY = fanHeight - 24;
   let bullLabelY = Math.max(minLabelY, bullY - 6);
-  let baseLabelY = Math.max(bullLabelY + LABEL_GAP, baseY + 4);
+  // Au-dessus de sa ligne (comme Bull) : centrée dessus, la ligne blanche barrait le texte.
+  let baseLabelY = Math.max(bullLabelY + LABEL_GAP, baseY - 6);
   let bearLabelY = Math.max(baseLabelY + LABEL_GAP, bearY + 12);
   if (bearLabelY > maxLabelY) {
     bearLabelY = maxLabelY;
@@ -2845,7 +2862,7 @@ function FanChartSvg({
         strokeDasharray="3 3"
       />
       <SvgText x={splitX} y={fanHeight - 6} textAnchor="middle" fill={C.textDim} fontSize="10">
-        {todayLabel} ({formatAssetCurrency(spot, currency)})
+        {`${todayLabel} (${formatAssetCurrency(spot, currency)})`}
       </SvgText>
       <SvgText x={20} y={fanHeight - 6} textAnchor="start" fill={C.textFaint} fontSize="10">
         {histLabel}
@@ -2887,7 +2904,7 @@ function FanChartSvg({
         fontSize="10"
         fontWeight="bold"
       >
-        Bull: {formatAssetCurrency(bull, currency)}
+        {`Bull: ${formatAssetCurrency(bull, currency)}`}
       </SvgText>
       <SvgText
         x={endX - 8}
@@ -2897,7 +2914,7 @@ function FanChartSvg({
         fontSize="10"
         fontWeight="bold"
       >
-        Base: {formatAssetCurrency(base, currency)}
+        {`Base: ${formatAssetCurrency(base, currency)}`}
       </SvgText>
       <SvgText
         x={endX - 8}
@@ -2907,7 +2924,7 @@ function FanChartSvg({
         fontSize="10"
         fontWeight="bold"
       >
-        Bear: {formatAssetCurrency(bear, currency)}
+        {`Bear: ${formatAssetCurrency(bear, currency)}`}
       </SvgText>
     </Svg>
   );
