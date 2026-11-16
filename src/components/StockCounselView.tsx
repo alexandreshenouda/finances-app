@@ -17,7 +17,7 @@ import {
   SectionTitle,
   SelectField,
 } from '@/components/ui';
-import { C, FONT, RADIUS, SCRIM, TABULAR, useStyles } from '@/constants/theme';
+import { C, FONT, RADIUS, SCRIM, TABULAR, useStyles, withAlpha } from '@/constants/theme';
 import {
   computeTechnicalAnalytics,
   DEFAULT_GEMINI_MODELS,
@@ -446,7 +446,13 @@ function makeStyles() {
       marginBottom: 8,
       gap: 4,
     },
+    horizonCardActive: {
+      backgroundColor: withAlpha(C.accent, 0.12),
+      borderColor: C.accent,
+      borderWidth: 1.5,
+    },
     horizonTitle: { color: C.text, fontSize: FONT.md, fontWeight: '700' },
+    horizonTitleActive: { color: C.accent },
     horizonSub: { color: C.textFaint, fontSize: FONT.xs },
     expectedPill: {
       backgroundColor: C.card,
@@ -743,6 +749,7 @@ export function StockCounselView({
   const [showMovingAverages, setShowMovingAverages] = useState<boolean>(true);
   const [showFutureOverlay, setShowFutureOverlay] = useState<boolean>(false);
   const [forecastMode, setForecastMode] = useState<'AUTO' | 'QUANT' | 'GEMINI'>('AUTO');
+  const [selectedHorizon, setSelectedHorizon] = useState<string>('3M');
 
   // Gemini IA
   const [hasGeminiKey, setHasGeminiKey] = useState<boolean>(false);
@@ -1201,6 +1208,7 @@ export function StockCounselView({
       const p3y = geminiStructured.priceTargets.threeYear;
       return [
         {
+          key: '3M',
           label: '3M',
           subtitle: p3m.rationale || '',
           bear: p3m.bear,
@@ -1211,6 +1219,7 @@ export function StockCounselView({
           bullPct: pct(p3m.bull),
         },
         {
+          key: '12M',
           label: '12M',
           subtitle: p12m.rationale || '',
           bear: p12m.bear,
@@ -1222,6 +1231,7 @@ export function StockCounselView({
           expected: p12m.expectedPrice,
         },
         {
+          key: '3Y',
           label: '3Y (36M)',
           subtitle: p3y.rationale || '',
           bear: p3y.bear,
@@ -1239,6 +1249,7 @@ export function StockCounselView({
     const q12 = technicals.quantProjections['1Y'];
     return [
       {
+        key: '3M',
         label: '3M',
         subtitle: 'Log-Normal Drift & Vol Cone',
         bear: q3.bearPrice,
@@ -1249,6 +1260,7 @@ export function StockCounselView({
         bullPct: q3.bullChangePct,
       },
       {
+        key: '6M',
         label: '6M',
         subtitle: 'Medium-Term Quant Range',
         bear: q6.bearPrice,
@@ -1259,6 +1271,7 @@ export function StockCounselView({
         bullPct: q6.bullChangePct,
       },
       {
+        key: '12M',
         label: '12M',
         subtitle: '1Y ±0.85σ Confidence Band',
         bear: q12.bearPrice,
@@ -1271,45 +1284,26 @@ export function StockCounselView({
     ];
   }, [asset, technicals, useGeminiTargets, geminiStructured]);
 
-  // Fan Chart (-6M History -> +12M Forecast)
+  // Un seul horizon à la fois sur le graphique (3M par défaut) : les cibles des
+  // différents horizons se superposaient. Si l'horizon choisi n'existe pas dans la
+  // source affichée (6M en Quant, 3Y en Gemini), on retombe sur le premier.
+  const activeScenario = scenarios.find((sc) => sc.key === selectedHorizon) ?? scenarios[0];
+
+  // Fan Chart (-6M History -> horizon sélectionné)
   const fanChart = useMemo(() => {
-    if (!asset || !technicals) return null;
+    if (!asset || !activeScenario) return null;
     const daily = asset.charts['1Y'] || [];
     const past6M = daily.slice(-126);
     const histSampled = past6M.filter((_, i) => i % 6 === 0 || i === past6M.length - 1);
     const spot = asset.regularMarketPrice || histSampled.at(-1)?.close || 100;
+    const { bear, base, bull } = activeScenario;
 
-    let bear12 = technicals.quantProjections['1Y'].bearPrice;
-    let base12 = technicals.quantProjections['1Y'].basePrice;
-    let bull12 = technicals.quantProjections['1Y'].bullPrice;
-    let bear3 = technicals.quantProjections['3M'].bearPrice;
-    let base3 = technicals.quantProjections['3M'].basePrice;
-    let bull3 = technicals.quantProjections['3M'].bullPrice;
-
-    if (useGeminiTargets && geminiStructured?.priceTargets) {
-      bear12 = geminiStructured.priceTargets.twelveMonth.bear || bear12;
-      base12 = geminiStructured.priceTargets.twelveMonth.base || base12;
-      bull12 = geminiStructured.priceTargets.twelveMonth.bull || bull12;
-      bear3 = geminiStructured.priceTargets.threeMonth.bear || bear3;
-      base3 = geminiStructured.priceTargets.threeMonth.base || base3;
-      bull3 = geminiStructured.priceTargets.threeMonth.bull || bull3;
-    }
-
-    const allPrices = [
-      ...histSampled.map((p) => p.close),
-      spot,
-      bear3,
-      base3,
-      bull3,
-      bear12,
-      base12,
-      bull12,
-    ];
+    const allPrices = [...histSampled.map((p) => p.close), spot, bear, base, bull];
     const minP = Math.min(...allPrices) * 0.95;
     const maxP = Math.max(...allPrices) * 1.05;
 
-    return { histSampled, spot, bear3, base3, bull3, bear12, base12, bull12, minP, maxP };
-  }, [asset, technicals, useGeminiTargets, geminiStructured]);
+    return { histSampled, spot, bear, base, bull, horizon: activeScenario.key, minP, maxP };
+  }, [asset, activeScenario]);
 
   const horizonLabels: Record<CounselHorizon, string> = {
     SHORT_TERM: t('ai.horizon_court'),
@@ -2194,15 +2188,30 @@ export function StockCounselView({
                 gradId={gradId}
                 todayLabel={t('ai.aujourdhui')}
                 histLabel={t('ai.historique_6m')}
-                forecastLabel={t('ai.prevision_12m')}
+                forecastLabel={t('ai.prevision_horizon', { horizon: `+${fanChart.horizon}` })}
               />
             )}
 
-            {scenarios.map((sc, idx) => (
-              <View key={idx} style={styles.horizonCard}>
+            {scenarios.map((sc) => {
+              const active = sc.key === activeScenario?.key;
+              return (
+              <Pressable
+                key={sc.key}
+                onPress={() => setSelectedHorizon(sc.key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={t('ai.afficher_horizon', { horizon: sc.label })}
+                style={({ pressed }) => [
+                  styles.horizonCard,
+                  active && styles.horizonCardActive,
+                  pressed && !active && { backgroundColor: C.card },
+                ]}
+              >
                 <View style={styles.horizonHead}>
                   <View>
-                    <Text style={styles.horizonTitle}>{sc.label}</Text>
+                    <Text style={[styles.horizonTitle, active && styles.horizonTitleActive]}>
+                      {sc.label}
+                    </Text>
                     {sc.subtitle ? <Text style={styles.horizonSub}>{sc.subtitle}</Text> : null}
                   </View>
                   {'expected' in sc && sc.expected ? (
@@ -2263,8 +2272,9 @@ export function StockCounselView({
                     </Text>
                   </View>
                 </View>
-              </View>
-            ))}
+              </Pressable>
+              );
+            })}
 
             <Text style={styles.footnote}>
               {useGeminiTargets ? t('ai.note_prevision_gemini') : t('ai.note_prevision_quant')}
@@ -2740,12 +2750,9 @@ function FanChartSvg({
   fanChart: {
     histSampled: PricePoint[];
     spot: number;
-    bear3: number;
-    base3: number;
-    bull3: number;
-    bear12: number;
-    base12: number;
-    bull12: number;
+    bear: number;
+    base: number;
+    bull: number;
     minP: number;
     maxP: number;
   };
@@ -2759,8 +2766,8 @@ function FanChartSvg({
   const fanWidth = Math.max(300, width);
   const fanHeight = 185;
   const splitX = Math.round(fanWidth * 0.46);
-  const x3M = Math.round(fanWidth * 0.62);
-  const x12M = fanWidth - 24;
+  const endX = fanWidth - 24;
+  const { spot, bear, base, bull } = fanChart;
 
   const mapY = (price: number) => {
     const denom = fanChart.maxP - fanChart.minP || 1;
@@ -2775,13 +2782,42 @@ function FanChartSvg({
     })
     .join(' ');
 
-  const spotY = mapY(fanChart.spot);
-  const bull3Y = mapY(fanChart.bull3);
-  const base3Y = mapY(fanChart.base3);
-  const bear3Y = mapY(fanChart.bear3);
-  const bull12Y = mapY(fanChart.bull12);
-  const base12Y = mapY(fanChart.base12);
-  const bear12Y = mapY(fanChart.bear12);
+  // Cône : la tendance centrale avance linéairement, l'écart haussier / baissier
+  // s'ouvre en √t (comme la dispersion d'un log-normal) jusqu'aux cibles de l'horizon.
+  const STEPS = 12;
+  const conePoints = (target: number) =>
+    Array.from({ length: STEPS + 1 }, (_, i) => {
+      const t = i / STEPS;
+      const center = spot + (base - spot) * t;
+      const price = center + (target - base) * Math.sqrt(t);
+      return { x: splitX + (endX - splitX) * t, y: mapY(price) };
+    });
+  const bullPts = conePoints(bull);
+  const basePts = conePoints(base);
+  const bearPts = conePoints(bear);
+  const toStr = (pts: { x: number; y: number }[]) =>
+    pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const upperArea = `${toStr(bullPts)} ${toStr([...basePts].reverse())}`;
+  const lowerArea = `${toStr(basePts)} ${toStr([...bearPts].reverse())}`;
+
+  const spotY = mapY(spot);
+  const bullY = mapY(bull);
+  const baseY = mapY(base);
+  const bearY = mapY(bear);
+
+  // Étiquettes : écartées d'au moins LABEL_GAP px pour ne jamais se chevaucher,
+  // même quand les trois cibles sont proches.
+  const LABEL_GAP = 12;
+  const minLabelY = 12;
+  const maxLabelY = fanHeight - 24;
+  let bullLabelY = Math.max(minLabelY, bullY - 6);
+  let baseLabelY = Math.max(bullLabelY + LABEL_GAP, baseY + 4);
+  let bearLabelY = Math.max(baseLabelY + LABEL_GAP, bearY + 12);
+  if (bearLabelY > maxLabelY) {
+    bearLabelY = maxLabelY;
+    baseLabelY = Math.min(baseLabelY, bearLabelY - LABEL_GAP);
+    bullLabelY = Math.min(bullLabelY, baseLabelY - LABEL_GAP);
+  }
 
   return (
     <Svg width={fanWidth} height={fanHeight}>
@@ -2796,14 +2832,8 @@ function FanChartSvg({
         </LinearGradient>
       </Defs>
 
-      <Polygon
-        points={`${splitX},${spotY} ${x3M},${bull3Y} ${x12M},${bull12Y} ${x12M},${base12Y} ${x3M},${base3Y}`}
-        fill={`url(#fanBull-${gradId})`}
-      />
-      <Polygon
-        points={`${splitX},${spotY} ${x3M},${base3Y} ${x12M},${base12Y} ${x12M},${bear12Y} ${x3M},${bear3Y}`}
-        fill={`url(#fanBear-${gradId})`}
-      />
+      <Polygon points={upperArea} fill={`url(#fanBull-${gradId})`} />
+      <Polygon points={lowerArea} fill={`url(#fanBear-${gradId})`} />
 
       <Line
         x1={splitX}
@@ -2815,15 +2845,12 @@ function FanChartSvg({
         strokeDasharray="3 3"
       />
       <SvgText x={splitX} y={fanHeight - 6} textAnchor="middle" fill={C.textDim} fontSize="10">
-        {todayLabel} ({formatAssetCurrency(fanChart.spot, currency)})
+        {todayLabel} ({formatAssetCurrency(spot, currency)})
       </SvgText>
       <SvgText x={20} y={fanHeight - 6} textAnchor="start" fill={C.textFaint} fontSize="10">
         {histLabel}
       </SvgText>
-      <SvgText x={x3M} y={fanHeight - 6} textAnchor="middle" fill={C.textFaint} fontSize="10">
-        +3M
-      </SvgText>
-      <SvgText x={x12M} y={fanHeight - 6} textAnchor="end" fill={C.textDim} fontSize="10">
+      <SvgText x={endX} y={fanHeight - 6} textAnchor="end" fill={C.textDim} fontSize="10">
         {forecastLabel}
       </SvgText>
 
@@ -2832,20 +2859,15 @@ function FanChartSvg({
       ) : null}
 
       <Polyline
-        points={`${splitX},${spotY} ${x3M},${bull3Y} ${x12M},${bull12Y}`}
+        points={toStr(bullPts)}
         fill="none"
         stroke={C.positive}
         strokeWidth={1.8}
         strokeDasharray="4 3"
       />
+      <Polyline points={toStr(basePts)} fill="none" stroke={C.text} strokeWidth={2} />
       <Polyline
-        points={`${splitX},${spotY} ${x3M},${base3Y} ${x12M},${base12Y}`}
-        fill="none"
-        stroke={C.text}
-        strokeWidth={2}
-      />
-      <Polyline
-        points={`${splitX},${spotY} ${x3M},${bear3Y} ${x12M},${bear12Y}`}
+        points={toStr(bearPts)}
         fill="none"
         stroke={C.negative}
         strokeWidth={1.8}
@@ -2853,39 +2875,39 @@ function FanChartSvg({
       />
 
       <Circle cx={splitX} cy={spotY} r={4} fill={C.accent} />
-      <Circle cx={x12M} cy={bull12Y} r={3.5} fill={C.positive} />
-      <Circle cx={x12M} cy={base12Y} r={4} fill={C.text} />
-      <Circle cx={x12M} cy={bear12Y} r={3.5} fill={C.negative} />
+      <Circle cx={endX} cy={bullY} r={3.5} fill={C.positive} />
+      <Circle cx={endX} cy={baseY} r={4} fill={C.text} />
+      <Circle cx={endX} cy={bearY} r={3.5} fill={C.negative} />
 
       <SvgText
-        x={x12M - 6}
-        y={Math.max(13, bull12Y - 6)}
+        x={endX - 8}
+        y={bullLabelY}
         textAnchor="end"
         fill={C.positive}
         fontSize="10"
         fontWeight="bold"
       >
-        Bull: {formatAssetCurrency(fanChart.bull12, currency)}
+        Bull: {formatAssetCurrency(bull, currency)}
       </SvgText>
       <SvgText
-        x={x12M - 6}
-        y={base12Y - 6}
+        x={endX - 8}
+        y={baseLabelY}
         textAnchor="end"
         fill={C.text}
         fontSize="10"
         fontWeight="bold"
       >
-        Base: {formatAssetCurrency(fanChart.base12, currency)}
+        Base: {formatAssetCurrency(base, currency)}
       </SvgText>
       <SvgText
-        x={x12M - 6}
-        y={Math.min(fanHeight - 24, bear12Y + 12)}
+        x={endX - 8}
+        y={bearLabelY}
         textAnchor="end"
         fill={C.negative}
         fontSize="10"
         fontWeight="bold"
       >
-        Bear: {formatAssetCurrency(fanChart.bear12, currency)}
+        Bear: {formatAssetCurrency(bear, currency)}
       </SvgText>
     </Svg>
   );

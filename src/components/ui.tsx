@@ -8,6 +8,7 @@ import {
     Dimensions,
     Modal,
     PanResponder,
+    Platform,
     Pressable,
     StyleSheet,
     Text,
@@ -72,7 +73,15 @@ function makeStyles() {
       borderColor: C.border,
       overflow: 'hidden',
     },
-    picker: { color: C.text, backgroundColor: 'transparent', borderWidth: 0, height: 44, paddingHorizontal: 8 },
+    // Android : le Picker natif fait ~54 dp ; le forcer à 44 coupait le bas du texte
+    // (lettres tronquées). On le laisse à sa hauteur native, au moins TOUCH_MIN.
+    picker: {
+      color: C.text,
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      paddingHorizontal: 8,
+      ...(Platform.OS === 'android' ? { minHeight: TOUCH_MIN } : { height: TOUCH_MIN }),
+    },
     chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
     chip: {
       backgroundColor: C.cardAlt,
