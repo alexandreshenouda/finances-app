@@ -238,6 +238,17 @@ and relative performance over time (in %).
 - The tooltip also shows `SeriesPoint.rawValue` (the currency amount behind the %), set by
   `toPerformanceSeries`.
 - Under privacy mode, percentages remain visible while currency amounts are masked.
+- **Performance (%) = latent +/- value when available** (Synthèse and account screens):
+  `recordSnapshot` (store) stores `Snapshot.gain` / `.cost` (EUR, from `accountGain` — holdings
+  with a PRU only) **only when the snapshot is for today** (the holdings in memory describe the
+  present). `buildLatentGainSeries` forward-fills them like `buildSeries` and plots
+  Σ gain / Σ cost (ownership-weighted, `rawValue` = gain in EUR, *not* rebased: 0 % = cost basis),
+  so deposits/withdrawals don't move the curve; a sale moves its gain out of "latent".
+  `performanceSeries()` picks it when it has ≥ 2 points in the window, else falls back to
+  `toPerformanceSeries` of the balance series (`basis: 'latent' | 'balance'`) — the screens show
+  a note (`chart.perf_*`) saying which basis is used. Snapshots older than this feature have no
+  `gain`/`cost`; there is no backfill. Real estate (property screen, real-estate part of the
+  Synthèse) stays balance-based. The demo generator writes `gain`/`cost` on its snapshots.
 
 ## Synthèse header refresh
 The Synthèse screen overrides `headerRight` with `navigation.setOptions` to put a refresh icon

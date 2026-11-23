@@ -319,6 +319,11 @@ export interface Snapshot {
   date: string;
   value: number;
   source: SnapshotSource;
+  /** +/- value latente en EUR des lignes avec PRU ce jour-là (absent : pas de PRU, ou
+   *  snapshot antérieur à leur enregistrement). Alimente la vue « Performance (%) ». */
+  gain?: number;
+  /** Prix de revient en EUR (Σ PRU × quantité) des mêmes lignes — dénominateur de `gain`. */
+  cost?: number;
 }
 
 export interface Connection {

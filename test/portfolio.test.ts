@@ -5,12 +5,14 @@ import {
   accountGain,
   accountOwnedValue,
   accountShare,
+  buildLatentGainSeries,
   buildSeries,
   holdingCurrency,
   holdingPerfPct,
   holdingValue,
   holdingValueEur,
   lastSnapshot,
+  performanceSeries,
   periodStart,
   seriesDelta,
   toPerformanceSeries,
@@ -134,6 +136,7 @@ describe('accountGain', () => {
     const gain = accountGain(acc, lines, RATES);
     expect(gain?.abs).toBeCloseTo(100, 10);
     expect(gain?.pct).toBeCloseTo(5, 10); // 100 / 2000
+    expect(gain?.cost).toBeCloseTo(2000, 10);
   });
 
   it('ignore les lignes sans PRU plutôt que de les compter à zéro', () => {
@@ -350,5 +353,93 @@ describe('toPerformanceSeries', () => {
       { date: '2024-01-02', value: -50 },
     ]);
     expect(out.map((p) => p.value)).toEqual([0, 50]);
+  });
+});
+
+describe('buildLatentGainSeries', () => {
+  const today = '2024-01-10';
+
+  it('suit la +/- value latente et ignore les versements', () => {
+    // Jour 1 : 1000 investis, +100. Jour 5 : versement de 1000 investi → valeur doublée,
+    // gain inchangé : la courbe passe de 10 % à 5 %, pas de +100 % comme le solde.
+    const snaps = [
+      snapshot({ accountId: 'a', date: '2024-01-01', value: 1100, gain: 100, cost: 1000 }),
+      snapshot({ accountId: 'a', date: '2024-01-05', value: 2100, gain: 100, cost: 2000 }),
+      snapshot({ accountId: 'a', date: '2024-01-10', value: 2300, gain: 300, cost: 2000 }),
+    ];
+    const pts = buildLatentGainSeries(['a'], snaps, 'MAX', today);
+    expect(pts[0]).toEqual({ date: '2024-01-01', value: 10, rawValue: 100 });
+    expect(pts.find((p) => p.date === '2024-01-04')?.value).toBeCloseTo(10, 10); // forward-fill
+    expect(pts.find((p) => p.date === '2024-01-05')?.value).toBeCloseTo(5, 10);
+    expect(pts[pts.length - 1]).toEqual({ date: today, value: 15, rawValue: 300 });
+  });
+
+  it('agrège Σ gain / Σ coût entre comptes, pondérés par quote-part', () => {
+    const snaps = [
+      snapshot({ accountId: 'a', date: '2024-01-09', value: 0, gain: 100, cost: 1000 }),
+      snapshot({ accountId: 'b', date: '2024-01-09', value: 0, gain: -50, cost: 1000 }),
+    ];
+    const pts = buildLatentGainSeries(['a', 'b'], snaps, 'MAX', today, new Map([['b', 0.5]]));
+    // (100 − 25) / (1000 + 500)
+    expect(pts[pts.length - 1].value).toBeCloseTo((75 / 1500) * 100, 10);
+    expect(pts[pts.length - 1].rawValue).toBeCloseTo(75, 10);
+  });
+
+  it('démarre au premier snapshot portant la +/- value et ignore les comptes qui n’en ont pas', () => {
+    const snaps = [
+      snapshot({ accountId: 'a', date: '2024-01-01', value: 1000 }), // ancien snapshot, sans gain
+      snapshot({ accountId: 'a', date: '2024-01-08', value: 1100, gain: 100, cost: 1000 }),
+      snapshot({ accountId: 'livret', date: '2024-01-01', value: 5000 }),
+    ];
+    const pts = buildLatentGainSeries(['a', 'livret'], snaps, 'MAX', today);
+    expect(pts[0].date).toBe('2024-01-08');
+    expect(pts.every((p) => p.value === 10)).toBe(true);
+  });
+
+  it('écarte un compte dont le dernier snapshot n’a plus de +/- value (tout vendu)', () => {
+    const snaps = [
+      snapshot({ accountId: 'a', date: '2024-01-01', value: 1100, gain: 100, cost: 1000 }),
+      snapshot({ accountId: 'b', date: '2024-01-01', value: 1000, gain: 0, cost: 1000 }),
+      snapshot({ accountId: 'a', date: '2024-01-06', value: 1100 }),
+    ];
+    const pts = buildLatentGainSeries(['a', 'b'], snaps, 'MAX', today);
+    expect(pts.find((p) => p.date === '2024-01-05')?.value).toBeCloseTo(5, 10); // 100 / 2000
+    expect(pts[pts.length - 1].value).toBe(0); // seul b reste
+  });
+
+  it('respecte la période et renvoie [] sans aucune donnée de +/- value', () => {
+    const snaps = [
+      snapshot({ accountId: 'a', date: '2023-06-01', value: 1100, gain: 100, cost: 1000 }),
+      snapshot({ accountId: 'a', date: '2024-01-09', value: 1200, gain: 200, cost: 1000 }),
+    ];
+    const pts = buildLatentGainSeries(['a'], snaps, '1S', today);
+    expect(pts[0]).toEqual({ date: '2024-01-03', value: 10, rawValue: 100 });
+    expect(buildLatentGainSeries(['a'], [snapshot({ accountId: 'a', date: '2024-01-01', value: 1 })], 'MAX', today)).toEqual([]);
+    expect(buildLatentGainSeries(['a'], [snapshot({ accountId: 'a', date: '2024-02-01', value: 1, gain: 0, cost: 1 })], 'MAX', today)).toEqual([]);
+  });
+});
+
+describe('performanceSeries', () => {
+  const today = '2024-01-10';
+  const values: SeriesPoint[] = [
+    { date: '2024-01-01', value: 1000 },
+    { date: today, value: 2000 },
+  ];
+
+  it('utilise la +/- value latente quand elle a au moins deux points', () => {
+    const snaps = [
+      snapshot({ accountId: 'a', date: '2024-01-01', value: 1000, gain: 0, cost: 1000 }),
+      snapshot({ accountId: 'a', date: today, value: 2000, gain: 50, cost: 1950 }),
+    ];
+    const r = performanceSeries(['a'], snaps, values, 'MAX', today);
+    expect(r.basis).toBe('latent');
+    expect(r.points[r.points.length - 1].value).toBeCloseTo((50 / 1950) * 100, 10);
+  });
+
+  it('retombe sur l’évolution du solde sinon', () => {
+    const snaps = [snapshot({ accountId: 'a', date: today, value: 2000, gain: 50, cost: 1950 })];
+    const r = performanceSeries(['a'], snaps, values, 'MAX', today);
+    expect(r.basis).toBe('balance');
+    expect(r.points).toEqual(toPerformanceSeries(values));
   });
 });

@@ -346,6 +346,26 @@ describe('historique (snapshots)', () => {
     expect(S().snapshots[0].date).toBe(todayKey());
   });
 
+  it('enregistre la +/- value latente du jour (lignes avec PRU) avec le snapshot', () => {
+    const acc = S().upsertAccount({ name: 'CTO', type: 'cto' });
+    S().upsertHolding({ accountId: acc.id, name: 'x', quantity: 10, buyPrice: 100, unitPrice: 120 });
+    S().upsertHolding({ accountId: acc.id, name: 'sans PRU', quantity: 3, unitPrice: 50 });
+    S().recordSnapshot(acc.id, 1350, 'auto');
+    expect(S().snapshots[0]).toMatchObject({ value: 1350, gain: 200, cost: 1000 });
+  });
+
+  it('n’enregistre pas de +/- value pour une date passée ni pour un compte sans PRU', () => {
+    const acc = S().upsertAccount({ name: 'CTO', type: 'cto' });
+    S().upsertHolding({ accountId: acc.id, name: 'x', quantity: 10, buyPrice: 100, unitPrice: 120 });
+    S().recordSnapshot(acc.id, 1200, 'manual', '2024-01-01');
+    const livret = S().upsertAccount({ name: 'Livret', type: 'livret' });
+    S().recordSnapshot(livret.id, 500, 'manual');
+    for (const sn of S().snapshots) {
+      expect(sn.gain).toBeUndefined();
+      expect(sn.cost).toBeUndefined();
+    }
+  });
+
   it('supprime un snapshot, ou un lot de snapshots', () => {
     S().importData({
       accounts: [],

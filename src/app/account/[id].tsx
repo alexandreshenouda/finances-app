@@ -15,7 +15,7 @@ import {
     holdingPerfPct,
     holdingValueEur,
     lastSnapshot,
-    toPerformanceSeries
+    performanceSeries
 } from '@/lib/portfolio';
 import { useStore } from '@/lib/store';
 import { ACCOUNT_TYPE_COLORS, ACCOUNT_TYPE_LABELS, CHART_MODES, type ChartMode, type Period } from '@/lib/types';
@@ -97,10 +97,15 @@ export default function AccountDetail() {
     () => (account ? buildSeries([account.id], snapshots, period) : []),
     [account, snapshots, period]
   );
-  const displayPoints = useMemo(
-    () => (chartMode === 'percent' ? toPerformanceSeries(series) : series),
-    [chartMode, series]
+  // Vue % : +/- value latente (lignes avec PRU) si son historique couvre la période, sinon solde.
+  const perf = useMemo(
+    () =>
+      account && chartMode === 'percent'
+        ? performanceSeries([account.id], snapshots, series, period)
+        : undefined,
+    [account, chartMode, snapshots, series, period]
   );
+  const displayPoints = perf?.points ?? series;
 
   if (!account) {
     return <Empty text={t('accountDetail.introuvable')} />;
@@ -190,6 +195,15 @@ export default function AccountDetail() {
             />
           </View>
           <LineChart points={displayPoints} color={ACCOUNT_TYPE_COLORS[account.type]} mode={chartMode} />
+          {perf && displayPoints.length >= 2 && (
+            <Text style={styles.lastUpdate}>
+              {perf.basis === 'latent'
+                ? t('chart.perf_latente_note')
+                : gain
+                  ? t('chart.perf_latente_en_cours')
+                  : t('chart.perf_solde_note')}
+            </Text>
+          )}
         </Card>
 
         <SectionTitle>{t('accountDetail.lignes_titre')}</SectionTitle>

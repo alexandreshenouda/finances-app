@@ -11,6 +11,7 @@ import {
   type WatchlistEntry,
 } from './aiCounsel';
 import i18next, { detectDeviceLanguage, type Language } from './i18n';
+import { accountGain } from './portfolio';
 import {
   DEFAULT_FX_RATES,
   DEFAULT_PROJECTION_SETTINGS,
@@ -423,9 +424,16 @@ export const useStore = create<AppState>()(
         const day = date ?? todayKey();
         set((s) => {
           const others = s.snapshots.filter((sn) => !(sn.accountId === accountId && sn.date === day));
-          return {
-            snapshots: [...others, { id: uid(), accountId, date: day, value, source }],
-          };
+          const snapshot: Snapshot = { id: uid(), accountId, date: day, value, source };
+          // +/- value latente du jour (lignes avec PRU) pour la vue « Performance (%) ».
+          // Seulement pour aujourd'hui : les lignes en mémoire décrivent le présent, pas une date passée.
+          const account = s.accounts.find((a) => a.id === accountId);
+          const gain = account && day === todayKey() ? accountGain(account, s.holdings, s.fxRates) : undefined;
+          if (gain) {
+            snapshot.gain = gain.abs;
+            snapshot.cost = gain.cost;
+          }
+          return { snapshots: [...others, snapshot] };
         });
       },
 

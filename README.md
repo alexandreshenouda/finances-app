@@ -181,11 +181,18 @@ fictif. Thème **Or** (par défaut) :
   doigt, variation absolue et en %).
 - **Mode Valeur ou Performance (%)** : basculement direct sur tous les graphiques historiques
   (Synthèse, comptes, biens immobiliers) et configurable dans **Paramètres → Affichage** entre
-  la valeur absolue en devise et la performance relative en % sur la période choisie. En mode
-  Performance, la courbe part de **0 % au premier jour de la période** et affiche l'écart relatif
-  à ce point de référence : la **ligne repère 0 % en pointillés est toujours visible**, l'aire
-  est ancrée dessus, et la courbe prend la **couleur du thème au-dessus de 0 %** et le **rouge
-  en dessous**. L'infobulle rappelle le montant en devise correspondant au point survolé.
+  la valeur absolue en devise et la performance en %. Sur la Synthèse et les comptes, la vue
+  Performance trace la **+/- value latente** (Σ +/- value / Σ prix de revient des lignes ayant un
+  PRU, hors liquidités et immobilier) : un **versement ou un retrait ne fait pas bouger la
+  courbe**, contrairement à l'évolution du solde, et 0 % = prix de revient. La pastille de la
+  Synthèse affiche alors la +/- value latente actuelle. Cet historique est enregistré avec chaque
+  snapshot à partir de cette version : tant qu'il ne couvre pas au moins deux points de la
+  période (ou pour un compte sans PRU, et pour les biens immobiliers), la courbe retombe sur
+  l'**évolution du solde**, partant de 0 % au premier jour de la période — une note sous le
+  graphique indique la base utilisée. Dans tous les cas la **ligne repère 0 % en pointillés est
+  toujours visible**, l'aire est ancrée dessus, et la courbe prend la **couleur du thème
+  au-dessus de 0 %** et le **rouge en dessous**. L'infobulle rappelle le montant en devise
+  correspondant au point survolé (la +/- value latente en vue +/- value).
 - **Répartition du patrimoine** par type de compte, en **barre empilée ou camembert**.
 - **Épargne de précaution suggérée** : l'objectif « Épargne de précaution » se définit à partir
   des **dépenses vitales mensuelles** (loyer/crédit, alimentation, énergie, assurances, transport)
@@ -266,7 +273,9 @@ fictif. Thème **Or** (par défaut) :
   dans l'app TR, récupération du portefeuille) jusqu'au message de fin de synchro.
 - **Snapshots quotidiens** : chaque mise à jour (cours, synchro ou saisie) enregistre au plus un
   point par jour et par compte ; les courbes se construisent à partir de ces points (report de la
-  dernière valeur connue pour les comptes non mis à jour).
+  dernière valeur connue pour les comptes non mis à jour). Le snapshot du jour porte aussi la
+  +/- value latente et le prix de revient des lignes avec PRU (`gain` / `cost`), base de la vue
+  Performance (%).
 
 **Confidentialité & personnalisation**
 - **Thèmes** : choix entre le thème **Or** (sombre et or clair, par défaut) et le thème
@@ -398,7 +407,7 @@ vivent dans `test/`, un par module de `src/lib` :
 | --- | --- |
 | `test/format.test.ts` | formatage des montants / % / durées, masquage « confidentialité », arithmétique de dates |
 | `test/fx.test.ts` | conversion de devises (`toEur`, `convert`), rafraîchissement des taux BCE |
-| `test/portfolio.test.ts` | valorisation des comptes, plus-values, quote-part, `buildSeries`, mode performance (%) |
+| `test/portfolio.test.ts` | valorisation des comptes, plus-values, quote-part, `buildSeries`, mode performance (%) : solde et +/- value latente |
 | `test/realestate.test.ts` | amortissement (mensualités constantes **et** paliers/différé), valorisation des biens, courbe patrimoniale |
 | `test/houseIndex.test.ts` | interpolation de l'indice des prix des logements (indépendante du fuseau horaire / changement d'heure), rafraîchissement FRED |
 | `test/objectives.test.ts` | progression des objectifs, épargne de précaution (suggestion, plan de constitution), effort mensuel |

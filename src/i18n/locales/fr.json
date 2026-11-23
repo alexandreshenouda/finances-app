@@ -1035,7 +1035,11 @@
   "chart": {
     "mode_valeur": "Valeur",
     "mode_performance": "Performance (%)",
-    "historique_insuffisant": "Pas encore assez d'historique — les courbes apparaîtront après quelques mises à jour de valeur."
+    "historique_insuffisant": "Pas encore assez d'historique — les courbes apparaîtront après quelques mises à jour de valeur.",
+    "plus_value_latente": "+/- value latente",
+    "perf_latente_note": "Performance = +/- value latente des lignes avec PRU (hors liquidités et immobilier) ; 0 % = prix de revient. Les versements ne la font pas bouger.",
+    "perf_latente_en_cours": "Historique des +/- values pas encore disponible sur cette période : performance calculée sur l'évolution du solde (versements compris). Il se constitue à chaque actualisation.",
+    "perf_solde_note": "Aucune ligne avec PRU : performance calculée sur l'évolution du solde (versements compris)."
   },
   "projection": {
     "title": "Projection",

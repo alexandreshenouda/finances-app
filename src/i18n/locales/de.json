@@ -1035,7 +1035,11 @@
   "chart": {
     "mode_valeur": "Wert",
     "mode_performance": "Performance (%)",
-    "historique_insuffisant": "Noch nicht genug Verlauf — die Kurven erscheinen nach einigen Wertaktualisierungen."
+    "historique_insuffisant": "Noch nicht genug Verlauf — die Kurven erscheinen nach einigen Wertaktualisierungen.",
+    "plus_value_latente": "Unrealisierter Gewinn/Verlust",
+    "perf_latente_note": "Performance = unrealisierter Gewinn/Verlust der Positionen mit Einstandskurs (ohne Barmittel und Immobilien); 0 % = Einstandswert. Einzahlungen verändern sie nicht.",
+    "perf_latente_en_cours": "Für diesen Zeitraum noch kein Gewinn/Verlust-Verlauf: Performance basiert auf dem Saldo (inkl. Einzahlungen). Der Verlauf entsteht mit jeder Aktualisierung.",
+    "perf_solde_note": "Keine Position mit Einstandskurs: Performance basiert auf dem Saldo (inkl. Einzahlungen)."
   },
   "projection": {
     "title": "Projektion",

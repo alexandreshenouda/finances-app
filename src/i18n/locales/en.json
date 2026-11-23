@@ -1035,7 +1035,11 @@
   "chart": {
     "mode_valeur": "Value",
     "mode_performance": "Performance (%)",
-    "historique_insuffisant": "Not enough history yet — charts will appear after a few value updates."
+    "historique_insuffisant": "Not enough history yet — charts will appear after a few value updates.",
+    "plus_value_latente": "Unrealised gain/loss",
+    "perf_latente_note": "Performance = unrealised gain/loss of positions with a cost basis (excluding cash and real estate); 0 % = cost basis. Deposits don't move it.",
+    "perf_latente_en_cours": "No gain/loss history for this period yet: performance is based on the balance (deposits included). History builds up with each refresh.",
+    "perf_solde_note": "No position with a cost basis: performance is based on the balance (deposits included)."
   },
   "projection": {
     "title": "Projection",

@@ -14,7 +14,7 @@ import { Button, Card, Checkbox, EmptyState, PeriodChips, Pill, SectionTitle, Se
 import { C, CONTENT, FONT, TABULAR, useStyles } from '@/constants/theme';
 import { syncAllConnections } from '@/lib/connectors';
 import { formatEur, formatPct } from '@/lib/format';
-import { accountCurrentValue, accountShare, seriesDelta, toPerformanceSeries } from '@/lib/portfolio';
+import { accountCurrentValue, accountGain, accountShare, performanceSeries, seriesDelta } from '@/lib/portfolio';
 import { refreshAllPrices } from '@/lib/prices';
 import { houseIndexSeries, refreshHouseIndex } from '@/lib/prices/houseIndex';
 import { buildPatrimoineSeries, consoDebtEur, realEstateTotals } from '@/lib/realestate';
@@ -135,9 +135,27 @@ export default function Dashboard() {
   );
 
   const delta = useMemo(() => seriesDelta(series), [series]);
-  const displayPoints = useMemo(
-    () => (chartMode === 'percent' ? toPerformanceSeries(series) : series),
-    [chartMode, series]
+  // Vue % : +/- value latente des comptes (lignes avec PRU) quand son historique couvre la
+  // période, sinon évolution du solde. L'immobilier n'entre pas dans la +/- value latente.
+  const perf = useMemo(
+    () =>
+      chartMode === 'percent'
+        ? performanceSeries(
+            active.map((a) => a.id),
+            snapshots,
+            series,
+            period,
+            undefined,
+            new Map(active.map((a) => [a.id, accountShare(a)]))
+          )
+        : undefined,
+    [chartMode, active, snapshots, series, period]
+  );
+  const displayPoints = perf?.points ?? series;
+  const latentLast = perf?.basis === 'latent' ? perf.points[perf.points.length - 1] : undefined;
+  const hasCostBasis = useMemo(
+    () => active.some((a) => accountGain(a, holdings, rates) !== undefined),
+    [active, holdings, rates]
   );
 
   const byType = useMemo(() => {
@@ -215,6 +233,7 @@ export default function Dashboard() {
   }, [navigation, onRefresh, refreshing, styles, t]);
 
   const deltaColor = delta.abs >= 0 ? C.positive : C.negative;
+  const latentColor = (latentLast?.rawValue ?? 0) >= 0 ? C.positive : C.negative;
 
   return (
     <ScrollView
@@ -253,7 +272,18 @@ export default function Dashboard() {
               : t('index.brut_credits', { amount: formatEur(debtTotal) })}
           </Text>
         )}
-        {series.length >= 2 && (
+        {latentLast ? (
+          <View style={styles.deltaRow}>
+            <Pill
+              color={latentColor}
+              text={`${latentLast.rawValue! >= 0 ? '+' : ''}${formatEur(latentLast.rawValue!)}  ·  ${formatPct(
+                latentLast.value,
+                true
+              )}`}
+            />
+            <Text style={styles.deltaPeriod}>{t('chart.plus_value_latente')}</Text>
+          </View>
+        ) : series.length >= 2 && (
           <View style={styles.deltaRow}>
             <Pill
               color={deltaColor}
@@ -266,6 +296,15 @@ export default function Dashboard() {
         )}
         <View style={{ height: 12 }} />
         <LineChart points={displayPoints} mode={chartMode} />
+        {perf && displayPoints.length >= 2 && (
+          <Text style={styles.worthNote}>
+            {perf.basis === 'latent'
+              ? t('chart.perf_latente_note')
+              : hasCostBasis
+                ? t('chart.perf_latente_en_cours')
+                : t('chart.perf_solde_note')}
+          </Text>
+        )}
         <View style={styles.chartControls}>
           <PeriodChips value={period} onChange={setPeriodOverride} style={{ marginBottom: 0 }} />
           <Segmented options={CHART_MODES} value={chartMode} onChange={setChartMode} labels={CHART_MODE_LABELS} />

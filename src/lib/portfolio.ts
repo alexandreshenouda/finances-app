@@ -69,7 +69,7 @@ export function accountGain(
   account: Account,
   holdings: Holding[],
   rates: FxRates
-): { abs: number; pct?: number } | undefined {
+): { abs: number; pct?: number; cost: number } | undefined {
   const lines = holdings.filter((h) => h.accountId === account.id);
   let cost = 0;
   let gain = 0;
@@ -82,7 +82,7 @@ export function accountGain(
     any = true;
   }
   if (!any || cost <= 0) return undefined;
-  return { abs: gain, pct: (gain / cost) * 100 };
+  return { abs: gain, pct: (gain / cost) * 100, cost };
 }
 
 export function lastSnapshot(accountId: string, snapshots: Snapshot[]): Snapshot | undefined {
@@ -132,6 +132,61 @@ export function periodStart(period: Period, today = todayKey()): string | undefi
   return `${y}-${m}-${day}`;
 }
 
+/** Jours échantillonnés de `from` à `today` inclus (≤ ~180 points, `today` toujours présent). */
+function sampleDays(from: string, today: string): string[] {
+  const dayCount =
+    Math.round(
+      (new Date(`${today}T12:00:00`).getTime() - new Date(`${from}T12:00:00`).getTime()) / 86_400_000
+    ) + 1;
+  const step = Math.max(1, Math.ceil(dayCount / 180));
+  const days: string[] = [];
+  let day = from;
+  while (day <= today) {
+    days.push(day);
+    if (day === today) break;
+    const next = addDays(day, step);
+    day = next > today ? today : next;
+  }
+  return days;
+}
+
+/**
+ * Parcourt les jours échantillonnés en reportant, pour chaque compte, son dernier
+ * snapshot connu à cette date (forward-fill). `sorted` : snapshots triés par date.
+ */
+function forwardFill(
+  sorted: Snapshot[],
+  from: string,
+  today: string,
+  onDay: (day: string, latest: Map<string, Snapshot>) => void
+): void {
+  const byAccount = new Map<string, Snapshot[]>();
+  for (const s of sorted) {
+    const arr = byAccount.get(s.accountId) ?? [];
+    arr.push(s);
+    byAccount.set(s.accountId, arr);
+  }
+  const cursors = new Map<string, number>();
+  const latest = new Map<string, Snapshot>();
+  for (const day of sampleDays(from, today)) {
+    for (const [accountId, arr] of byAccount) {
+      let i = cursors.get(accountId) ?? 0;
+      while (i < arr.length && arr[i].date <= day) {
+        latest.set(accountId, arr[i]);
+        i++;
+      }
+      cursors.set(accountId, i);
+    }
+    onDay(day, latest);
+  }
+}
+
+function sortedSnapshots(accountIds: string[], snapshots: Snapshot[]): Snapshot[] {
+  return snapshots
+    .filter((s) => accountIds.includes(s.accountId))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
+
 /**
  * Série de valeur totale (comptes sélectionnés) sur une période.
  * Chaque compte est reporté au dernier snapshot connu (forward-fill) pour que
@@ -145,9 +200,7 @@ export function buildSeries(
   /** Pondération par compte (ex : quote-part SCI) ; défaut 1. */
   weights?: Map<string, number>
 ): SeriesPoint[] {
-  const relevant = snapshots
-    .filter((s) => accountIds.includes(s.accountId))
-    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const relevant = sortedSnapshots(accountIds, snapshots);
   if (relevant.length === 0) return [];
 
   const firstDate = relevant[0].date;
@@ -155,43 +208,79 @@ export function buildSeries(
   const from = start < firstDate ? firstDate : start;
   if (from > today) return [];
 
-  // Index des snapshots par compte, triés par date.
-  const byAccount = new Map<string, Snapshot[]>();
-  for (const s of relevant) {
-    const arr = byAccount.get(s.accountId) ?? [];
-    arr.push(s);
-    byAccount.set(s.accountId, arr);
-  }
-
-  // Nombre de jours de la fenêtre ; on échantillonne pour garder ≤ ~180 points.
-  const dayCount =
-    Math.round(
-      (new Date(`${today}T12:00:00`).getTime() - new Date(`${from}T12:00:00`).getTime()) / 86_400_000
-    ) + 1;
-  const step = Math.max(1, Math.ceil(dayCount / 180));
-
-  const cursors = new Map<string, number>();
-  const lastValues = new Map<string, number>();
   const points: SeriesPoint[] = [];
-
-  let day = from;
-  while (day <= today) {
-    for (const [accountId, arr] of byAccount) {
-      let i = cursors.get(accountId) ?? 0;
-      while (i < arr.length && arr[i].date <= day) {
-        lastValues.set(accountId, arr[i].value);
-        i++;
-      }
-      cursors.set(accountId, i);
-    }
+  forwardFill(relevant, from, today, (day, latest) => {
     let total = 0;
-    for (const [accountId, v] of lastValues) total += v * (weights?.get(accountId) ?? 1);
+    for (const [accountId, s] of latest) total += s.value * (weights?.get(accountId) ?? 1);
     points.push({ date: day, value: total });
-    if (day === today) break;
-    const next = addDays(day, step);
-    day = next > today ? today : next;
-  }
+  });
   return points;
+}
+
+/**
+ * Série de +/- value latente (en %) des comptes sélectionnés : à chaque date,
+ * Σ +/- value / Σ prix de revient des lignes avec PRU, d'après les champs `gain` /
+ * `cost` des snapshots (forward-fill comme `buildSeries`). Contrairement à
+ * `toPerformanceSeries`, un versement ou un retrait ne fait pas bouger la courbe :
+ * il change le prix de revient autant que la valeur. Une vente sort sa plus-value
+ * du latent (elle devient réalisée). `rawValue` = +/- value latente en EUR.
+ * Ne démarre qu'au premier snapshot portant ces champs ; un compte dont le dernier
+ * snapshot n'en porte pas (sans PRU, ou antérieur à leur enregistrement) est ignoré
+ * ce jour-là. Courbe non rebasée : 0 % = prix de revient.
+ */
+export function buildLatentGainSeries(
+  accountIds: string[],
+  snapshots: Snapshot[],
+  period: Period,
+  today = todayKey(),
+  weights?: Map<string, number>
+): SeriesPoint[] {
+  const relevant = sortedSnapshots(accountIds, snapshots);
+  const first = relevant.find(hasLatent);
+  if (!first) return [];
+  const start = periodStart(period, today) ?? first.date;
+  const from = start < first.date ? first.date : start;
+  if (from > today) return [];
+
+  const points: SeriesPoint[] = [];
+  forwardFill(relevant, from, today, (day, latest) => {
+    let gain = 0;
+    let cost = 0;
+    for (const [accountId, s] of latest) {
+      if (!hasLatent(s)) continue;
+      const w = weights?.get(accountId) ?? 1;
+      gain += s.gain! * w;
+      cost += s.cost! * w;
+    }
+    if (cost > 0) points.push({ date: day, value: (gain / cost) * 100, rawValue: gain });
+  });
+  return points;
+}
+
+function hasLatent(s: Snapshot): boolean {
+  return s.gain !== undefined && s.cost !== undefined && s.cost > 0;
+}
+
+/** Base de calcul de la vue « Performance (%) ». */
+export type PerformanceBasis = 'latent' | 'balance';
+
+/**
+ * Série de la vue « Performance (%) » : la +/- value latente (`buildLatentGainSeries`)
+ * dès qu'elle a au moins deux points sur la période, sinon l'évolution du solde
+ * (`toPerformanceSeries` de `valueSeries`) — comptes sans PRU, ou historique des
+ * +/- values pas encore constitué.
+ */
+export function performanceSeries(
+  accountIds: string[],
+  snapshots: Snapshot[],
+  valueSeries: SeriesPoint[],
+  period: Period,
+  today = todayKey(),
+  weights?: Map<string, number>
+): { points: SeriesPoint[]; basis: PerformanceBasis } {
+  const latent = buildLatentGainSeries(accountIds, snapshots, period, today, weights);
+  if (latent.length >= 2) return { points: latent, basis: 'latent' };
+  return { points: toPerformanceSeries(valueSeries), basis: 'balance' };
 }
 
 /** Variation sur la période : absolue et en %. */

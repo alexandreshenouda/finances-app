@@ -124,7 +124,7 @@ const cashFlows = [];
 function simAccount(meta, { opened = START, cash = 0 } = {}) {
   const acc = { id: id('acc'), currency: 'EUR', createdAt: iso(opened), ...meta };
   accounts.push(acc);
-  return { acc, opened, cash, lines: [], values: new Map() };
+  return { acc, opened, cash, lines: [], values: new Map(), latent: new Map() };
 }
 function line(sim, spec) {
   const l = { qty: 0, cost: 0, ...spec };
@@ -484,6 +484,13 @@ for (let d = 0; d <= D; d++) {
     if (num < sim.opened) continue;
     const lines = sim.lines.reduce((s, l) => s + (l.unitValue ?? l.qty * l.path[d]) * fx(l), 0);
     sim.values.set(d, sim.cash + lines);
+    // +/- value latente des lignes avec PRU (pas le fonds euros), comme `accountGain` de l'app.
+    const priced = sim.lines.filter((l) => l.unitValue === undefined && l.qty > 0 && l.cost > 0);
+    if (priced.length > 0) {
+      const cost = priced.reduce((s, l) => s + l.cost * fx(l), 0);
+      const gain = priced.reduce((s, l) => s + (l.qty * l.path[d] - l.cost) * fx(l), 0);
+      sim.latent.set(d, { gain: round2(gain), cost: round2(cost) });
+    }
   }
 }
 
@@ -493,7 +500,9 @@ for (const sim of [courant, livretA, ldds, pea, av, cto, kraken]) {
     const age = D - d;
     const first = START + d === sim.opened;
     const keep = first || age === 0 || (age < 21 ? rnd() < 0.85 : age < 120 ? rnd() < 0.45 : rnd() < 0.22);
-    if (keep) snapshots.push({ id: id('snap'), accountId: sim.acc.id, date: toKey(START + d), value: round2(value), source: 'auto' });
+    if (keep) {
+      snapshots.push({ id: id('snap'), accountId: sim.acc.id, date: toKey(START + d), value: round2(value), source: 'auto', ...sim.latent.get(d) });
+    }
   }
 }
 
